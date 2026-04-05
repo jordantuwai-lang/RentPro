@@ -1,0 +1,8 @@
+{
+  "name": "rentpro",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
