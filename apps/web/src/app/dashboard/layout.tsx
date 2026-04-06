@@ -1,4 +1,5 @@
 import Sidebar from '@/components/Sidebar';
+import AuthSync from '@/components/AuthSync';
 
 export default function DashboardLayout({
   children,
@@ -7,6 +8,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
+      <AuthSync />
       <Sidebar />
       <main style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
         {children}
