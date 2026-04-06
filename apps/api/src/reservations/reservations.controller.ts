@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 
@@ -39,5 +39,25 @@ export class ReservationsController {
   @Patch(':id/cancel')
   cancel(@Param('id') id: string) {
     return this.reservationsService.cancel(id);
+  }
+
+  @Post(':id/cards')
+  addPaymentCard(@Param('id') id: string, @Body() body: any) {
+    return this.reservationsService.addPaymentCard(id, body);
+  }
+
+  @Delete(':id/cards/:cardId')
+  deletePaymentCard(@Param('cardId') cardId: string) {
+    return this.reservationsService.deletePaymentCard(cardId);
+  }
+
+  @Post(':id/drivers')
+  addAdditionalDriver(@Param('id') id: string, @Body() body: any) {
+    return this.reservationsService.addAdditionalDriver(id, body);
+  }
+
+  @Delete(':id/drivers/:driverId')
+  deleteAdditionalDriver(@Param('driverId') driverId: string) {
+    return this.reservationsService.deleteAdditionalDriver(driverId);
   }
 }

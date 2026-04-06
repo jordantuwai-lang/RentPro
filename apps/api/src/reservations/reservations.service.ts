@@ -39,6 +39,8 @@ export class ReservationsService {
         vehicle: { include: { branch: true } },
         claim: { include: { insurer: true, repairer: true, documents: true, invoices: true } },
         delivery: true,
+        paymentCards: true,
+        additionalDrivers: true,
       },
     });
   }
@@ -169,5 +171,55 @@ export class ReservationsService {
     return this.prisma.vehicle.findMany({
       where: { branchId, category, status: 'AVAILABLE' },
     });
+  }
+
+  generateCardReference(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'CARD-';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  async addPaymentCard(reservationId: string, data: any) {
+    let referenceCode = this.generateCardReference();
+    let exists = await this.prisma.paymentCard.findFirst({ where: { referenceCode } });
+    while (exists) {
+      referenceCode = this.generateCardReference();
+      exists = await this.prisma.paymentCard.findFirst({ where: { referenceCode } });
+    }
+    return this.prisma.paymentCard.create({
+      data: {
+        reservation: { connect: { id: reservationId } },
+        cardType: data.cardType,
+        cardNumber: data.cardNumber,
+        expiryDate: data.expiryDate,
+        cardholderName: data.cardholderName,
+        referenceCode,
+      },
+    });
+  }
+
+  deletePaymentCard(id: string) {
+    return this.prisma.paymentCard.delete({ where: { id } });
+  }
+
+  addAdditionalDriver(reservationId: string, data: any) {
+    return this.prisma.additionalDriver.create({
+      data: {
+        reservation: { connect: { id: reservationId } },
+        firstName: data.firstName,
+        lastName: data.lastName,
+        licenceNumber: data.licenceNumber,
+        licenceExpiry: data.licenceExpiry || null,
+        dob: data.dob || null,
+        phone: data.phone || null,
+      },
+    });
+  }
+
+  deleteAdditionalDriver(id: string) {
+    return this.prisma.additionalDriver.delete({ where: { id } });
   }
 }

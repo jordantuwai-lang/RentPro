@@ -42,12 +42,7 @@ const heading: React.CSSProperties = {
   letterSpacing: '0.1em',
 };
 
-const grid2: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: '16px',
-};
-
+const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
 const full: React.CSSProperties = { gridColumn: '1 / -1' };
 
 function F({ label: l, children, full: f }: { label: string; children: React.ReactNode; full?: boolean }) {
@@ -91,36 +86,27 @@ function BusinessFields({ data, onChange }: { data: any; onChange: (f: string, v
 function ToggleButton({ show, onToggle, label }: { show: boolean; onToggle: () => void; label: string }) {
   return (
     <button onClick={onToggle} style={{
-      padding: '10px 20px',
-      borderRadius: '8px',
-      border: '1px dashed #cbd5e1',
-      background: show ? '#eff6ff' : '#fff',
-      color: show ? '#3b82f6' : '#64748b',
-      fontSize: '13px',
-      fontWeight: 500,
-      cursor: 'pointer',
-      width: '100%',
-      textAlign: 'left',
-      marginBottom: '20px',
+      padding: '10px 20px', borderRadius: '8px', border: '1px dashed #cbd5e1',
+      background: show ? '#eff6ff' : '#fff', color: show ? '#3b82f6' : '#64748b',
+      fontSize: '13px', fontWeight: 500, cursor: 'pointer', width: '100%', textAlign: 'left', marginBottom: '20px',
     }}>
       {show ? `— Remove ${label}` : `+ Add ${label}`}
     </button>
   );
 }
 
+const emptyCard = { cardType: '', cardNumber: '', expiryDate: '', cardholderName: '' };
+const emptyDriver = { firstName: '', lastName: '', licenceNumber: '', licenceExpiry: '', dob: '', phone: '' };
+const emptyPerson = { firstName: '', lastName: '', address: '', suburb: '', postcode: '', phone: '', email: '', licenceNumber: '', licenceExpiry: '', dob: '' };
+
 export default function NewReservationPage() {
   const { getToken } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+
   const [sameAsDriver, setSameAsDriver] = useState(false);
   const [showBusiness, setShowBusiness] = useState(false);
   const [showAtFaultBusiness, setShowAtFaultBusiness] = useState(false);
-
-  const emptyPerson = {
-    firstName: '', lastName: '', address: '', suburb: '', postcode: '',
-    phone: '', email: '', licenceNumber: '', licenceExpiry: '', dob: '',
-  };
-
   const [driver, setDriver] = useState({ ...emptyPerson });
   const [owner, setOwner] = useState({ ...emptyPerson, insuranceProvider: '', claimNumber: '' });
   const [atFault, setAtFault] = useState({ ...emptyPerson, vehicleRegistration: '', insuranceProvider: '', claimNumber: '' });
@@ -129,6 +115,10 @@ export default function NewReservationPage() {
   const [repairer, setRepairer] = useState({ businessName: '', phone: '', address: '', suburb: '', contact: '' });
   const [business, setBusiness] = useState({ name: '', address: '', suburb: '', postcode: '', phone: '' });
   const [atFaultBusiness, setAtFaultBusiness] = useState({ name: '', address: '', suburb: '', postcode: '', phone: '' });
+  const [cards, setCards] = useState([{ ...emptyCard }]);
+  const [savedCards, setSavedCards] = useState<any[]>([]);
+  const [savingCard, setSavingCard] = useState<number | null>(null);
+  const [additionalDrivers, setAdditionalDrivers] = useState<any[]>([]);
   const [vehicleId, setVehicleId] = useState('');
   const [branchId, setBranchId] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -141,6 +131,14 @@ export default function NewReservationPage() {
   const updRepairer = (f: string, v: string) => setRepairer(p => ({ ...p, [f]: v }));
   const updBusiness = (f: string, v: string) => setBusiness(p => ({ ...p, [f]: v }));
   const updAtFaultBusiness = (f: string, v: string) => setAtFaultBusiness(p => ({ ...p, [f]: v }));
+
+  const updCard = (i: number, f: string, v: string) => setCards(cards.map((c, idx) => idx === i ? { ...c, [f]: v } : c));
+  const addCard = () => setCards([...cards, { ...emptyCard }]);
+  const removeCard = (i: number) => setCards(cards.filter((_, idx) => idx !== i));
+
+  const updAdditionalDriver = (i: number, f: string, v: string) => setAdditionalDrivers(additionalDrivers.map((d, idx) => idx === i ? { ...d, [f]: v } : d));
+  const addAdditionalDriver = () => setAdditionalDrivers([...additionalDrivers, { ...emptyDriver }]);
+  const removeAdditionalDriver = (i: number) => setAdditionalDrivers(additionalDrivers.filter((_, idx) => idx !== i));
 
   const { data: branches } = useQuery({
     queryKey: ['branches'],
@@ -169,7 +167,7 @@ export default function NewReservationPage() {
   const mutation = useMutation({
     mutationFn: async (status: string) => {
       const token = await getToken();
-      return api.post('/reservations', {
+      const res = await api.post('/reservations', {
         customer: {
           firstName: driver.firstName,
           lastName: driver.lastName,
@@ -181,6 +179,31 @@ export default function NewReservationPage() {
         startDate: startDate || new Date().toISOString(),
         status,
       }, { headers: { Authorization: `Bearer ${token}` } });
+
+      const reservationId = res.data.id;
+
+      for (const card of savedCards) {
+        await api.post(`/reservations/${reservationId}/cards`, card, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+      for (const card of cards) {
+        if (card.cardType && card.cardNumber && card.cardholderName && card.expiryDate) {
+          await api.post(`/reservations/${reservationId}/cards`, card, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
+      }
+
+      for (const d of additionalDrivers) {
+        if (d.firstName && d.lastName) {
+          await api.post(`/reservations/${reservationId}/drivers`, d, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
+      }
+
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
@@ -201,7 +224,6 @@ export default function NewReservationPage() {
       </div>
 
       <ToggleButton show={showBusiness} onToggle={() => setShowBusiness(!showBusiness)} label="business details (if driving on behalf of a business)" />
-
       {showBusiness && (
         <div style={section}>
           <h2 style={heading}>Business details</h2>
@@ -271,6 +293,99 @@ export default function NewReservationPage() {
           <F label="Suburb"><input style={input} value={repairer.suburb} onChange={e => updRepairer('suburb', e.target.value)} /></F>
           <F label="Contact number"><input style={input} value={repairer.contact} onChange={e => updRepairer('contact', e.target.value)} /></F>
         </div>
+      </div>
+
+      <div style={section}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ ...heading, marginBottom: 0 }}>Payment card</h2>
+          <button onClick={addCard} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#3b82f6', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+            + Add card
+          </button>
+        </div>
+        {savedCards.length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            {savedCards.map((sc, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', marginBottom: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#065f46' }}>{sc.cardType} — {sc.cardholderName}</div>
+                  <div style={{ fontSize: '12px', color: '#059669', marginTop: '2px' }}>Reference: <strong>{sc.referenceCode}</strong></div>
+                </div>
+                <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>Card saved</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {cards.map((card, i) => (
+          <div key={i} style={{ marginBottom: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: '#64748b' }}>Card {i + 1}</span>
+              {cards.length > 1 && (
+                <button onClick={() => removeCard(i)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '12px', cursor: 'pointer' }}>Remove</button>
+              )}
+            </div>
+            <div style={grid2}>
+              <F label="Card type">
+                <select style={input} value={card.cardType} onChange={e => updCard(i, 'cardType', e.target.value)}>
+                  <option value="">Select type...</option>
+                  <option value="Visa Credit">Visa Credit</option>
+                  <option value="Visa Debit">Visa Debit</option>
+                  <option value="Mastercard Credit">Mastercard Credit</option>
+                  <option value="Mastercard Debit">Mastercard Debit</option>
+                  <option value="American Express">American Express</option>
+                </select>
+              </F>
+              <F label="Cardholder name"><input style={input} value={card.cardholderName} onChange={e => updCard(i, 'cardholderName', e.target.value)} /></F>
+              <F label="Card number"><input style={input} value={card.cardNumber} onChange={e => updCard(i, 'cardNumber', e.target.value)} placeholder="**** **** **** ****" /></F>
+              <F label="Expiry date"><input style={input} value={card.expiryDate} onChange={e => updCard(i, 'expiryDate', e.target.value)} placeholder="MM/YY" /></F>
+            </div>
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  if (!card.cardType || !card.cardNumber || !card.cardholderName || !card.expiryDate) return;
+                  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                  let code = 'CARD-';
+                  for (let j = 0; j < 6; j++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+                  setSavedCards(prev => [...prev, { ...card, referenceCode: code }]);
+                  removeCard(i);
+                  if (cards.length === 1) setCards([{ ...emptyCard }]);
+                }}
+                disabled={!card.cardType || !card.cardNumber || !card.cardholderName || !card.expiryDate}
+                style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: (!card.cardType || !card.cardNumber || !card.cardholderName || !card.expiryDate) ? '#93c5fd' : '#3b82f6', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+              >
+                Save card
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={section}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ ...heading, marginBottom: 0 }}>Additional drivers</h2>
+          <button onClick={addAdditionalDriver} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#3b82f6', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+            + Add driver
+          </button>
+        </div>
+        {additionalDrivers.length === 0 && (
+          <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No additional drivers added.</p>
+        )}
+        {additionalDrivers.map((d, i) => (
+          <div key={i} style={{ marginBottom: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: '#64748b' }}>Driver {i + 1}</span>
+              <button onClick={() => removeAdditionalDriver(i)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '12px', cursor: 'pointer' }}>Remove</button>
+            </div>
+            <div style={grid2}>
+              <F label="First name *"><input style={input} value={d.firstName} onChange={e => updAdditionalDriver(i, 'firstName', e.target.value)} /></F>
+              <F label="Last name *"><input style={input} value={d.lastName} onChange={e => updAdditionalDriver(i, 'lastName', e.target.value)} /></F>
+              <F label="Licence number *"><input style={input} value={d.licenceNumber} onChange={e => updAdditionalDriver(i, 'licenceNumber', e.target.value)} /></F>
+              <F label="Phone"><input style={input} value={d.phone} onChange={e => updAdditionalDriver(i, 'phone', e.target.value)} /></F>
+              <F label="Licence expiry"><input type="date" style={input} value={d.licenceExpiry} onChange={e => updAdditionalDriver(i, 'licenceExpiry', e.target.value)} /></F>
+              <F label="Date of birth"><input type="date" style={input} value={d.dob} onChange={e => updAdditionalDriver(i, 'dob', e.target.value)} /></F>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div style={section}>

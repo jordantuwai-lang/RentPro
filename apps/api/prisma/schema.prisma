@@ -144,6 +144,8 @@ reservationNumber String            @unique @default("")
   status     ReservationStatus @default(PENDING)
   claim      Claim?
   delivery   Delivery?
+paymentCards     PaymentCard[]
+additionalDrivers AdditionalDriver[]
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 }
@@ -206,4 +208,29 @@ model Delivery {
 model ReservationCounter {
   id      Int @id @default(1)
   current Int @default(1000)
+}
+
+model PaymentCard {
+  id            String      @id @default(cuid())
+referenceCode String      @unique @default("")
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  reservationId String
+  cardType      String
+  cardNumber    String
+  expiryDate    String
+  cardholderName String
+  createdAt     DateTime    @default(now())
+}
+
+model AdditionalDriver {
+  id            String      @id @default(cuid())
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  reservationId String
+  firstName     String
+  lastName      String
+  licenceNumber String
+  licenceExpiry String?
+  dob           String?
+  phone         String?
+  createdAt     DateTime    @default(now())
 }
