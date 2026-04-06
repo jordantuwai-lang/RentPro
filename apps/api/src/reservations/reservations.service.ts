@@ -89,13 +89,50 @@ export class ReservationsService {
   }
 
   async update(id: string, data: any) {
-    const reservation = await this.prisma.reservation.findUnique({ where: { id } });
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id },
+      include: { customer: true },
+    });
     if (!reservation) throw new NotFoundException('Reservation not found');
 
-    if (data.status === 'COMPLETED') {
+    if (data.status === 'COMPLETED' && reservation.vehicleId) {
       await this.prisma.vehicle.update({
         where: { id: reservation.vehicleId },
         data: { status: 'AVAILABLE' },
+      });
+    }
+
+    if (data.vehicleId && data.vehicleId !== reservation.vehicleId) {
+      const vehicle = await this.prisma.vehicle.findUnique({
+        where: { id: data.vehicleId },
+      });
+      if (!vehicle) throw new NotFoundException('Vehicle not found');
+
+      if (reservation.vehicleId) {
+        await this.prisma.vehicle.update({
+          where: { id: reservation.vehicleId },
+          data: { status: 'AVAILABLE' },
+        });
+      }
+
+      if (data.status !== 'DRAFT') {
+        await this.prisma.vehicle.update({
+          where: { id: data.vehicleId },
+          data: { status: 'ON_HIRE' },
+        });
+      }
+    }
+
+    if (data.customer && reservation.customerId) {
+      await this.prisma.customer.update({
+        where: { id: reservation.customerId },
+        data: {
+          firstName: data.customer.firstName,
+          lastName: data.customer.lastName,
+          phone: data.customer.phone,
+          email: data.customer.email || undefined,
+          licenceNumber: data.customer.licenceNumber || undefined,
+        },
       });
     }
 
@@ -104,8 +141,10 @@ export class ReservationsService {
       data: {
         status: data.status,
         endDate: data.endDate ? new Date(data.endDate) : undefined,
+        startDate: data.startDate ? new Date(data.startDate) : undefined,
+        vehicle: data.vehicleId ? { connect: { id: data.vehicleId } } : undefined,
       },
-      include: { customer: true, vehicle: true },
+      include: { customer: true, vehicle: { include: { branch: true } } },
     });
   }
 

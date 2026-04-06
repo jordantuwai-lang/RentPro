@@ -62,7 +62,7 @@ export default function ReservationsPage() {
             ) : data?.length === 0 ? (
               <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No reservations yet.</td></tr>
             ) : data?.map((r: any) => (
-              <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
+              <tr key={r.id} onClick={() => window.location.href = `/dashboard/reservations/${r.id}`} style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}>
                 <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#3b82f6' }}>
                   {r.reservationNumber}
                 </td>
