@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
-import "./globals.css";
+'use client';
+import { ClerkProvider } from '@clerk/nextjs';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import './globals.css';
 
-export const metadata: Metadata = {
-  title: "RentPro",
-  description: "Right2Drive Operations Platform",
-};
+const queryClient = new QueryClient();
 
 export default function RootLayout({
   children,
@@ -14,9 +12,11 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="en">
-        <body>{children}</body>
-      </html>
+      <QueryClientProvider client={queryClient}>
+        <html lang="en">
+          <body>{children}</body>
+        </html>
+      </QueryClientProvider>
     </ClerkProvider>
   );
 }
