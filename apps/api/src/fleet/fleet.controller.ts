@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { FleetService } from './fleet.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 
@@ -35,5 +35,20 @@ export class FleetController {
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body('status') status: string) {
     return this.fleetService.updateStatus(id, status);
+  }
+
+  @Get(':id/photos')
+  getPhotos(@Param('id') id: string) {
+    return this.fleetService.getPhotos(id);
+  }
+
+  @Post(':id/photos')
+  addPhoto(@Param('id') id: string, @Body() body: any) {
+    return this.fleetService.addPhoto(id, body);
+  }
+
+  @Delete(':id/photos/:photoId')
+  deletePhoto(@Param('photoId') photoId: string) {
+    return this.fleetService.deletePhoto(photoId);
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 
 const statusColors: Record<string, string> = {
@@ -13,15 +14,14 @@ const statusColors: Record<string, string> = {
 
 export default function FleetPage() {
   const { getToken, isLoaded } = useAuth();
+  const router = useRouter();
 
   const { data: vehicles, isLoading } = useQuery({
     queryKey: ['fleet'],
     enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
-      const res = await api.get('/fleet', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/fleet', { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
   });
@@ -31,9 +31,7 @@ export default function FleetPage() {
     enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
-      const res = await api.get('/fleet/summary', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/fleet/summary', { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
   });
@@ -45,16 +43,7 @@ export default function FleetPage() {
           <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Fleet</h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>All vehicles across KPK and COB</p>
         </div>
-        <button style={{
-          background: '#3b82f6',
-          color: '#fff',
-          padding: '10px 20px',
-          borderRadius: '8px',
-          border: 'none',
-          fontSize: '14px',
-          fontWeight: '500',
-          cursor: 'pointer',
-        }}>
+        <button onClick={() => router.push('/dashboard/fleet/new')} style={{ background: '#3b82f6', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
           + Add vehicle
         </button>
       </div>
@@ -98,14 +87,9 @@ export default function FleetPage() {
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{v.category}</td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{v.branch?.code}</td>
                 <td style={{ padding: '14px 16px' }}>
-                  <span style={{
-                    background: statusColors[v.status] + '20',
-                    color: statusColors[v.status],
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                  }}>{v.status.replace('_', ' ')}</span>
+                  <span style={{ background: statusColors[v.status] + '20', color: statusColors[v.status], padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '500' }}>
+                    {v.status.replace('_', ' ')}
+                  </span>
                 </td>
               </tr>
             ))}

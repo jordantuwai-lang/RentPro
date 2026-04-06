@@ -8,7 +8,7 @@ export class FleetService {
   findAll(branchId?: string) {
     return this.prisma.vehicle.findMany({
       where: branchId ? { branchId } : undefined,
-      include: { branch: true },
+      include: { branch: true, photos: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -18,6 +18,7 @@ export class FleetService {
       where: { id },
       include: {
         branch: true,
+        photos: true,
         reservations: {
           include: { customer: true },
           orderBy: { createdAt: 'desc' },
@@ -54,7 +55,6 @@ export class FleetService {
     const vehicles = await this.prisma.vehicle.findMany({
       where: branchId ? { branchId } : undefined,
     });
-
     return {
       total: vehicles.length,
       available: vehicles.filter(v => v.status === 'AVAILABLE').length,
@@ -62,5 +62,33 @@ export class FleetService {
       inMaintenance: vehicles.filter(v => v.status === 'IN_MAINTENANCE').length,
       awaitingRepair: vehicles.filter(v => v.status === 'AWAITING_REPAIR').length,
     };
+  }
+
+  async addPhoto(vehicleId: string, data: any) {
+    const vehicle = await this.prisma.vehicle.findUnique({ where: { id: vehicleId } });
+    if (!vehicle) throw new NotFoundException('Vehicle not found');
+
+    const photoCount = await this.prisma.vehiclePhoto.count({ where: { vehicleId } });
+    if (photoCount >= 10) throw new Error('Maximum of 10 photos allowed per vehicle');
+
+    return this.prisma.vehiclePhoto.create({
+      data: {
+        vehicle: { connect: { id: vehicleId } },
+        url: data.url,
+        key: data.key,
+        caption: data.caption || null,
+      },
+    });
+  }
+
+  deletePhoto(id: string) {
+    return this.prisma.vehiclePhoto.delete({ where: { id } });
+  }
+
+  getPhotos(vehicleId: string) {
+    return this.prisma.vehiclePhoto.findMany({
+      where: { vehicleId },
+      orderBy: { createdAt: 'asc' },
+    });
   }
 }

@@ -86,11 +86,13 @@ model Vehicle {
   model        String
   year         Int
   colour       String
+state        String        @default("")
   category     String
   status       VehicleStatus @default(AVAILABLE)
   branch       Branch        @relation(fields: [branchId], references: [id])
   branchId     String
   reservations Reservation[]
+photos       VehiclePhoto[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -233,4 +235,14 @@ model AdditionalDriver {
   dob           String?
   phone         String?
   createdAt     DateTime    @default(now())
+}
+
+model VehiclePhoto {
+  id        String   @id @default(cuid())
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id])
+  vehicleId String
+  url       String
+  key       String
+  caption   String?
+  createdAt DateTime @default(now())
 }
