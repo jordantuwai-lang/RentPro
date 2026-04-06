@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import Link from 'next/link';
 
 const statusColors: Record<string, string> = {
+  DRAFT: '#94a3b8',
   PENDING: '#f59e0b',
   ACTIVE: '#10b981',
   COMPLETED: '#64748b',
@@ -50,26 +51,29 @@ export default function ReservationsPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              {['Customer', 'Vehicle', 'Branch', 'Start date', 'Status'].map(h => (
+              {['Rez #', 'Customer', 'Vehicle', 'Branch', 'Start date', 'Status'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading...</td></tr>
+              <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading...</td></tr>
             ) : data?.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No reservations yet.</td></tr>
+              <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No reservations yet.</td></tr>
             ) : data?.map((r: any) => (
-              <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+              <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
+                <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#3b82f6' }}>
+                  {r.reservationNumber}
+                </td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0f172a' }}>
                   {r.customer.firstName} {r.customer.lastName}
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0f172a' }}>
-                  {r.vehicle.make} {r.vehicle.model} · {r.vehicle.registration}
+                  {r.vehicle ? `${r.vehicle.make} ${r.vehicle.model} · ${r.vehicle.registration}` : '—'}
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>
-                  {r.vehicle.branch?.code}
+                  {r.vehicle?.branch?.code || '—'}
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>
                   {new Date(r.startDate).toLocaleDateString('en-AU')}

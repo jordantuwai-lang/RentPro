@@ -5,6 +5,19 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ReservationsService {
   constructor(private prisma: PrismaService) {}
 
+  async generateReservationNumber(): Promise<string> {
+    const result = await this.prisma.$transaction(async (tx) => {
+      let counter = await tx.reservationCounter.findUnique({ where: { id: 1 } });
+      if (!counter) {
+        counter = await tx.reservationCounter.create({ data: { id: 1, current: 1000 } });
+      }
+      const next = counter.current + 1;
+      await tx.reservationCounter.update({ where: { id: 1 }, data: { current: next } });
+      return `REZ${next}`;
+    });
+    return result;
+  }
+
   findAll(branchId?: string) {
     return this.prisma.reservation.findMany({
       where: branchId ? { vehicle: { branchId } } : undefined,
@@ -31,6 +44,21 @@ export class ReservationsService {
   }
 
   async create(data: any) {
+    const reservationNumber = await this.generateReservationNumber();
+
+    if (data.status === 'DRAFT') {
+      return this.prisma.reservation.create({
+        data: {
+          reservationNumber,
+          customer: { create: data.customer },
+          vehicle: data.vehicleId ? { connect: { id: data.vehicleId } } : undefined,
+          startDate: data.startDate ? new Date(data.startDate) : new Date(),
+          status: 'DRAFT',
+        },
+        include: { customer: true, vehicle: true },
+      });
+    }
+
     const vehicle = await this.prisma.vehicle.findUnique({
       where: { id: data.vehicleId },
     });
@@ -42,16 +70,14 @@ export class ReservationsService {
 
     const reservation = await this.prisma.reservation.create({
       data: {
+        reservationNumber,
         customer: { create: data.customer },
         vehicle: { connect: { id: data.vehicleId } },
         startDate: new Date(data.startDate),
         endDate: data.endDate ? new Date(data.endDate) : null,
         status: 'PENDING',
       },
-      include: {
-        customer: true,
-        vehicle: true,
-      },
+      include: { customer: true, vehicle: true },
     });
 
     await this.prisma.vehicle.update({
@@ -63,10 +89,7 @@ export class ReservationsService {
   }
 
   async update(id: string, data: any) {
-    const reservation = await this.prisma.reservation.findUnique({
-      where: { id },
-    });
-
+    const reservation = await this.prisma.reservation.findUnique({ where: { id } });
     if (!reservation) throw new NotFoundException('Reservation not found');
 
     if (data.status === 'COMPLETED') {
@@ -82,24 +105,20 @@ export class ReservationsService {
         status: data.status,
         endDate: data.endDate ? new Date(data.endDate) : undefined,
       },
-      include: {
-        customer: true,
-        vehicle: true,
-      },
+      include: { customer: true, vehicle: true },
     });
   }
 
   async cancel(id: string) {
-    const reservation = await this.prisma.reservation.findUnique({
-      where: { id },
-    });
-
+    const reservation = await this.prisma.reservation.findUnique({ where: { id } });
     if (!reservation) throw new NotFoundException('Reservation not found');
 
-    await this.prisma.vehicle.update({
-      where: { id: reservation.vehicleId },
-      data: { status: 'AVAILABLE' },
-    });
+    if (reservation.vehicleId) {
+      await this.prisma.vehicle.update({
+        where: { id: reservation.vehicleId },
+        data: { status: 'AVAILABLE' },
+      });
+    }
 
     return this.prisma.reservation.update({
       where: { id },
@@ -109,11 +128,7 @@ export class ReservationsService {
 
   checkAvailability(branchId: string, category: string, startDate: string) {
     return this.prisma.vehicle.findMany({
-      where: {
-        branchId,
-        category,
-        status: 'AVAILABLE',
-      },
+      where: { branchId, category, status: 'AVAILABLE' },
     });
   }
 }
