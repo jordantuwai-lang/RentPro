@@ -17,6 +17,7 @@ const nav = [
 const adminNav = [
   { label: 'Partners', href: '/dashboard/partners', icon: '🤝' },
   { label: 'Users', href: '/dashboard/admin/users', icon: '👥' },
+  { label: 'Branches', href: '/dashboard/admin/branches', icon: '🏢' },
 ];
 
 export default function Sidebar() {

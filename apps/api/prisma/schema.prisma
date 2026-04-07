@@ -15,10 +15,7 @@ enum Role {
   REPAIRER
 }
 
-enum BranchCode {
-  KPK
-  COB
-}
+
 
 enum VehicleStatus {
   AVAILABLE
@@ -76,12 +73,15 @@ model User {
 model Branch {
   id        String     @id @default(cuid())
   name      String
-  code      BranchCode @unique
+  code      String     @unique
   address   String
-  phone     String
+  suburb    String?
+  postcode  String?
+  state     String?
+  phone     String?
   users     User[]
   vehicles  Vehicle[]
-repairers Repairer[]
+  repairers Repairer[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
