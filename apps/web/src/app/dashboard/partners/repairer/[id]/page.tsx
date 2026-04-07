@@ -131,7 +131,7 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
         <button
           onClick={() => mutation.mutate()}
           disabled={!isValid || mutation.isPending}
-          style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: !isValid || mutation.isPending ? '#93c5fd' : '#3b82f6', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: !isValid ? 'not-allowed' : 'pointer' }}
+          style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: !isValid || mutation.isPending ? '#86efac' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: !isValid ? 'not-allowed' : 'pointer' }}
         >
           {mutation.isPending ? 'Saving...' : 'Save changes'}
         </button>

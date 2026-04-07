@@ -87,7 +87,7 @@ function ToggleButton({ show, onToggle, label }: { show: boolean; onToggle: () =
   return (
     <button onClick={onToggle} style={{
       padding: '10px 20px', borderRadius: '8px', border: '1px dashed #cbd5e1',
-      background: show ? '#eff6ff' : '#fff', color: show ? '#3b82f6' : '#64748b',
+      background: show ? '#f0fdf4' : '#fff', color: show ? '#01ae42' : '#64748b',
       fontSize: '13px', fontWeight: 500, cursor: 'pointer', width: '100%', textAlign: 'left', marginBottom: '20px',
     }}>
       {show ? `— Remove ${label}` : `+ Add ${label}`}
@@ -298,7 +298,7 @@ export default function NewReservationPage() {
       <div style={section}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ ...heading, marginBottom: 0 }}>Payment card</h2>
-          <button onClick={addCard} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#3b82f6', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+          <button onClick={addCard} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
             + Add card
           </button>
         </div>
@@ -351,7 +351,7 @@ export default function NewReservationPage() {
                   if (cards.length === 1) setCards([{ ...emptyCard }]);
                 }}
                 disabled={!card.cardType || !card.cardNumber || !card.cardholderName || !card.expiryDate}
-                style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: (!card.cardType || !card.cardNumber || !card.cardholderName || !card.expiryDate) ? '#93c5fd' : '#3b82f6', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+                style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: (!card.cardType || !card.cardNumber || !card.cardholderName || !card.expiryDate) ? '#86efac' : '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
               >
                 Save card
               </button>
@@ -363,7 +363,7 @@ export default function NewReservationPage() {
       <div style={section}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ ...heading, marginBottom: 0 }}>Additional drivers</h2>
-          <button onClick={addAdditionalDriver} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#3b82f6', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+          <button onClick={addAdditionalDriver} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
             + Add driver
           </button>
         </div>
@@ -433,7 +433,7 @@ export default function NewReservationPage() {
         <button
           onClick={() => mutation.mutate('PENDING')}
           disabled={!driver.firstName || !driver.lastName || !driver.phone || !vehicleId || !startDate || mutation.isPending}
-          style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: mutation.isPending ? '#93c5fd' : '#3b82f6', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: mutation.isPending ? 'not-allowed' : 'pointer' }}
+          style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: mutation.isPending ? '#86efac' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: mutation.isPending ? 'not-allowed' : 'pointer' }}
         >
           {mutation.isPending ? 'Creating...' : 'Create reservation'}
         </button>

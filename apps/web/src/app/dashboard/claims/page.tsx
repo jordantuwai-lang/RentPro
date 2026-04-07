@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import api from '@/lib/api';
 
 const statusColors: Record<string, string> = {
-  OPEN: '#3b82f6',
+  OPEN: '#01ae42',
   PENDING_APPROVAL: '#f59e0b',
   APPROVED: '#10b981',
   INVOICED: '#8b5cf6',
@@ -31,7 +31,7 @@ export default function ClaimsPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Claims</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0a2e14', margin: 0 }}>Claims</h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Insurance claims and hire justification</p>
         </div>
       </div>
@@ -52,10 +52,10 @@ export default function ClaimsPage() {
               <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No claims yet.</td></tr>
             ) : data?.map((c: any) => (
               <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '500', color: '#0f172a' }}>
+                <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '500', color: '#0a2e14' }}>
                   {c.claimNumber || '—'}
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0f172a' }}>
+                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0a2e14' }}>
                   {c.reservation?.customer?.firstName} {c.reservation?.customer?.lastName}
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{c.insurer?.name}</td>

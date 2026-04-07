@@ -19,17 +19,17 @@ export default function Sidebar() {
     <div style={{
       width: '220px',
       minHeight: '100vh',
-      background: '#0f172a',
+      background: '#013d1a',
       display: 'flex',
       flexDirection: 'column',
       padding: '24px 0',
       flexShrink: 0,
     }}>
-      <div style={{ padding: '0 20px 32px', borderBottom: '1px solid #1e293b' }}>
+      <div style={{ padding: '0 20px 32px', borderBottom: '1px solid #025c27' }}>
         <div style={{ fontSize: '20px', fontWeight: '700', color: '#fff', letterSpacing: '-0.5px' }}>
-          Rent<span style={{ color: '#3b82f6' }}>Pro</span>
+          Rent<span style={{ color: '#01ae42' }}>Pro</span>
         </div>
-        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Right2Drive Ops</div>
+        <div style={{ fontSize: '11px', color: '#4ade80', marginTop: '2px' }}>Right2Drive Ops</div>
       </div>
 
       <nav style={{ flex: 1, padding: '16px 12px' }}>
@@ -43,11 +43,11 @@ export default function Sidebar() {
               padding: '10px 12px',
               borderRadius: '8px',
               marginBottom: '4px',
-              background: active ? '#1e3a5f' : 'transparent',
-              color: active ? '#93c5fd' : '#94a3b8',
+              background: active ? '#01ae42' : 'transparent',
+              color: active ? '#fff' : '#86efac',
               textDecoration: 'none',
               fontSize: '14px',
-              fontWeight: active ? '500' : '400',
+              fontWeight: active ? '600' : '400',
               transition: 'all 0.15s',
             }}>
               <span style={{ fontSize: '16px' }}>{item.icon}</span>
@@ -57,7 +57,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div style={{ padding: '16px 20px', borderTop: '1px solid #1e293b' }}>
+      <div style={{ padding: '16px 20px', borderTop: '1px solid #025c27' }}>
         <UserButton afterSignOutUrl="/sign-in" />
       </div>
     </div>

@@ -146,7 +146,7 @@ export default function NewVehiclePage() {
           <h2 style={{ ...heading, marginBottom: 0 }}>Check-in photos</h2>
           <button
             onClick={() => setShowPhotos(!showPhotos)}
-            style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', background: showPhotos ? '#eff6ff' : '#fff', color: showPhotos ? '#3b82f6' : '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+            style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', background: showPhotos ? '#f0fdf4' : '#fff', color: showPhotos ? '#01ae42' : '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
           >
             {showPhotos ? '— Hide photos' : '+ Check in photos'}
           </button>
@@ -158,7 +158,7 @@ export default function NewVehiclePage() {
               <button
                 onClick={() => cameraInputRef.current?.click()}
                 disabled={photos.length >= 10}
-                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#f8fafc', color: '#3b82f6', fontSize: '13px', fontWeight: 500, cursor: photos.length >= 10 ? 'not-allowed' : 'pointer', textAlign: 'center' }}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#f8fafc', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: photos.length >= 10 ? 'not-allowed' : 'pointer', textAlign: 'center' }}
               >
                 📷 Take photo
               </button>
@@ -224,7 +224,7 @@ export default function NewVehiclePage() {
         <button
           onClick={() => mutation.mutate()}
           disabled={!isValid || mutation.isPending}
-          style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: !isValid || mutation.isPending ? '#93c5fd' : '#3b82f6', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: !isValid ? 'not-allowed' : 'pointer' }}
+          style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: !isValid || mutation.isPending ? '#86efac' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: !isValid ? 'not-allowed' : 'pointer' }}
         >
           {mutation.isPending ? 'Adding...' : 'Add vehicle'}
         </button>

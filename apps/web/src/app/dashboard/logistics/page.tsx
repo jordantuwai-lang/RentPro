@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import api from '@/lib/api';
 
 const statusColors: Record<string, string> = {
-  SCHEDULED: '#3b82f6',
+  SCHEDULED: '#01ae42',
   DISPATCHED: '#f59e0b',
   EN_ROUTE: '#8b5cf6',
   DELIVERED: '#10b981',
@@ -30,11 +30,11 @@ export default function LogisticsPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Logistics</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0a2e14', margin: 0 }}>Logistics</h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Today's deliveries and driver dispatch</p>
         </div>
         <button style={{
-          background: '#3b82f6',
+          background: '#01ae42',
           color: '#fff',
           padding: '10px 20px',
           borderRadius: '8px',
@@ -63,10 +63,10 @@ export default function LogisticsPage() {
               <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No deliveries scheduled today.</td></tr>
             ) : data?.map((d: any) => (
               <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0f172a' }}>
+                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0a2e14' }}>
                   {d.reservation?.customer?.firstName} {d.reservation?.customer?.lastName}
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0f172a' }}>
+                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0a2e14' }}>
                   {d.reservation?.vehicle?.make} {d.reservation?.vehicle?.model}
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>

@@ -107,7 +107,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
             Continue editing
           </button>
           {r.status === 'DRAFT' && (
-            <button onClick={() => updateStatus.mutate('PENDING')} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+            <button onClick={() => updateStatus.mutate('PENDING')} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
               Activate
             </button>
           )}

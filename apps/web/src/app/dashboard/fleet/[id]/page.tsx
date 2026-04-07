@@ -13,7 +13,7 @@ const statusColors: Record<string, string> = {
   IN_REPAIR: '#ef4444',
   IN_SERVICE: '#f59e0b',
   NOT_AVAILABLE: '#ef4444',
-  ON_HIRE: '#3b82f6',
+  ON_HIRE: '#01ae42',
   RESERVED_FOR_TRANSPORT: '#8b5cf6',
   RETIRED: '#64748b',
   WITH_STAFF: '#0f172a',
@@ -129,7 +129,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
               <button
                 onClick={handleStaffConfirm}
                 disabled={!staffName.trim() || updateStatus.isPending}
-                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: !staffName.trim() ? '#93c5fd' : '#3b82f6', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: !staffName.trim() ? 'not-allowed' : 'pointer' }}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: !staffName.trim() ? '#86efac' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: !staffName.trim() ? 'not-allowed' : 'pointer' }}
               >
                 {updateStatus.isPending ? 'Saving...' : 'Confirm'}
               </button>
@@ -218,7 +218,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
             <tbody>
               {vehicle.reservations?.map((r: any) => (
                 <tr key={r.id} onClick={() => router.push(`/dashboard/reservations/${r.id}`)} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
-                  <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: 600, color: '#3b82f6' }}>{r.reservationNumber}</td>
+                  <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: 600, color: '#01ae42' }}>{r.reservationNumber}</td>
                   <td style={{ padding: '10px 12px', fontSize: '13px', color: '#0f172a' }}>{r.customer?.firstName} {r.customer?.lastName}</td>
                   <td style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b' }}>{new Date(r.startDate).toLocaleDateString('en-AU')}</td>
                   <td style={{ padding: '10px 12px' }}>

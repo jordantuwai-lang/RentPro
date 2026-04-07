@@ -6,7 +6,7 @@ import api from '@/lib/api';
 
 const statusColors: Record<string, string> = {
   AVAILABLE: '#10b981',
-  ON_HIRE: '#3b82f6',
+  ON_HIRE: '#01ae42',
   IN_MAINTENANCE: '#f59e0b',
   AWAITING_REPAIR: '#ef4444',
   RETIRED: '#64748b',
@@ -40,10 +40,10 @@ export default function FleetPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Fleet</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0a2e14', margin: 0 }}>Fleet</h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>All vehicles across KPK and COB</p>
         </div>
-        <button onClick={() => router.push('/dashboard/fleet/new')} style={{ background: '#3b82f6', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
+        <button onClick={() => router.push('/dashboard/fleet/new')} style={{ background: '#01ae42', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
           + Add vehicle
         </button>
       </div>
@@ -51,9 +51,9 @@ export default function FleetPage() {
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px' }}>
           {[
-            { label: 'Total', value: summary.total, color: '#0f172a' },
+            { label: 'Total', value: summary.total, color: '#0a2e14' },
             { label: 'Available', value: summary.available, color: '#10b981' },
-            { label: 'On hire', value: summary.onHire, color: '#3b82f6' },
+            { label: 'On hire', value: summary.onHire, color: '#01ae42' },
             { label: 'In repair/service', value: summary.inRepair + summary.inService, color: '#f59e0b' },
             { label: 'Not available', value: summary.notAvailable, color: '#ef4444' },
           ].map(s => (
@@ -81,8 +81,8 @@ export default function FleetPage() {
               <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No vehicles yet.</td></tr>
             ) : vehicles?.map((v: any) => (
               <tr key={v.id} onClick={() => window.location.href = `/dashboard/fleet/${v.id}`} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
-                <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '500', color: '#0f172a' }}>{v.registration}</td>
-                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0f172a' }}>{v.make} {v.model}</td>
+                <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '500', color: '#0a2e14' }}>{v.registration}</td>
+                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0a2e14' }}>{v.make} {v.model}</td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{v.year}</td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{v.category}</td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{v.branch?.code}</td>

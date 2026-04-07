@@ -31,11 +31,11 @@ export default function ReservationsPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Reservations</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0a2e14', margin: 0 }}>Reservations</h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>All active and past hire reservations</p>
         </div>
         <Link href="/dashboard/reservations/new" style={{
-          background: '#3b82f6',
+          background: '#01ae42',
           color: '#fff',
           padding: '10px 20px',
           borderRadius: '8px',
@@ -63,13 +63,13 @@ export default function ReservationsPage() {
               <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No reservations yet.</td></tr>
             ) : data?.map((r: any) => (
               <tr key={r.id} onClick={() => window.location.href = `/dashboard/reservations/${r.id}`} style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}>
-                <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#3b82f6' }}>
+                <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#01ae42' }}>
                   {r.reservationNumber}
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0f172a' }}>
+                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0a2e14' }}>
                   {r.customer.firstName} {r.customer.lastName}
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0f172a' }}>
+                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0a2e14' }}>
                   {r.vehicle ? `${r.vehicle.make} ${r.vehicle.model} · ${r.vehicle.registration}` : '—'}
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>

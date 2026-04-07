@@ -67,7 +67,7 @@ export default function DashboardPage() {
   return (
     <div>
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0f172a', margin: 0 }}>
+        <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0a2e14', margin: 0 }}>
           Good morning, {user?.firstName || 'there'} 👋
         </h1>
         <p style={{ color: '#64748b', marginTop: '4px', fontSize: '14px' }}>
@@ -77,7 +77,7 @@ export default function DashboardPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
         {[
-          { label: 'Active hires', value: activeHires, color: '#3b82f6', href: '/dashboard/reservations' },
+          { label: 'Active hires', value: activeHires, color: '#01ae42', href: '/dashboard/reservations' },
           { label: 'Available vehicles', value: availableVehicles, color: '#10b981', href: '/dashboard/fleet' },
           { label: 'Open claims', value: openClaims, color: '#f59e0b', href: '/dashboard/claims' },
           { label: "Today's deliveries", value: todayDeliveries, color: '#8b5cf6', href: '/dashboard/logistics' },
@@ -102,8 +102,8 @@ export default function DashboardPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Recent reservations</h2>
-            <span onClick={() => router.push('/dashboard/reservations')} style={{ fontSize: '13px', color: '#3b82f6', cursor: 'pointer' }}>View all</span>
+            <h2 style={{ fontSize: '15px', fontWeight: '600', color: '#0a2e14', margin: 0 }}>Recent reservations</h2>
+            <span onClick={() => router.push('/dashboard/reservations')} style={{ fontSize: '13px', color: '#01ae42', cursor: 'pointer' }}>View all</span>
           </div>
           {recentReservations.length === 0 ? (
             <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No reservations yet.</p>
@@ -114,7 +114,7 @@ export default function DashboardPage() {
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}
             >
               <div>
-                <div style={{ fontSize: '13px', fontWeight: '600', color: '#3b82f6' }}>{r.reservationNumber}</div>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#01ae42' }}>{r.reservationNumber}</div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{r.customer?.firstName} {r.customer?.lastName}</div>
               </div>
               <span style={{
@@ -131,15 +131,15 @@ export default function DashboardPage() {
 
         <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Today's deliveries</h2>
-            <span onClick={() => router.push('/dashboard/logistics')} style={{ fontSize: '13px', color: '#3b82f6', cursor: 'pointer' }}>View all</span>
+            <h2 style={{ fontSize: '15px', fontWeight: '600', color: '#0a2e14', margin: 0 }}>Today's deliveries</h2>
+            <span onClick={() => router.push('/dashboard/logistics')} style={{ fontSize: '13px', color: '#01ae42', cursor: 'pointer' }}>View all</span>
           </div>
           {todayJobs.length === 0 ? (
             <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No deliveries scheduled today.</p>
           ) : todayJobs.map((d: any) => (
             <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
               <div>
-                <div style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>{d.reservation?.customer?.firstName} {d.reservation?.customer?.lastName}</div>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#0a2e14' }}>{d.reservation?.customer?.firstName} {d.reservation?.customer?.lastName}</div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{d.suburb} · {new Date(d.scheduledAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}</div>
               </div>
               <div style={{ fontSize: '12px', color: '#64748b' }}>{d.driver?.firstName}</div>
