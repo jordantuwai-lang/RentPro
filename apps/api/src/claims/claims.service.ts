@@ -101,4 +101,21 @@ export class ClaimsService {
   createRepairer(data: any) {
     return this.prisma.repairer.create({ data });
   }
+
+  updateRepairer(id: string, data: any) {
+    return this.prisma.repairer.update({
+      where: { id },
+      data: {
+        name: data.name,
+        phone: data.phone,
+        email: data.email || undefined,
+        address: data.address,
+        suburb: data.suburb,
+        postcode: data.postcode || undefined,
+        state: data.state || undefined,
+        territory: data.territory || undefined,
+        branchId: data.branchId || undefined,
+      },
+    });
+  }
 }

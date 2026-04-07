@@ -32,6 +32,11 @@ export class ClaimsController {
     return this.claimsService.createRepairer(body);
   }
 
+  @Patch('repairers/:id')
+  updateRepairer(@Param('id') id: string, @Body() body: any) {
+    return this.claimsService.updateRepairer(id, body);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.claimsService.findOne(id);

@@ -81,6 +81,7 @@ model Branch {
   phone     String
   users     User[]
   vehicles  Vehicle[]
+repairers Repairer[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -134,7 +135,11 @@ model Repairer {
   email     String?
   address   String
   suburb    String
+  postcode  String?
+  state     String?
   territory String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  branchId  String?
   claims    Claim[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
