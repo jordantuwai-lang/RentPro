@@ -122,6 +122,11 @@ export default function NewReservationPage() {
   const [vehicleId, setVehicleId] = useState('');
   const [branchId, setBranchId] = useState('');
   const [startDate, setStartDate] = useState('');
+  const [driverId, setDriverId] = useState('');
+
+  const [sourceOfBusiness, setSourceOfBusiness] = useState('');
+  const [selectedPartner, setSelectedPartner] = useState('');
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
 
   const updDriver = (f: string, v: string) => setDriver(p => ({ ...p, [f]: v }));
   const updOwner = (f: string, v: string) => setOwner(p => ({ ...p, [f]: v }));
@@ -145,6 +150,25 @@ export default function NewReservationPage() {
     queryFn: async () => {
       const token = await getToken();
       const res = await api.get('/branches', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
+
+  const { data: branchDrivers } = useQuery({
+    queryKey: ['branch-drivers', branchId],
+    enabled: !!branchId,
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/users', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data.filter((u: any) => u.role === 'DRIVER' && u.branchId === branchId);
+    },
+  });
+
+  const { data: repairers } = useQuery({
+    queryKey: ['repairers'],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/claims/repairers', { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
   });
@@ -216,6 +240,74 @@ export default function NewReservationPage() {
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>New reservation</h1>
         <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Accident replacement vehicle intake form</p>
+      </div>
+
+      {showPartnerModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', width: '480px', maxHeight: '70vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', margin: 0 }}>
+                Select {sourceOfBusiness === 'Repairer' ? 'Repairer' : 'Tow Operator'}
+              </h2>
+              <button onClick={() => setShowPartnerModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>×</button>
+            </div>
+            {!repairers || repairers.length === 0 ? (
+              <p style={{ color: '#94a3b8', fontSize: '14px' }}>No partners added yet. Add repairers in the Partners section first.</p>
+            ) : repairers.map((r: any) => (
+              <div
+                key={r.id}
+                onClick={() => { setSelectedPartner(r.name); setShowPartnerModal(false); }}
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: '8px',
+                  border: `1px solid ${selectedPartner === r.name ? '#01ae42' : '#e2e8f0'}`,
+                  background: selectedPartner === r.name ? '#f0fdf4' : '#fff',
+                  marginBottom: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a' }}>{r.name}</div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{r.suburb} {r.state ? `· ${r.state}` : ''}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={section}>
+        <h2 style={heading}>Source of business</h2>
+        <div style={grid2}>
+          <F label="Source *">
+            <select
+              style={input}
+              value={sourceOfBusiness}
+              onChange={e => {
+                setSourceOfBusiness(e.target.value);
+                setSelectedPartner('');
+                if (e.target.value === 'Repairer' || e.target.value === 'Tow Operator') {
+                  setShowPartnerModal(true);
+                }
+              }}
+            >
+              <option value="">Select source...</option>
+              <option value="Corporate Partnerships">Corporate Partnerships</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Repairer">Repairer</option>
+              <option value="Tow Operator">Tow Operator</option>
+            </select>
+          </F>
+          {(sourceOfBusiness === 'Repairer' || sourceOfBusiness === 'Tow Operator') && (
+            <F label={sourceOfBusiness === 'Repairer' ? 'Repairer' : 'Tow Operator'}>
+              <div
+                onClick={() => setShowPartnerModal(true)}
+                style={{ ...input, cursor: 'pointer', color: selectedPartner ? '#0f172a' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              >
+                <span>{selectedPartner || `Select ${sourceOfBusiness.toLowerCase()}...`}</span>
+                <span style={{ color: '#01ae42', fontSize: '12px' }}>Change</span>
+              </div>
+            </F>
+          )}
+        </div>
       </div>
 
       <div style={section}>
@@ -389,7 +481,7 @@ export default function NewReservationPage() {
       </div>
 
       <div style={section}>
-        <h2 style={heading}>Replacement vehicle</h2>
+        <h2 style={heading}>Booking details</h2>
         <div style={grid2}>
           <F label="Branch *">
             <select style={input} value={branchId} onChange={e => setBranchId(e.target.value)}>
@@ -399,7 +491,7 @@ export default function NewReservationPage() {
               ))}
             </select>
           </F>
-          <F label="Hire start date *">
+          <F label="Booking date *">
             <input type="date" style={input} value={startDate} onChange={e => setStartDate(e.target.value)} />
           </F>
           <F label="Vehicle *" full>
@@ -407,6 +499,14 @@ export default function NewReservationPage() {
               <option value="">Select vehicle...</option>
               {vehicles?.map((v: any) => (
                 <option key={v.id} value={v.id}>{v.make} {v.model} · {v.registration} · {v.category}</option>
+              ))}
+            </select>
+          </F>
+          <F label="Delivery driver (optional)" full>
+            <select style={input} value={driverId} onChange={e => setDriverId(e.target.value)} disabled={!branchId}>
+              <option value="">Select driver...</option>
+              {branchDrivers?.map((d: any) => (
+                <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
               ))}
             </select>
           </F>
@@ -432,7 +532,7 @@ export default function NewReservationPage() {
         </button>
         <button
           onClick={() => mutation.mutate('PENDING')}
-          disabled={!driver.firstName || !driver.lastName || !driver.phone || !vehicleId || !startDate || mutation.isPending}
+          disabled={!driver.firstName || !driver.lastName || !driver.phone || !vehicleId || !startDate || !branchId || mutation.isPending}
           style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: mutation.isPending ? '#86efac' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: mutation.isPending ? 'not-allowed' : 'pointer' }}
         >
           {mutation.isPending ? 'Creating...' : 'Create reservation'}
