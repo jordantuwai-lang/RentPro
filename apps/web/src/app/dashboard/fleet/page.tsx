@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { useBranch } from '@/context/BranchContext';
 
 const statusColors: Record<string, string> = {
   AVAILABLE: '#10b981',
@@ -15,23 +16,26 @@ const statusColors: Record<string, string> = {
 export default function FleetPage() {
   const { getToken, isLoaded } = useAuth();
   const router = useRouter();
+  const { selectedBranch, isAllBranches } = useBranch();
 
   const { data: vehicles, isLoading } = useQuery({
-    queryKey: ['fleet'],
+    queryKey: ['fleet', selectedBranch?.id],
     enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
-      const res = await api.get('/fleet', { headers: { Authorization: `Bearer ${token}` } });
+      const url = isAllBranches || !selectedBranch ? '/fleet' : `/fleet?branchId=${selectedBranch.id}`;
+      const res = await api.get(url, { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
   });
 
   const { data: summary } = useQuery({
-    queryKey: ['fleet-summary'],
+    queryKey: ['fleet-summary', selectedBranch?.id],
     enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
-      const res = await api.get('/fleet/summary', { headers: { Authorization: `Bearer ${token}` } });
+      const url = isAllBranches || !selectedBranch ? '/fleet/summary' : `/fleet/summary?branchId=${selectedBranch.id}`;
+      const res = await api.get(url, { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
   });

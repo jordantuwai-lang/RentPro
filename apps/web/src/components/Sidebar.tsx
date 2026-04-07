@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { UserButton } from '@clerk/nextjs';
+import { usePathname, useRouter } from 'next/navigation';
+import { UserButton, useClerk } from '@clerk/nextjs';
+import { useBranch } from '@/context/BranchContext';
 
 const nav = [
   { label: 'Dashboard', href: '/dashboard', icon: '▦' },
@@ -15,6 +16,9 @@ const nav = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { signOut } = useClerk();
+  const { selectedBranch, setSelectedBranch } = useBranch();
+  const router = useRouter();
 
   return (
     <div style={{
@@ -58,8 +62,35 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {selectedBranch && (
+        <div
+          onClick={() => { setSelectedBranch(null); sessionStorage.removeItem('selectedBranch'); router.push('/select-branch'); }}
+          style={{ padding: '10px 20px', borderTop: '1px solid #025c27', cursor: 'pointer' }}
+        >
+          <div style={{ fontSize: '10px', color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>Current branch</div>
+          <div style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>{selectedBranch.name}</div>
+          <div style={{ fontSize: '11px', color: '#86efac', marginTop: '2px' }}>Tap to switch branch</div>
+        </div>
+      )}
       <div style={{ padding: '16px 20px', borderTop: '1px solid #025c27' }}>
-        <UserButton afterSignOutUrl="/sign-in" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <UserButton afterSignOutUrl="/sign-in" />
+          <button
+            onClick={() => signOut({ redirectUrl: '/sign-in' })}
+            style={{
+              background: 'transparent',
+              border: '1px solid #025c27',
+              borderRadius: '6px',
+              color: '#86efac',
+              fontSize: '12px',
+              fontWeight: 500,
+              padding: '6px 12px',
+              cursor: 'pointer',
+            }}
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import api from '@/lib/api';
+import { useBranch } from '@/context/BranchContext';
 import Link from 'next/link';
 
 const statusColors: Record<string, string> = {
@@ -14,13 +15,15 @@ const statusColors: Record<string, string> = {
 
 export default function ReservationsPage() {
   const { getToken, isLoaded } = useAuth();
+  const { selectedBranch, isAllBranches } = useBranch();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['reservations'],
+    queryKey: ['reservations', selectedBranch?.id],
     enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
-      const res = await api.get('/reservations', {
+      const url = isAllBranches || !selectedBranch ? '/reservations' : `/reservations?branchId=${selectedBranch.id}`;
+      const res = await api.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       return res.data;
