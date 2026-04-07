@@ -54,8 +54,8 @@ export default function FleetPage() {
             { label: 'Total', value: summary.total, color: '#0f172a' },
             { label: 'Available', value: summary.available, color: '#10b981' },
             { label: 'On hire', value: summary.onHire, color: '#3b82f6' },
-            { label: 'Maintenance', value: summary.inMaintenance, color: '#f59e0b' },
-            { label: 'Awaiting repair', value: summary.awaitingRepair, color: '#ef4444' },
+            { label: 'In repair/service', value: summary.inRepair + summary.inService, color: '#f59e0b' },
+            { label: 'Not available', value: summary.notAvailable, color: '#ef4444' },
           ].map(s => (
             <div key={s.label} style={{ background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '24px', fontWeight: '700', color: s.color }}>{s.value}</div>
@@ -80,7 +80,7 @@ export default function FleetPage() {
             ) : vehicles?.length === 0 ? (
               <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No vehicles yet.</td></tr>
             ) : vehicles?.map((v: any) => (
-              <tr key={v.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+              <tr key={v.id} onClick={() => window.location.href = `/dashboard/fleet/${v.id}`} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
                 <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '500', color: '#0f172a' }}>{v.registration}</td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0f172a' }}>{v.make} {v.model}</td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{v.year}</td>

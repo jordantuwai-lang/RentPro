@@ -59,8 +59,9 @@ export class FleetService {
       total: vehicles.length,
       available: vehicles.filter(v => v.status === 'AVAILABLE').length,
       onHire: vehicles.filter(v => v.status === 'ON_HIRE').length,
-      inMaintenance: vehicles.filter(v => v.status === 'IN_MAINTENANCE').length,
-      awaitingRepair: vehicles.filter(v => v.status === 'AWAITING_REPAIR').length,
+      inRepair: vehicles.filter(v => v.status === 'IN_REPAIR' || v.status === 'BOOKED_FOR_REPAIR').length,
+      inService: vehicles.filter(v => v.status === 'IN_SERVICE' || v.status === 'BOOKED_FOR_SERVICE').length,
+      notAvailable: vehicles.filter(v => v.status === 'NOT_AVAILABLE' || v.status === 'WITH_STAFF' || v.status === 'CLEAN_NEEDED' || v.status === 'RESERVED_FOR_TRANSPORT').length,
     };
   }
 
