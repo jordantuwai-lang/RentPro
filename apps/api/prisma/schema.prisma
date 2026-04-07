@@ -266,6 +266,16 @@ model AdditionalDriver {
   createdAt     DateTime    @default(now())
 }
 
+model DeliveryPhoto {
+  id         String   @id @default(cuid())
+  delivery   Delivery @relation(fields: [deliveryId], references: [id])
+  deliveryId String
+  url        String
+  key        String
+  caption    String?
+  createdAt  DateTime @default(now())
+}
+
 model DocumentTemplate {
   id          String   @id @default(cuid())
   type        String   @unique
