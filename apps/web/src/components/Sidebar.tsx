@@ -10,6 +10,7 @@ const nav = [
   { label: 'Claims', href: '/dashboard/claims', icon: '📁' },
   { label: 'Logistics', href: '/dashboard/logistics', icon: '🚚' },
   { label: 'Partners', href: '/dashboard/partners', icon: '🤝' },
+  { label: 'Reports', href: '/dashboard/reports', icon: '📊' },
 ];
 
 export default function Sidebar() {
@@ -34,7 +35,7 @@ export default function Sidebar() {
 
       <nav style={{ flex: 1, padding: '16px 12px' }}>
         {nav.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + '/');
+          const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
           return (
             <Link key={item.href} href={item.href} style={{
               display: 'flex',

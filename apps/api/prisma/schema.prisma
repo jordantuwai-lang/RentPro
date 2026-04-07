@@ -148,6 +148,7 @@ model Repairer {
 model Reservation {
   id         String            @id @default(cuid())
 reservationNumber String            @unique @default("")
+fileNumber        String?           @unique
   customer   Customer          @relation(fields: [customerId], references: [id])
   customerId String
   vehicle    Vehicle           @relation(fields: [vehicleId], references: [id])
@@ -159,6 +160,7 @@ reservationNumber String            @unique @default("")
   delivery   Delivery?
 paymentCards     PaymentCard[]
 additionalDrivers AdditionalDriver[]
+reservationNotes  ReservationNote[]
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 }
@@ -216,6 +218,21 @@ model Delivery {
   notes         String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+}
+
+model ReservationNote {
+  id            String      @id @default(cuid())
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  reservationId String
+  note          String
+  authorName    String
+  createdAt     DateTime    @default(now())
+}
+
+model FileNumberCounter {
+  id      Int    @id @default(1)
+  KPK     Int    @default(1000)
+  COB     Int    @default(1000)
 }
 
 model ReservationCounter {

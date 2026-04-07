@@ -41,6 +41,7 @@ export class ReservationsService {
         delivery: true,
         paymentCards: true,
         additionalDrivers: true,
+        reservationNotes: { orderBy: { createdAt: 'desc' } },
       },
     });
   }
@@ -180,6 +181,62 @@ export class ReservationsService {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
+  }
+
+
+  async generateFileNumber(branchCode: string): Promise<string> {
+    const result = await this.prisma.$transaction(async (tx) => {
+      let counter = await tx.fileNumberCounter.findUnique({ where: { id: 1 } });
+      if (!counter) {
+        counter = await tx.fileNumberCounter.create({ data: { id: 1, KPK: 1000, COB: 1000 } });
+      }
+      const field = branchCode === 'KPK' ? 'KPK' : 'COB';
+      const next = counter[field as keyof typeof counter] as number + 1;
+      await tx.fileNumberCounter.update({ where: { id: 1 }, data: { [field]: next } });
+      return `${branchCode}-${next}`;
+    });
+    return result;
+  }
+
+  async markOnHire(id: string, data: any) {
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id },
+      include: { vehicle: { include: { branch: true } } },
+    });
+    if (!reservation) throw new Error('Reservation not found');
+
+    const branchCode = reservation.vehicle?.branch?.code || 'KPK';
+    const fileNumber = await this.generateFileNumber(branchCode);
+
+    if (reservation.vehicleId) {
+      await this.prisma.vehicle.update({
+        where: { id: reservation.vehicleId },
+        data: { status: 'ON_HIRE' },
+      });
+    }
+
+    return this.prisma.reservation.update({
+      where: { id },
+      data: { status: 'ACTIVE', fileNumber },
+      include: { customer: true, vehicle: { include: { branch: true } } },
+    });
+  }
+
+  addNote(reservationId: string, data: any) {
+    return this.prisma.reservationNote.create({
+      data: {
+        reservation: { connect: { id: reservationId } },
+        note: data.note,
+        authorName: data.authorName,
+      },
+    });
+  }
+
+  getNotes(reservationId: string) {
+    return this.prisma.reservationNote.findMany({
+      where: { reservationId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async addPaymentCard(reservationId: string, data: any) {

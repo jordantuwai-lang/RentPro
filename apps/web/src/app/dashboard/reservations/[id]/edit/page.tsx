@@ -191,12 +191,17 @@ export default function EditReservationPage({ params }: { params: Promise<{ id: 
 
   return (
     <div style={{ maxWidth: '800px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{reservation?.reservationNumber}</h1>
-          <span style={{ fontSize: '13px', color: '#64748b' }}>— Edit reservation</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{reservation?.reservationNumber}</h1>
+            <span style={{ fontSize: '13px', color: '#64748b' }}>— Edit reservation</span>
+          </div>
+          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Accident replacement vehicle intake form</p>
         </div>
-        <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Accident replacement vehicle intake form</p>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => router.push(`/dashboard/reservations/${id}`)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>View details</button>
+        </div>
       </div>
 
       <div style={section}>

@@ -41,6 +41,21 @@ export class ReservationsController {
     return this.reservationsService.cancel(id);
   }
 
+  @Post(':id/on-hire')
+  markOnHire(@Param('id') id: string, @Body() body: any) {
+    return this.reservationsService.markOnHire(id, body);
+  }
+
+  @Get(':id/notes')
+  getNotes(@Param('id') id: string) {
+    return this.reservationsService.getNotes(id);
+  }
+
+  @Post(':id/notes')
+  addNote(@Param('id') id: string, @Body() body: any) {
+    return this.reservationsService.addNote(id, body);
+  }
+
   @Post(':id/cards')
   addPaymentCard(@Param('id') id: string, @Body() body: any) {
     return this.reservationsService.addPaymentCard(id, body);
