@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { UserButton, useClerk } from '@clerk/nextjs';
+import { UserButton, useClerk, useUser } from '@clerk/nextjs';
 import { useBranch } from '@/context/BranchContext';
+import { useState } from 'react';
 
 const nav = [
   { label: 'Dashboard', href: '/dashboard', icon: '▦' },
@@ -10,15 +11,41 @@ const nav = [
   { label: 'Fleet', href: '/dashboard/fleet', icon: '🚗' },
   { label: 'Claims', href: '/dashboard/claims', icon: '📁' },
   { label: 'Logistics', href: '/dashboard/logistics', icon: '🚚' },
-  { label: 'Partners', href: '/dashboard/partners', icon: '🤝' },
   { label: 'Reports', href: '/dashboard/reports', icon: '📊' },
+];
+
+const adminNav = [
+  { label: 'Partners', href: '/dashboard/partners', icon: '🤝' },
+  { label: 'Users', href: '/dashboard/admin/users', icon: '👥' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { signOut } = useClerk();
-  const { selectedBranch, setSelectedBranch } = useBranch();
   const router = useRouter();
+  const { signOut } = useClerk();
+  const { user } = useUser();
+  const { selectedBranch, setSelectedBranch } = useBranch();
+  const [adminOpen, setAdminOpen] = useState(pathname.startsWith('/dashboard/admin') || pathname.startsWith('/dashboard/partners'));
+
+  const isAdmin = user?.publicMetadata?.role === 'ADMIN';
+
+  const linkStyle = (href: string): React.CSSProperties => {
+    const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'));
+    return {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      padding: '10px 12px',
+      borderRadius: '8px',
+      marginBottom: '4px',
+      background: active ? '#01ae42' : 'transparent',
+      color: active ? '#fff' : '#86efac',
+      textDecoration: 'none',
+      fontSize: '14px',
+      fontWeight: active ? 600 : 400,
+      transition: 'all 0.15s',
+    };
+  };
 
   return (
     <div style={{
@@ -38,28 +65,52 @@ export default function Sidebar() {
       </div>
 
       <nav style={{ flex: 1, padding: '16px 12px' }}>
-        {nav.map((item) => {
-          const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
-          return (
-            <Link key={item.href} href={item.href} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '10px 12px',
-              borderRadius: '8px',
-              marginBottom: '4px',
-              background: active ? '#01ae42' : 'transparent',
-              color: active ? '#fff' : '#86efac',
-              textDecoration: 'none',
-              fontSize: '14px',
-              fontWeight: active ? '600' : '400',
-              transition: 'all 0.15s',
-            }}>
-              <span style={{ fontSize: '16px' }}>{item.icon}</span>
-              {item.label}
-            </Link>
-          );
-        })}
+        {nav.map((item) => (
+          <Link key={item.href} href={item.href} style={linkStyle(item.href)}>
+            <span style={{ fontSize: '16px' }}>{item.icon}</span>
+            {item.label}
+          </Link>
+        ))}
+
+        {isAdmin && (
+          <div style={{ marginTop: '8px' }}>
+            <button
+              onClick={() => setAdminOpen(!adminOpen)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                background: adminOpen ? 'rgba(1,174,66,0.15)' : 'transparent',
+                color: '#86efac',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                marginBottom: '4px',
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '16px' }}>⚙️</span>
+                Admin
+              </span>
+              <span style={{ fontSize: '10px', transition: 'transform 0.2s', transform: adminOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+            </button>
+
+            {adminOpen && (
+              <div style={{ paddingLeft: '12px', borderLeft: '2px solid #025c27', marginLeft: '12px' }}>
+                {adminNav.map((item) => (
+                  <Link key={item.href} href={item.href} style={{ ...linkStyle(item.href), fontSize: '13px' }}>
+                    <span style={{ fontSize: '14px' }}>{item.icon}</span>
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {selectedBranch && (
@@ -72,6 +123,7 @@ export default function Sidebar() {
           <div style={{ fontSize: '11px', color: '#86efac', marginTop: '2px' }}>Tap to switch branch</div>
         </div>
       )}
+
       <div style={{ padding: '16px 20px', borderTop: '1px solid #025c27' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <UserButton afterSignOutUrl="/sign-in" />

@@ -2,12 +2,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { useState } from 'react';
 import api from '@/lib/api';
 
 export default function PartnersPage() {
   const { getToken, isLoaded } = useAuth();
   const router = useRouter();
+  const { user } = useUser();
+  const isAdmin = user?.publicMetadata?.role === 'ADMIN';
   const [tab, setTab] = useState<'repairers' | 'insurers'>('repairers');
 
   const { data: repairers, isLoading: loadingRepairers } = useQuery({
@@ -37,14 +40,16 @@ export default function PartnersPage() {
           <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0a2e14', margin: 0 }}>Partners</h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Repairers and insurer directory</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={() => router.push('/dashboard/partners/new-repairer')} style={{ background: '#01ae42', color: '#fff', padding: '10px 16px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
-            + Add repairer
-          </button>
-          <button onClick={() => router.push('/dashboard/partners/new-insurer')} style={{ background: '#fff', color: '#01ae42', padding: '10px 16px', borderRadius: '8px', border: '1px solid #01ae42', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
-            + Add insurer
-          </button>
-        </div>
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => router.push('/dashboard/partners/new-repairer')} style={{ background: '#01ae42', color: '#fff', padding: '10px 16px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
+              + Add repairer
+            </button>
+            <button onClick={() => router.push('/dashboard/partners/new-insurer')} style={{ background: '#fff', color: '#01ae42', padding: '10px 16px', borderRadius: '8px', border: '1px solid #01ae42', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
+              + Add insurer
+            </button>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', borderRadius: '8px', padding: '4px', width: 'fit-content' }}>
