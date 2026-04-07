@@ -160,7 +160,7 @@ export default function NewReservationPage() {
     queryFn: async () => {
       const token = await getToken();
       const res = await api.get('/users', { headers: { Authorization: `Bearer ${token}` } });
-      return res.data.filter((u: any) => u.role === 'DRIVER' && u.branchId === branchId);
+      return res.data.filter((u: any) => u.role === 'DRIVER');
     },
   });
 

@@ -188,12 +188,12 @@ export class ReservationsService {
     const result = await this.prisma.$transaction(async (tx) => {
       let counter = await tx.fileNumberCounter.findUnique({ where: { id: 1 } });
       if (!counter) {
-        counter = await tx.fileNumberCounter.create({ data: { id: 1, KPK: 1000, COB: 1000 } });
+        counter = await tx.fileNumberCounter.create({ data: { id: 1, KPK: 0, COB: 0 } });
       }
       const field = branchCode === 'KPK' ? 'KPK' : 'COB';
-      const next = counter[field as keyof typeof counter] as number + 1;
+      const next = (counter[field as keyof typeof counter] as number) + 1;
       await tx.fileNumberCounter.update({ where: { id: 1 }, data: { [field]: next } });
-      return `${branchCode}-${next}`;
+      return `${branchCode}RP-${next}`;
     });
     return result;
   }

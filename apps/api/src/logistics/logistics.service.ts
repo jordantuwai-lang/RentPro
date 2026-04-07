@@ -9,7 +9,7 @@ export class LogisticsService {
     return this.prisma.delivery.findMany({
       where: driverId ? { driverId } : undefined,
       include: {
-        reservation: { include: { customer: true, vehicle: true } },
+        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
         driver: true,
       },
       orderBy: { scheduledAt: 'asc' },
@@ -37,7 +37,7 @@ export class LogisticsService {
         scheduledAt: { gte: start, lte: end },
       },
       include: {
-        reservation: { include: { customer: true, vehicle: true } },
+        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
         driver: true,
       },
       orderBy: { scheduledAt: 'asc' },
@@ -45,18 +45,23 @@ export class LogisticsService {
   }
 
   create(data: any) {
+    const deliveryData: any = {
+      reservation: { connect: { id: data.reservationId } },
+      address: data.address,
+      suburb: data.suburb,
+      scheduledAt: new Date(data.scheduledAt),
+      notes: data.notes || null,
+      status: 'SCHEDULED',
+    };
+
+    if (data.driverId) {
+      deliveryData.driver = { connect: { id: data.driverId } };
+    }
+
     return this.prisma.delivery.create({
-      data: {
-        reservation: { connect: { id: data.reservationId } },
-        driver: { connect: { id: data.driverId } },
-        address: data.address,
-        suburb: data.suburb,
-        scheduledAt: new Date(data.scheduledAt),
-        notes: data.notes,
-        status: 'SCHEDULED',
-      },
+      data: deliveryData,
       include: {
-        reservation: { include: { customer: true, vehicle: true } },
+        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
         driver: true,
       },
     });
@@ -73,7 +78,7 @@ export class LogisticsService {
         deliveredAt: status === 'DELIVERED' ? new Date() : undefined,
       },
       include: {
-        reservation: { include: { customer: true, vehicle: true } },
+        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
         driver: true,
       },
     });
@@ -90,7 +95,7 @@ export class LogisticsService {
         notes: data.notes,
       },
       include: {
-        reservation: { include: { customer: true, vehicle: true } },
+        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
         driver: true,
       },
     });

@@ -161,6 +161,7 @@ fileNumber        String?           @unique
 paymentCards     PaymentCard[]
 additionalDrivers AdditionalDriver[]
 reservationNotes  ReservationNote[]
+signature         SignatureRecord?
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 }
@@ -208,8 +209,8 @@ model Delivery {
   id            String         @id @default(cuid())
   reservation   Reservation    @relation(fields: [reservationId], references: [id])
   reservationId String         @unique
-  driver        User           @relation(fields: [driverId], references: [id])
-  driverId      String
+  driver        User?          @relation(fields: [driverId], references: [id])
+  driverId      String?
   address       String
   suburb        String
   scheduledAt   DateTime
@@ -263,6 +264,26 @@ model AdditionalDriver {
   dob           String?
   phone         String?
   createdAt     DateTime    @default(now())
+}
+
+model DocumentTemplate {
+  id          String   @id @default(cuid())
+  type        String   @unique
+  name        String
+  url         String
+  key         String
+  uploadedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SignatureRecord {
+  id            String      @id @default(cuid())
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  reservationId String      @unique
+  signatureData String
+  signedAt      DateTime    @default(now())
+  signingMethod String
+  ipAddress     String?
 }
 
 model VehiclePhoto {
