@@ -8,10 +8,13 @@ import { useState } from 'react';
 const nav = [
   { label: 'Dashboard', href: '/dashboard', icon: '▦' },
   { label: 'Reservations', href: '/dashboard/reservations', icon: '📋' },
-  { label: 'Fleet', href: '/dashboard/fleet', icon: '🚗' },
-  { label: 'Claims', href: '/dashboard/claims', icon: '📁' },
   { label: 'Logistics', href: '/dashboard/logistics', icon: '🚚' },
+  { label: 'On Hired', href: '/dashboard/on-hire', icon: '🔑' },
+  { label: 'Claims', href: '/dashboard/claims', icon: '📁' },
+  { label: 'Fleet', href: '/dashboard/fleet', icon: '🚗' },
   { label: 'Reports', href: '/dashboard/reports', icon: '📊' },
+  { label: 'Payments', href: '/dashboard/payments', icon: '💳' },
+  { label: 'Invoicing', href: '/dashboard/invoicing', icon: '🧾' },
 ];
 
 const adminNav = [
