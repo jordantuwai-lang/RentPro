@@ -127,6 +127,11 @@ export default function LogisticsPage() {
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [editingTime, setEditingTime] = useState<string | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<string | null>(null);
+  const [showPhotosModal, setShowPhotosModal] = useState(false);
+  const [deliveryPhotos, setDeliveryPhotos] = useState<any[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
 
@@ -238,7 +243,24 @@ export default function LogisticsPage() {
                   {selectedJob.address}, {selectedJob.suburb}
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => {
+                    const driverName = selectedJob.driver ? `${selectedJob.driver.firstName} ${selectedJob.driver.lastName}` : 'Your driver';
+                    const phone = r?.customer?.phone;
+                    if (!phone) { alert('No phone number on file for this customer.'); return; }
+                    alert(`SMS would be sent to ${phone}:\n\nHi, it's ${driverName} from Right2Drive. I am on my way and will meet you shortly.`);
+                  }}
+                  style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+                >
+                  SMS Customer
+                </button>
+                <button
+                  onClick={() => setShowPhotosModal(true)}
+                  style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+                >
+                  Delivery Photos
+                </button>
                 <button onClick={() => setShowOnHireModal(true)} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                   On Hire
                 </button>
@@ -444,6 +466,81 @@ export default function LogisticsPage() {
             {markOnHire.isPending && (
               <div style={{ textAlign: 'center', padding: '20px', color: '#01ae42', fontSize: '14px' }}>Processing On Hire...</div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showPhotosModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Delivery photos</h2>
+              <button onClick={() => setShowPhotosModal(false)} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}>x</button>
+            </div>
+            <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '16px' }}>Take pre-condition photos of the vehicle before delivery. Up to 10 photos.</p>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={deliveryPhotos.length >= 10}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#f8fafc', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: deliveryPhotos.length >= 10 ? 'not-allowed' : 'pointer' }}
+              >
+                Take photo
+              </button>
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={deliveryPhotos.length >= 10}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#f8fafc', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: deliveryPhotos.length >= 10 ? 'not-allowed' : 'pointer' }}
+              >
+                Upload photo
+              </button>
+            </div>
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file || !selectedJob) return;
+              setUploadingPhoto(true);
+              const reader = new FileReader();
+              reader.onload = async () => {
+                const token = await getToken();
+                const res = await api.post(`/logistics/${selectedJob.id}/photos`, {
+                  url: reader.result as string,
+                  key: `delivery-${selectedJob.id}-${Date.now()}`,
+                }, { headers: { Authorization: `Bearer ${token}` } });
+                setDeliveryPhotos(prev => [...prev, res.data]);
+                setUploadingPhoto(false);
+              };
+              reader.readAsDataURL(file);
+              e.target.value = '';
+            }} style={{ display: 'none' }} />
+            <input ref={photoInputRef} type="file" accept="image/*" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file || !selectedJob) return;
+              setUploadingPhoto(true);
+              const reader = new FileReader();
+              reader.onload = async () => {
+                const token = await getToken();
+                const res = await api.post(`/logistics/${selectedJob.id}/photos`, {
+                  url: reader.result as string,
+                  key: `delivery-${selectedJob.id}-${Date.now()}`,
+                }, { headers: { Authorization: `Bearer ${token}` } });
+                setDeliveryPhotos(prev => [...prev, res.data]);
+                setUploadingPhoto(false);
+              };
+              reader.readAsDataURL(file);
+              e.target.value = '';
+            }} style={{ display: 'none' }} />
+            {uploadingPhoto && <div style={{ textAlign: 'center', color: '#01ae42', fontSize: '13px', marginBottom: '12px' }}>Uploading...</div>}
+            {deliveryPhotos.length === 0 ? (
+              <p style={{ color: '#94a3b8', fontSize: '14px', textAlign: 'center', padding: '20px' }}>No photos yet.</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                {deliveryPhotos.map((photo: any, i: number) => (
+                  <div key={photo.id} style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                    <img src={photo.url} alt={`Photo ${i + 1}`} style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ marginTop: '12px', fontSize: '12px', color: '#94a3b8', textAlign: 'right' }}>{deliveryPhotos.length}/10 photos</div>
           </div>
         </div>
       )}

@@ -218,6 +218,7 @@ model Delivery {
   status        DeliveryStatus @default(SCHEDULED)
   notes         String?
   createdAt     DateTime       @default(now())
+  photos        DeliveryPhoto[]
   updatedAt     DateTime       @updatedAt
 }
 

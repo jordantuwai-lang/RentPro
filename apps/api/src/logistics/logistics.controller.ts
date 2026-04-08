@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { LogisticsService } from './logistics.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 
@@ -14,7 +14,7 @@ export class LogisticsController {
 
   @Get('today')
   getToday(@Query('branchId') branchId?: string) {
-    return this.logisticsService.getTodaysDeliveries(branchId);
+    return this.logisticsService.findToday(branchId);
   }
 
   @Get(':id')
@@ -35,5 +35,15 @@ export class LogisticsController {
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body('status') status: string) {
     return this.logisticsService.updateStatus(id, status);
+  }
+
+  @Post(':id/photos')
+  addPhoto(@Param('id') id: string, @Body() body: any) {
+    return this.logisticsService.addDeliveryPhoto(id, body);
+  }
+
+  @Get(':id/photos')
+  getPhotos(@Param('id') id: string) {
+    return this.logisticsService.getDeliveryPhotos(id);
   }
 }

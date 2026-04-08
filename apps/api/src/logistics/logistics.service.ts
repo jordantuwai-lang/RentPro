@@ -5,9 +5,27 @@ import { PrismaService } from '../prisma/prisma.service';
 export class LogisticsService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(driverId?: string) {
+  findAll(branchId?: string) {
     return this.prisma.delivery.findMany({
-      where: driverId ? { driverId } : undefined,
+      where: branchId ? { reservation: { vehicle: { branchId } } } : undefined,
+      include: {
+        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
+        driver: true,
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
+  findToday(branchId?: string) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    return this.prisma.delivery.findMany({
+      where: {
+        scheduledAt: { gte: start, lte: end },
+        ...(branchId ? { reservation: { vehicle: { branchId } } } : {}),
+      },
       include: {
         reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
         driver: true,
@@ -20,27 +38,10 @@ export class LogisticsService {
     return this.prisma.delivery.findUnique({
       where: { id },
       include: {
-        reservation: { include: { customer: true, vehicle: { include: { branch: true } } } },
-        driver: true,
-      },
-    });
-  }
-
-  getTodaysDeliveries(branchId?: string) {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-
-    return this.prisma.delivery.findMany({
-      where: {
-        scheduledAt: { gte: start, lte: end },
-      },
-      include: {
         reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
         driver: true,
+        photos: true,
       },
-      orderBy: { scheduledAt: 'asc' },
     });
   }
 
@@ -70,7 +71,6 @@ export class LogisticsService {
   async updateStatus(id: string, status: string) {
     const delivery = await this.prisma.delivery.findUnique({ where: { id } });
     if (!delivery) throw new NotFoundException('Delivery not found');
-
     return this.prisma.delivery.update({
       where: { id },
       data: {
@@ -98,6 +98,26 @@ export class LogisticsService {
         reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
         driver: true,
       },
+    });
+  }
+
+  async addDeliveryPhoto(deliveryId: string, data: any) {
+    const count = await this.prisma.deliveryPhoto.count({ where: { deliveryId } });
+    if (count >= 10) throw new Error('Maximum of 10 photos allowed per delivery');
+    return this.prisma.deliveryPhoto.create({
+      data: {
+        delivery: { connect: { id: deliveryId } },
+        url: data.url,
+        key: data.key,
+        caption: data.caption || null,
+      },
+    });
+  }
+
+  getDeliveryPhotos(deliveryId: string) {
+    return this.prisma.deliveryPhoto.findMany({
+      where: { deliveryId },
+      orderBy: { createdAt: 'asc' },
     });
   }
 }
