@@ -3,7 +3,6 @@ import { BranchesService } from './branches.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 
 @Controller('branches')
-@UseGuards(ClerkAuthGuard)
 export class BranchesController {
   constructor(private readonly branchesService: BranchesService) {}
 
@@ -18,11 +17,13 @@ export class BranchesController {
   }
 
   @Post()
+  @UseGuards(ClerkAuthGuard)
   create(@Body() body: any) {
     return this.branchesService.create(body);
   }
 
   @Patch(':id')
+  @UseGuards(ClerkAuthGuard)
   update(@Param('id') id: string, @Body() body: any) {
     return this.branchesService.update(id, body);
   }
