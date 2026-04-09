@@ -1,14 +1,10 @@
 'use client';
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
-=======
-import { useState } from 'react';
-import AddressAutocomplete from '@/components/AddressAutocomplete';
->>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
 import { useAuth } from '@clerk/nextjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 
 const input: React.CSSProperties = {
   width: '100%',
@@ -157,6 +153,7 @@ export default function NewReservationPage() {
     businessDetails: false,
     registeredOwner: false,
     vehicleDetails: false,
+    vehicleDamage: false,
     accidentDetails: false,
     atFaultParty: false,
     repairerDetails: false,
@@ -172,8 +169,19 @@ export default function NewReservationPage() {
   const [driver, setDriver] = useState({ ...emptyPerson });
   const [owner, setOwner] = useState({ ...emptyPerson, insuranceProvider: '', claimNumber: '' });
   const [atFault, setAtFault] = useState({ ...emptyPerson, vehicleRegistration: '', insuranceProvider: '', claimNumber: '' });
-  const [accidentVehicle, setAccidentVehicle] = useState({ registration: '', make: '', model: '', year: '', damage: '' });
-  const [accident, setAccident] = useState({ date: '', location: '', description: '' });
+  const [accidentVehicle, setAccidentVehicle] = useState({ registration: '', registrationState: '', make: '', model: '', year: '', damage: '' });
+  const [vehicleDriveable, setVehicleDriveable] = useState<string | null>(null);
+  const [damageZones, setDamageZones] = useState<Record<string, boolean>>({});
+  const [damageComponents, setDamageComponents] = useState<Set<string>>(new Set());
+  const [damageDescription, setDamageDescription] = useState('');
+
+  const toggleDamageZone = (zone: string) => setDamageZones(prev => ({ ...prev, [zone]: !prev[zone] }));
+  const toggleDamageComponent = (name: string) => setDamageComponents(prev => {
+    const next = new Set(prev);
+    next.has(name) ? next.delete(name) : next.add(name);
+    return next;
+  });
+  const [accident, setAccident] = useState({ date: '', locationType: '', location: '', suburb: '', description: '' });
   const [repairer, setRepairer] = useState({ businessName: '', phone: '', address: '', suburb: '', contact: '' });
   const [business, setBusiness] = useState({ name: '', address: '', suburb: '', postcode: '', phone: '' });
   const [atFaultBusiness, setAtFaultBusiness] = useState({ name: '', address: '', suburb: '', postcode: '', phone: '' });
@@ -273,59 +281,7 @@ export default function NewReservationPage() {
         <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>New Reservation</h1>
       </div>
 
-<<<<<<< HEAD
       {/* Partner Modal */}
-=======
-      {showEmailModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', width: '560px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Email Application</h2>
-              <button onClick={() => setShowEmailModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>x</button>
-            </div>
-            <div style={{ background: '#f8fdf9', borderRadius: '8px', border: '1px solid #dcfce7', padding: '20px', marginBottom: '20px' }}>
-              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>To:</div>
-              <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a', marginBottom: '16px' }}>{driver.email || 'No email on file'}</div>
-              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Subject:</div>
-              <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a', marginBottom: '16px' }}>Right2Drive — Accident Replacement Vehicle Application</div>
-              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>Message preview:</div>
-              <div style={{ fontSize: '14px', color: '#0f172a', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
-                {`Dear ${driver.firstName || 'Customer'},
-
-Thank you for choosing Right2Drive for your accident replacement vehicle.
-
-We have received your application and our team will be in touch shortly to arrange delivery of your replacement vehicle.
-
-Your details:
-Name: ${driver.firstName} ${driver.lastName}
-Phone: ${driver.phone}
-Branch: ${branchId ? branches?.find((b: any) => b.id === branchId)?.name : 'TBC'}
-
-If you have any questions, please don't hesitate to contact us.
-
-Kind regards,
-Right2Drive Team`}
-              </div>
-            </div>
-            <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '20px' }}>
-              Note: Email sending requires Resend integration. Configure your email template in Admin → Documents.
-            </p>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setShowEmailModal(false)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}>
-                Cancel
-              </button>
-              <button
-                onClick={() => { alert(`Email would be sent to ${driver.email}`); setShowEmailModal(false); }}
-                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Send email
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
->>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
       {showPartnerModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', width: '480px', maxHeight: '70vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
@@ -447,14 +403,149 @@ Right2Drive Team`}
       <div style={section}>
         <SectionHeader title="Vehicle Details" sectionKey="vehicleDetails" openState={open} onToggle={toggle} />
         {open.vehicleDetails && (
-          <div style={grid2}>
-            <F label="Registration"><input style={input} value={accidentVehicle.registration} onChange={e => updAccidentVehicle('registration', e.target.value)} /></F>
-            <F label="Year"><input style={input} value={accidentVehicle.year} onChange={e => updAccidentVehicle('year', e.target.value)} /></F>
-            <F label="Make"><input style={input} value={accidentVehicle.make} onChange={e => updAccidentVehicle('make', e.target.value)} /></F>
-            <F label="Model"><input style={input} value={accidentVehicle.model} onChange={e => updAccidentVehicle('model', e.target.value)} /></F>
-            <F label="Damage description" full>
-              <textarea style={{ ...input, height: '80px', resize: 'vertical' }} value={accidentVehicle.damage} onChange={e => updAccidentVehicle('damage', e.target.value)} />
-            </F>
+          <>
+            <div style={grid2}>
+              <F label="Registration"><input style={input} value={accidentVehicle.registration} onChange={e => updAccidentVehicle('registration', e.target.value)} /></F>
+              <F label="Registration state">
+                <select style={input} value={accidentVehicle.registrationState || ''} onChange={e => updAccidentVehicle('registrationState', e.target.value)}>
+                  <option value="">Select state...</option>
+                  <option value="ACT">ACT</option>
+                  <option value="NSW">NSW</option>
+                  <option value="NT">NT</option>
+                  <option value="QLD">QLD</option>
+                  <option value="SA">SA</option>
+                  <option value="TAS">TAS</option>
+                  <option value="VIC">VIC</option>
+                  <option value="WA">WA</option>
+                </select>
+              </F>
+              <F label="Year"><input style={input} value={accidentVehicle.year} onChange={e => updAccidentVehicle('year', e.target.value)} /></F>
+              <F label="Make"><input style={input} value={accidentVehicle.make} onChange={e => updAccidentVehicle('make', e.target.value)} /></F>
+              <F label="Model"><input style={input} value={accidentVehicle.model} onChange={e => updAccidentVehicle('model', e.target.value)} /></F>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button
+                onClick={() => {}}
+                style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Confirm
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Vehicle Damage */}
+      <div style={section}>
+        <SectionHeader title="Vehicle Damage" sectionKey="vehicleDamage" openState={open} onToggle={toggle} />
+        {open.vehicleDamage && (
+          <div>
+            {/* Driveable status */}
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Vehicle driveable?</div>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+              <button
+                onClick={() => setVehicleDriveable('yes')}
+                style={{ padding: '10px 28px', borderRadius: '8px', border: `1.5px solid ${vehicleDriveable === 'yes' ? '#01ae42' : '#e2e8f0'}`, background: vehicleDriveable === 'yes' ? '#f0fdf4' : '#fff', color: vehicleDriveable === 'yes' ? '#01ae42' : '#64748b', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+              >✓ Driveable</button>
+              <button
+                onClick={() => setVehicleDriveable('no')}
+                style={{ padding: '10px 28px', borderRadius: '8px', border: `1.5px solid ${vehicleDriveable === 'no' ? '#ef4444' : '#e2e8f0'}`, background: vehicleDriveable === 'no' ? '#fef2f2' : '#fff', color: vehicleDriveable === 'no' ? '#ef4444' : '#64748b', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+              >✕ Not driveable</button>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '0 0 20px' }} />
+
+            {/* Car diagram */}
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>Click a zone to highlight the damage area.</p>
+            <svg width="100%" viewBox="0 0 680 340" role="img" style={{ display: 'block' }}>
+              <title>Vehicle damage selector</title>
+              <rect x="220" y="40" width="240" height="260" rx="30" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1.5"/>
+              <rect x="240" y="65" width="200" height="55" rx="8" fill="#dbeafe" stroke="#93c5fd" strokeWidth="1"/>
+              <rect x="240" y="220" width="200" height="55" rx="8" fill="#dbeafe" stroke="#93c5fd" strokeWidth="1"/>
+              <rect x="250" y="130" width="180" height="80" rx="4" fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="1"/>
+              <rect x="195" y="65" width="30" height="55" rx="8" fill="#475569" stroke="#334155" strokeWidth="1"/>
+              <rect x="455" y="65" width="30" height="55" rx="8" fill="#475569" stroke="#334155" strokeWidth="1"/>
+              <rect x="195" y="220" width="30" height="55" rx="8" fill="#475569" stroke="#334155" strokeWidth="1"/>
+              <rect x="455" y="220" width="30" height="55" rx="8" fill="#475569" stroke="#334155" strokeWidth="1"/>
+              {[
+                { key: 'front', x: 248, y: 44, w: 184, h: 27, lx: 340, ly: 62, label: 'Front' },
+                { key: 'rear', x: 248, y: 269, w: 184, h: 27, lx: 340, ly: 287, label: 'Rear' },
+                { key: 'roof', x: 258, y: 138, w: 164, h: 64, lx: 340, ly: 174, label: 'Roof / interior' },
+              ].map(z => (
+                <g key={z.key} onClick={() => toggleDamageZone(z.key)} style={{ cursor: 'pointer' }}>
+                  <rect x={z.x} y={z.y} width={z.w} height={z.h} rx="5" fill={damageZones[z.key] ? '#dcfce7' : '#f0fdf4'} stroke={damageZones[z.key] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={damageZones[z.key] ? 1 : 0.6}/>
+                  <text x={z.lx} y={z.ly} textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#64748b" fontWeight="600">{z.label}</text>
+                </g>
+              ))}
+              <g onClick={() => toggleDamageZone('passenger')} style={{ cursor: 'pointer' }}>
+                <rect x="218" y="133" width="34" height="74" rx="5" fill={damageZones['passenger'] ? '#dcfce7' : '#f0fdf4'} stroke={damageZones['passenger'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={damageZones['passenger'] ? 1 : 0.6}/>
+                <text x="235" y="168" textAnchor="middle" fontSize="10" fontFamily="sans-serif" fill="#64748b" fontWeight="600" transform="rotate(-90 235 168)">Passenger side</text>
+              </g>
+              <g onClick={() => toggleDamageZone('driver')} style={{ cursor: 'pointer' }}>
+                <rect x="427" y="133" width="34" height="74" rx="5" fill={damageZones['driver'] ? '#dcfce7' : '#f0fdf4'} stroke={damageZones['driver'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={damageZones['driver'] ? 1 : 0.6}/>
+                <text x="445" y="168" textAnchor="middle" fontSize="10" fontFamily="sans-serif" fill="#64748b" fontWeight="600" transform="rotate(90 445 168)">Driver side</text>
+              </g>
+              <text x="340" y="18" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#94a3b8">▲ Front</text>
+              <text x="340" y="330" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#94a3b8">▼ Rear</text>
+              <text x="172" y="172" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#94a3b8">Passenger</text>
+              <text x="508" y="172" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#94a3b8">Driver</text>
+            </svg>
+
+            <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '20px 0' }} />
+
+            {/* Component checklists */}
+            {[
+              { label: 'Front', items: ['Bonnet', 'Front bumper', 'Front grille', 'Headlight (driver)', 'Headlight (passenger)', 'Front windscreen'] },
+              { label: 'Rear', items: ['Boot', 'Rear bumper', 'Tail light (driver)', 'Tail light (passenger)', 'Rear windscreen', 'Tow bar'] },
+              { label: 'Driver side', items: ['Front guard (driver)', 'Front door (driver)', 'Rear door (driver)', 'Rear quarter panel (driver)', 'Side mirror (driver)', 'Side skirt (driver)'] },
+              { label: 'Passenger side', items: ['Front guard (passenger)', 'Front door (passenger)', 'Rear door (passenger)', 'Rear quarter panel (passenger)', 'Side mirror (passenger)', 'Side skirt (passenger)'] },
+              { label: 'Roof / interior', items: ['Roof panel', 'Sunroof', 'A-pillar', 'B-pillar'] },
+              { label: 'Other', items: ['Undercarriage', 'Wheels / tyres'] },
+            ].map(group => (
+              <div key={group.label} style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>{group.label}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '6px' }}>
+                  {group.items.map(item => (
+                    <div
+                      key={item}
+                      onClick={() => toggleDamageComponent(item)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '7px', border: `1px solid ${damageComponents.has(item) ? '#01ae42' : '#e2e8f0'}`, background: damageComponents.has(item) ? '#f0fdf4' : '#fff', cursor: 'pointer', fontSize: '13px', color: damageComponents.has(item) ? '#166534' : '#374151', fontWeight: damageComponents.has(item) ? 500 : 400 }}
+                    >
+                      <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1.5px solid ${damageComponents.has(item) ? '#01ae42' : '#cbd5e1'}`, background: damageComponents.has(item) ? '#01ae42' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {damageComponents.has(item) && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1,5 4,8 9,2" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>}
+                      </div>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '20px 0' }} />
+
+            {/* Damage summary */}
+            {damageComponents.size > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Damage summary</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {Array.from(damageComponents).map(name => (
+                    <div key={name} style={{ padding: '4px 10px', borderRadius: '99px', background: '#e8f9ee', color: '#0a6b2e', fontSize: '12px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {name}
+                      <button onClick={() => toggleDamageComponent(name)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0a6b2e', fontSize: '14px', lineHeight: 1, padding: 0 }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Damage description */}
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Damage description</div>
+            <textarea
+              style={{ ...input, height: '80px', resize: 'vertical' }}
+              placeholder="Describe the damage in detail..."
+              value={damageDescription}
+              onChange={e => setDamageDescription(e.target.value)}
+            />
           </div>
         )}
       </div>
@@ -465,7 +556,29 @@ Right2Drive Team`}
         {open.accidentDetails && (
           <div style={grid2}>
             <F label="Date of accident"><input type="date" style={input} value={accident.date} onChange={e => updAccident('date', e.target.value)} /></F>
-            <F label="Accident location"><input style={input} value={accident.location} onChange={e => updAccident('location', e.target.value)} /></F>
+            <F label="Location type">
+              <select style={input} value={accident.locationType} onChange={e => updAccident('locationType', e.target.value)}>
+                <option value="">Select type...</option>
+                <option value="Road">Road</option>
+                <option value="Intersection">Intersection</option>
+                <option value="Car Park">Car Park</option>
+                <option value="Private Property">Private Property</option>
+                <option value="Other">Other</option>
+              </select>
+            </F>
+            <F label="Accident location" full>
+              <AddressAutocomplete
+                value={accident.location}
+                onChange={v => updAccident('location', v)}
+                onSelect={result => {
+                  updAccident('location', result.address);
+                  updAccident('suburb', result.suburb);
+                }}
+                style={input}
+                placeholder="Search for accident location..."
+              />
+            </F>
+            <F label="Suburb"><input style={input} value={accident.suburb} onChange={e => updAccident('suburb', e.target.value)} /></F>
             <F label="Accident description" full>
               <textarea style={{ ...input, height: '80px', resize: 'vertical' }} value={accident.description} onChange={e => updAccident('description', e.target.value)} />
             </F>
@@ -494,7 +607,6 @@ Right2Drive Team`}
 
       {/* Repairer Details */}
       <div style={section}>
-<<<<<<< HEAD
         <SectionHeader title="Repairer Details" sectionKey="repairerDetails" openState={open} onToggle={toggle} />
         {open.repairerDetails && (
           <div style={grid2}>
@@ -505,27 +617,6 @@ Right2Drive Team`}
             <F label="Contact number"><input style={input} value={repairer.contact} onChange={e => updRepairer('contact', e.target.value)} /></F>
           </div>
         )}
-=======
-        <h2 style={heading}>Repairer details</h2>
-        <div style={grid2}>
-          <F label="Business name"><input style={input} value={repairer.businessName} onChange={e => updRepairer('businessName', e.target.value)} /></F>
-          <F label="Phone number"><input style={input} value={repairer.phone} onChange={e => updRepairer('phone', e.target.value)} /></F>
-          <F label="Address" full>
-            <AddressAutocomplete
-              value={repairer.address}
-              onChange={v => updRepairer('address', v)}
-              onSelect={result => {
-                updRepairer('address', result.address);
-                updRepairer('suburb', result.suburb);
-              }}
-              style={input}
-              placeholder="Start typing address..."
-            />
-          </F>
-          <F label="Suburb"><input style={input} value={repairer.suburb} onChange={e => updRepairer('suburb', e.target.value)} /></F>
-          <F label="Contact number"><input style={input} value={repairer.contact} onChange={e => updRepairer('contact', e.target.value)} /></F>
-        </div>
->>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
       </div>
 
       {/* Payment Card */}
@@ -608,7 +699,6 @@ Right2Drive Team`}
                 + Add driver
               </button>
             </div>
-<<<<<<< HEAD
             {additionalDrivers.length === 0 && (
               <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No additional drivers added.</p>
             )}
@@ -630,27 +720,6 @@ Right2Drive Team`}
             ))}
           </>
         )}
-=======
-          </div>
-        ))}
-      </div>
-
-      <div style={section}>
-        <h2 style={heading}>Booking details</h2>
-        <div style={grid2}>
-          <F label="Branch *">
-            <select style={input} value={branchId} onChange={e => setBranchId(e.target.value)}>
-              <option value="">Select branch...</option>
-              {branches?.map((b: any) => (
-                <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
-              ))}
-            </select>
-          </F>
-          <F label="Booking date *">
-            <input type="date" style={input} value={startDate} onChange={e => setStartDate(e.target.value)} />
-          </F>
-        </div>
->>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
       </div>
 
       {mutation.isError && (
@@ -671,17 +740,29 @@ Right2Drive Team`}
           {mutation.isPending ? 'Saving...' : 'Save Draft'}
         </button>
         <button
-<<<<<<< HEAD
           onClick={() => mutation.mutate('PENDING')}
           disabled={!driver.firstName || !driver.lastName || !driver.phone || mutation.isPending}
-          style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: mutation.isPending ? '#86efac' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: mutation.isPending ? 'not-allowed' : 'pointer' }}
-=======
-          onClick={() => setShowEmailModal(true)}
-          disabled={!driver.firstName || !driver.lastName || !driver.email}
-          style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: !driver.firstName ? 'not-allowed' : 'pointer', minWidth: '140px', opacity: !driver.firstName || !driver.lastName || !driver.email ? 0.6 : 1 }}
->>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
+          style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: mutation.isPending ? 'not-allowed' : 'pointer', minWidth: '140px', opacity: !driver.firstName || !driver.lastName || !driver.phone ? 0.6 : 1 }}
         >
           Email Application
+        </button>
+        <button
+          onClick={() => {}}
+          style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', minWidth: '140px' }}
+        >
+          Log Contact
+        </button>
+        <button
+          onClick={() => {}}
+          style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', minWidth: '140px' }}
+        >
+          Notes
+        </button>
+        <button
+          onClick={() => {}}
+          style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', minWidth: '140px' }}
+        >
+          Add to Schedule
         </button>
       </div>
     </div>

@@ -40,7 +40,7 @@ export default function NewInsurerPage() {
   return (
     <div style={{ maxWidth: '600px' }}>
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Add insurer</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Add Insurer</h1>
         <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Add a new insurer to the RentPro directory</p>
       </div>
 
@@ -70,7 +70,7 @@ export default function NewInsurerPage() {
           disabled={!isValid || mutation.isPending}
           style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: !isValid || mutation.isPending ? '#86efac' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: !isValid ? 'not-allowed' : 'pointer' }}
         >
-          {mutation.isPending ? 'Adding...' : 'Add insurer'}
+          {mutation.isPending ? 'Adding...' : 'Add Insurer'}
         </button>
       </div>
     </div>

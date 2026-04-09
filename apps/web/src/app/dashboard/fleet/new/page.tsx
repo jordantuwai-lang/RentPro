@@ -97,7 +97,7 @@ export default function NewVehiclePage() {
   return (
     <div style={{ maxWidth: '700px' }}>
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Add vehicle</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Add Vehicle</h1>
         <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Add a new vehicle to the RentPro fleet</p>
       </div>
 
@@ -226,7 +226,7 @@ export default function NewVehiclePage() {
           disabled={!isValid || mutation.isPending}
           style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: !isValid || mutation.isPending ? '#86efac' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: !isValid ? 'not-allowed' : 'pointer' }}
         >
-          {mutation.isPending ? 'Adding...' : 'Add vehicle'}
+          {mutation.isPending ? 'Adding...' : 'Add Vehicle'}
         </button>
       </div>
     </div>

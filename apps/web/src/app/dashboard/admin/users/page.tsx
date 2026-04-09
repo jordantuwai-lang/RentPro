@@ -199,7 +199,7 @@ export default function UsersPage() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>User management</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>User Management</h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Manage staff accounts and roles</p>
         </div>
         <button

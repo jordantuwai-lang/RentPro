@@ -180,6 +180,7 @@ signature         SignatureRecord?
   cancellationReason  String?
   cancellationComment String?
   sourceOfBusiness    String?
+  licencePhotoUrl     String?
   partnerName         String?
   updatedAt  DateTime          @updatedAt
 }

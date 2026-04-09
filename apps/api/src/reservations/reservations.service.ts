@@ -306,4 +306,19 @@ export class ReservationsService {
     });
     return reservations;
   }
+
+  async uploadLicencePhoto(id: string, url: string) {
+    return this.prisma.reservation.update({
+      where: { id },
+      data: { licencePhotoUrl: url },
+    });
+  }
+
+  async getLicencePhoto(id: string) {
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id },
+      select: { licencePhotoUrl: true },
+    });
+    return { licencePhotoUrl: reservation?.licencePhotoUrl || null };
+  }
 }

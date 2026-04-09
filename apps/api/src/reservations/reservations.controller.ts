@@ -85,4 +85,14 @@ export class ReservationsController {
   deleteAdditionalDriver(@Param('driverId') driverId: string) {
     return this.reservationsService.deleteAdditionalDriver(driverId);
   }
+
+  @Post(':id/licence-photo')
+  uploadLicencePhoto(@Param('id') id: string, @Body('url') url: string) {
+    return this.reservationsService.uploadLicencePhoto(id, url);
+  }
+
+  @Get(':id/licence-photo')
+  getLicencePhoto(@Param('id') id: string) {
+    return this.reservationsService.getLicencePhoto(id);
+  }
 }

@@ -40,6 +40,7 @@ export default function NewRepairerPage() {
     name: '', phone: '', email: '', address: '', suburb: '', postcode: '',
     state: '', territory: '', branchId: '', paymentType: '', bsb: '',
     accountNumber: '', accountName: '', bankName: '',
+    paymentFrequency: '', referralPayment: '',
   });
   const upd = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }));
 
@@ -82,7 +83,7 @@ export default function NewRepairerPage() {
   return (
     <div style={{ maxWidth: '600px' }}>
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Add repairer</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Add Repairer</h1>
         <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Add a new repairer to the RentPro partner directory</p>
       </div>
 
@@ -187,6 +188,34 @@ export default function NewRepairerPage() {
         </div>
       )}
 
+      <div style={section}>
+        <h2 style={heading}>Deal Setup</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>Payment Frequency</label>
+            <select style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' }} value={form.paymentFrequency} onChange={e => upd('paymentFrequency', e.target.value)}>
+              <option value="">Select frequency...</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Bi-Weekly">Bi-Weekly</option>
+              <option value="Monthly">Monthly</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>Referral Payment ex GST</label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', color: '#64748b' }}>$</span>
+              <input
+                type="number"
+                style={{ width: '100%', padding: '10px 12px 10px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' }}
+                value={form.referralPayment}
+                onChange={e => upd('referralPayment', e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: '12px' }}>
         <button onClick={() => router.push('/dashboard/partners')} style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
           Cancel
@@ -196,7 +225,7 @@ export default function NewRepairerPage() {
           disabled={!isValid || mutation.isPending}
           style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: !isValid || mutation.isPending ? '#86efac' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: !isValid ? 'not-allowed' : 'pointer' }}
         >
-          {mutation.isPending ? 'Adding...' : 'Add repairer'}
+          {mutation.isPending ? 'Adding...' : 'Add Repairer'}
         </button>
       </div>
     </div>

@@ -160,6 +160,9 @@ export default function SchedulePage() {
   const [bulkDriverId, setBulkDriverId] = useState('');
   const [showAddJobModal, setShowAddJobModal] = useState(false);
   const [newJob, setNewJob] = useState({ reservationId: '', address: '', suburb: '', scheduledAt: '', driverId: '', jobType: 'RETURN' });
+  const [licencePhotoUrl, setLicencePhotoUrl] = useState<string | null>(null);
+  const [uploadingLicence, setUploadingLicence] = useState(false);
+  const licenceInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['logistics'],
@@ -347,7 +350,7 @@ export default function SchedulePage() {
                   alert(`SMS would be sent to ${phone}:\n\nHi, it's ${driverName} from Right2Drive. I am on my way and will meet you shortly.`);
                 }} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>SMS Customer</button>
                 <button onClick={() => setShowPhotosModal(true)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>Delivery Photos</button>
-                <button onClick={() => setShowOnHireModal(true)} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>On Hire</button>
+                <button onClick={() => setShowOnHireModal(true)} disabled={!licencePhotoUrl || !r?.paymentCards?.length} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: (!licencePhotoUrl || !r?.paymentCards?.length) ? '#94a3b8' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: (!licencePhotoUrl || !r?.paymentCards?.length) ? 'not-allowed' : 'pointer' }}>On Hire</button>
                 <button onClick={() => setSelectedJob(null)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}>Back</button>
               </div>
             </div>
@@ -403,6 +406,51 @@ export default function SchedulePage() {
                   <span style={{ background: jobTypeColors[selectedJob.jobType]?.bg, color: jobTypeColors[selectedJob.jobType]?.color, padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>
                     {jobTypeLabels[selectedJob.jobType] || selectedJob.jobType}
                   </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={section}>
+              <h2 style={heading}>On Hire requirements</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: licencePhotoUrl ? '#f0fdf4' : '#fafafa', borderRadius: '8px', border: `1px solid ${licencePhotoUrl ? '#bbf7d0' : '#e2e8f0'}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '18px' }}>{licencePhotoUrl ? '✅' : '📷'}</span>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>Driver licence photo</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>{licencePhotoUrl ? 'Uploaded' : 'Required before On Hire'}</div>
+                    </div>
+                  </div>
+                  <button onClick={() => licenceInputRef.current?.click()} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#01ae42', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                    {licencePhotoUrl ? 'Replace' : 'Upload'}
+                  </button>
+                </div>
+                <input ref={licenceInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !selectedJob) return;
+                  setUploadingLicence(true);
+                  const reader = new FileReader();
+                  reader.onload = async () => {
+                    const token = await getToken();
+                    await api.post(`/reservations/${selectedJob.reservation.id}/licence-photo`, { url: reader.result as string }, { headers: { Authorization: `Bearer ${token}` } });
+                    setLicencePhotoUrl(reader.result as string);
+                    setUploadingLicence(false);
+                  };
+                  reader.readAsDataURL(file);
+                  e.target.value = '';
+                }} />
+                {uploadingLicence && <div style={{ fontSize: '12px', color: '#01ae42' }}>Uploading...</div>}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: r?.paymentCards?.length ? '#f0fdf4' : '#fafafa', borderRadius: '8px', border: `1px solid ${r?.paymentCards?.length ? '#bbf7d0' : '#e2e8f0'}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '18px' }}>{r?.paymentCards?.length ? '✅' : '💳'}</span>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>Payment card</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>{r?.paymentCards?.length ? `${r.paymentCards.length} card${r.paymentCards.length > 1 ? 's' : ''} on file` : 'Required before On Hire'}</div>
+                    </div>
+                  </div>
+                  {!r?.paymentCards?.length && (
+                    <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 500 }}>Add via reservation</span>
+                  )}
                 </div>
               </div>
             </div>
