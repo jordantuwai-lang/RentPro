@@ -31,7 +31,6 @@ export default function DashboardLayout({
   //     }
   //   }
   // }, [selectedBranch, router]);
->>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fdf9' }}>
