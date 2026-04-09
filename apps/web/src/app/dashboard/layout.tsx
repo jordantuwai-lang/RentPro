@@ -1,5 +1,4 @@
 'use client';
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import AuthSync from '@/components/AuthSync';
@@ -12,25 +11,6 @@ export default function DashboardLayout({
 }) {
   const { selectedBranch } = useBranch();
   const router = useRouter();
-
-<<<<<<< HEAD
-  // useEffect(() => {
-  //   if (selectedBranch === null) {
-  //     const stored = sessionStorage.getItem('selectedBranch');
-  //     if (!stored) {
-  //       router.push('/select-branch');
-  //     }
-  //   }
-  // }, [selectedBranch, router]);
-=======
-// useEffect(() => {
-  //   if (selectedBranch === null) {
-  //     const stored = sessionStorage.getItem('selectedBranch');
-  //     if (!stored) {
-  //       router.push('/select-branch');
-  //     }
-  //   }
-  // }, [selectedBranch, router]);
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fdf9' }}>
