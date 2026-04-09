@@ -7,7 +7,7 @@ export class FleetService {
 
   findAll(branchId?: string) {
     return this.prisma.vehicle.findMany({
-      where: branchId ? { branchId } : undefined,
+      where: (branchId && branchId !== "null" && branchId !== "all") ? { branchId } : undefined,
       include: { branch: true, photos: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -57,7 +57,7 @@ export class FleetService {
 
   async getFleetSummary(branchId?: string) {
     const vehicles = await this.prisma.vehicle.findMany({
-      where: branchId ? { branchId } : undefined,
+      where: (branchId && branchId !== "null" && branchId !== "all") ? { branchId } : undefined,
     });
     return {
       total: vehicles.length,

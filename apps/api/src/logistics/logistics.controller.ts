@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { LogisticsService } from './logistics.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 
@@ -8,13 +8,18 @@ export class LogisticsController {
   constructor(private readonly logisticsService: LogisticsService) {}
 
   @Get()
-  findAll(@Query('driverId') driverId?: string) {
-    return this.logisticsService.findAll(driverId);
+  findAll(@Query('branchId') branchId?: string) {
+    return this.logisticsService.findAll(branchId);
   }
 
   @Get('today')
   getToday(@Query('branchId') branchId?: string) {
     return this.logisticsService.findToday(branchId);
+  }
+
+  @Post('bulk-assign')
+  bulkAssign(@Body() body: { jobIds: string[]; driverId: string }) {
+    return this.logisticsService.bulkAssignDriver(body.jobIds, body.driverId);
   }
 
   @Get(':id')

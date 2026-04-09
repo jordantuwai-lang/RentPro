@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "JobType" AS ENUM ('DELIVERY', 'RETURN', 'EXCHANGE', 'IN_PROGRESS', 'DOCU_RESIGN');
+
+-- AlterTable
+ALTER TABLE "Delivery" ADD COLUMN "jobType" "JobType" NOT NULL DEFAULT 'DELIVERY';

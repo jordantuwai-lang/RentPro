@@ -13,6 +13,7 @@ export default function DashboardLayout({
   const { selectedBranch } = useBranch();
   const router = useRouter();
 
+<<<<<<< HEAD
   // useEffect(() => {
   //   if (selectedBranch === null) {
   //     const stored = sessionStorage.getItem('selectedBranch');
@@ -21,6 +22,16 @@ export default function DashboardLayout({
   //     }
   //   }
   // }, [selectedBranch, router]);
+=======
+// useEffect(() => {
+  //   if (selectedBranch === null) {
+  //     const stored = sessionStorage.getItem('selectedBranch');
+  //     if (!stored) {
+  //       router.push('/select-branch');
+  //     }
+  //   }
+  // }, [selectedBranch, router]);
+>>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fdf9' }}>

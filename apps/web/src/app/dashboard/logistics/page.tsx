@@ -12,6 +12,22 @@ const statusColors: Record<string, string> = {
   FAILED: '#ef4444',
 };
 
+const jobTypeColors: Record<string, { bg: string; color: string }> = {
+  DELIVERY: { bg: '#dbeafe', color: '#1d4ed8' },
+  RETURN: { bg: '#fef9c3', color: '#a16207' },
+  EXCHANGE: { bg: '#f3e8ff', color: '#7e22ce' },
+  IN_PROGRESS: { bg: '#dcfce7', color: '#15803d' },
+  DOCU_RESIGN: { bg: '#fee2e2', color: '#b91c1c' },
+};
+
+const jobTypeLabels: Record<string, string> = {
+  DELIVERY: 'Delivery',
+  RETURN: 'Return',
+  EXCHANGE: 'Exchange',
+  IN_PROGRESS: 'In Progress',
+  DOCU_RESIGN: 'Docu Resign',
+};
+
 const section: React.CSSProperties = { background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', marginBottom: '16px' };
 const heading: React.CSSProperties = { fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: 0, marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' };
 const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
@@ -115,9 +131,10 @@ function SignatureCanvas({ onSave, onCancel }: { onSave: (data: string) => void;
   );
 }
 
-export default function LogisticsPage() {
+export default function SchedulePage() {
   const { getToken, isLoaded } = useAuth();
   const queryClient = useQueryClient();
+
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [showOnHireModal, setShowOnHireModal] = useState(false);
   const [signingMode, setSigningMode] = useState<'choose' | 'screen' | 'link' | 'done'>('choose');
@@ -134,6 +151,15 @@ export default function LogisticsPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
+  const [filterDriver, setFilterDriver] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterJobType, setFilterJobType] = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkAssign, setShowBulkAssign] = useState(false);
+  const [bulkDriverId, setBulkDriverId] = useState('');
+  const [showAddJobModal, setShowAddJobModal] = useState(false);
+  const [newJob, setNewJob] = useState({ reservationId: '', address: '', suburb: '', scheduledAt: '', driverId: '', jobType: 'RETURN' });
 
   const { data, isLoading } = useQuery({
     queryKey: ['logistics'],
@@ -155,6 +181,26 @@ export default function LogisticsPage() {
     },
   });
 
+  const { data: drivers } = useQuery({
+    queryKey: ['drivers'],
+    enabled: isLoaded,
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/users?role=DRIVER', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
+
+  const { data: branches } = useQuery({
+    queryKey: ['branches'],
+    enabled: isLoaded,
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/branches', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
+
   const { data: availableVehicles } = useQuery({
     queryKey: ['available-vehicles', selectedJob?.reservation?.vehicle?.branchId],
     enabled: !!selectedJob?.reservation?.vehicle?.branchId,
@@ -163,6 +209,16 @@ export default function LogisticsPage() {
       const branchId = selectedJob?.reservation?.vehicle?.branchId;
       const res = await api.get(`/fleet?branchId=${branchId}`, { headers: { Authorization: `Bearer ${token}` } });
       return res.data.filter((v: any) => v.status === 'AVAILABLE' || v.id === selectedJob?.reservation?.vehicleId);
+    },
+  });
+
+  const { data: pendingReservations } = useQuery({
+    queryKey: ['pending-reservations'],
+    enabled: showAddJobModal,
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/reservations?status=PENDING', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
     },
   });
 
@@ -193,10 +249,7 @@ export default function LogisticsPage() {
   const markOnHire = useMutation({
     mutationFn: async ({ reservationId, signatureData }: { reservationId: string; signatureData: string }) => {
       const token = await getToken();
-      await api.post(`/documents/signatures/${reservationId}`, {
-        signatureData,
-        signingMethod: 'screen',
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.post(`/documents/signatures/${reservationId}`, { signatureData, signingMethod: 'screen' }, { headers: { Authorization: `Bearer ${token}` } });
       return api.post(`/reservations/${reservationId}/on-hire`, {}, { headers: { Authorization: `Bearer ${token}` } });
     },
     onSuccess: () => {
@@ -205,6 +258,31 @@ export default function LogisticsPage() {
       setShowOnHireModal(false);
       setSigningMode('choose');
       setSelectedJob(null);
+    },
+  });
+
+  const bulkAssign = useMutation({
+    mutationFn: async ({ jobIds, driverId }: { jobIds: string[]; driverId: string }) => {
+      const token = await getToken();
+      return api.post('/logistics/bulk-assign', { jobIds, driverId }, { headers: { Authorization: `Bearer ${token}` } });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['logistics'] });
+      setSelectedIds([]);
+      setShowBulkAssign(false);
+      setBulkDriverId('');
+    },
+  });
+
+  const createJob = useMutation({
+    mutationFn: async (data: any) => {
+      const token = await getToken();
+      return api.post('/logistics', data, { headers: { Authorization: `Bearer ${token}` } });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['logistics'] });
+      setShowAddJobModal(false);
+      setNewJob({ reservationId: '', address: '', suburb: '', scheduledAt: '', driverId: '', jobType: 'RETURN' });
     },
   });
 
@@ -229,6 +307,26 @@ export default function LogisticsPage() {
     updateDelivery.mutate({ id: job.id, data: { scheduledAt: current.toISOString() } });
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = (filtered: any[]) => {
+    if (selectedIds.length === filtered.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filtered.map((d: any) => d.id));
+    }
+  };
+
+  const filtered = (data || []).filter((d: any) => {
+    if (filterStatus && d.status !== filterStatus) return false;
+    if (filterJobType && d.jobType !== filterJobType) return false;
+    if (filterDriver && d.driverId !== filterDriver) return false;
+    if (filterBranch && d.reservation?.vehicle?.branchId !== filterBranch) return false;
+    return true;
+  });
+
   const r = selectedJob?.reservation;
 
   return (
@@ -239,34 +337,18 @@ export default function LogisticsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <div>
                 <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{r?.reservationNumber}</h1>
-                <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
-                  {selectedJob.address}, {selectedJob.suburb}
-                </p>
+                <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>{selectedJob.address}, {selectedJob.suburb}</p>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => {
-                    const driverName = selectedJob.driver ? `${selectedJob.driver.firstName} ${selectedJob.driver.lastName}` : 'Your driver';
-                    const phone = r?.customer?.phone;
-                    if (!phone) { alert('No phone number on file for this customer.'); return; }
-                    alert(`SMS would be sent to ${phone}:\n\nHi, it's ${driverName} from Right2Drive. I am on my way and will meet you shortly.`);
-                  }}
-                  style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
-                >
-                  SMS Customer
-                </button>
-                <button
-                  onClick={() => setShowPhotosModal(true)}
-                  style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
-                >
-                  Delivery Photos
-                </button>
-                <button onClick={() => setShowOnHireModal(true)} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
-                  On Hire
-                </button>
-                <button onClick={() => setSelectedJob(null)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}>
-                  Back
-                </button>
+                <button onClick={() => {
+                  const driverName = selectedJob.driver ? `${selectedJob.driver.firstName} ${selectedJob.driver.lastName}` : 'Your driver';
+                  const phone = r?.customer?.phone;
+                  if (!phone) { alert('No phone number on file for this customer.'); return; }
+                  alert(`SMS would be sent to ${phone}:\n\nHi, it's ${driverName} from Right2Drive. I am on my way and will meet you shortly.`);
+                }} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>SMS Customer</button>
+                <button onClick={() => setShowPhotosModal(true)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>Delivery Photos</button>
+                <button onClick={() => setShowOnHireModal(true)} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>On Hire</button>
+                <button onClick={() => setSelectedJob(null)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}>Back</button>
               </div>
             </div>
 
@@ -281,7 +363,7 @@ export default function LogisticsPage() {
             </div>
 
             <div style={section}>
-              <h2 style={heading}>Delivery details</h2>
+              <h2 style={heading}>Job details</h2>
               <div style={grid2}>
                 <Field label="Address" value={selectedJob.address} />
                 <Field label="Suburb" value={selectedJob.suburb} />
@@ -316,13 +398,19 @@ export default function LogisticsPage() {
                   )}
                 </div>
                 <Field label="Driver" value={selectedJob.driver ? `${selectedJob.driver.firstName} ${selectedJob.driver.lastName}` : undefined} />
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Job type</div>
+                  <span style={{ background: jobTypeColors[selectedJob.jobType]?.bg, color: jobTypeColors[selectedJob.jobType]?.color, padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>
+                    {jobTypeLabels[selectedJob.jobType] || selectedJob.jobType}
+                  </span>
+                </div>
               </div>
             </div>
 
             <div style={section}>
               <h2 style={heading}>Customer vehicle</h2>
               <div style={grid2}>
-                <Field label="Make & model" value={r?.customer ? `${r?.vehicle?.make || ''} ${r?.vehicle?.model || ''}`.trim() || '—' : '—'} />
+                <Field label="Make & model" value={r?.vehicle ? `${r.vehicle.make} ${r.vehicle.model}`.trim() : undefined} />
                 <Field label="Registration" value={r?.vehicle?.registration} />
               </div>
             </div>
@@ -334,20 +422,10 @@ export default function LogisticsPage() {
                   <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Vehicle</div>
                   {editingVehicle === selectedJob.id ? (
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      <select
-                        style={{ ...input, flex: 1 }}
-                        defaultValue={r?.vehicleId}
-                        onChange={e => {
-                          if (e.target.value) {
-                            updateVehicle.mutate({ reservationId: r?.id, vehicleId: e.target.value });
-                          }
-                        }}
-                      >
+                      <select style={{ ...input, flex: 1 }} defaultValue={r?.vehicleId} onChange={e => { if (e.target.value) updateVehicle.mutate({ reservationId: r?.id, vehicleId: e.target.value }); }}>
                         <option value="">Select vehicle...</option>
                         {availableVehicles?.map((v: any) => (
-                          <option key={v.id} value={v.id}>
-                            {v.make} {v.model} · {v.registration} · {v.category}
-                          </option>
+                          <option key={v.id} value={v.id}>{v.make} {v.model} · {v.registration} · {v.category}</option>
                         ))}
                       </select>
                       <button onClick={() => setEditingVehicle(null)} style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
@@ -398,9 +476,8 @@ export default function LogisticsPage() {
           <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', margin: 0 }}>On Hire — Sign documents</h2>
-              <button onClick={() => { setShowOnHireModal(false); setSigningMode('choose'); }} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}>x</button>
+              <button onClick={() => { setShowOnHireModal(false); setSigningMode('choose'); }} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}>×</button>
             </div>
-
             {templates && templates.length > 0 && (
               <div style={{ marginBottom: '20px', padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                 <div style={{ fontSize: '12px', fontWeight: 600, color: '#065f46', marginBottom: '6px' }}>Documents to be signed:</div>
@@ -411,7 +488,6 @@ export default function LogisticsPage() {
                 ))}
               </div>
             )}
-
             {signingMode === 'choose' && (
               <div>
                 <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>How would the customer like to sign?</p>
@@ -427,11 +503,7 @@ export default function LogisticsPage() {
                 </div>
               </div>
             )}
-
-            {signingMode === 'screen' && (
-              <SignatureCanvas onSave={handleSignatureSave} onCancel={() => setSigningMode('choose')} />
-            )}
-
+            {signingMode === 'screen' && <SignatureCanvas onSave={handleSignatureSave} onCancel={() => setSigningMode('choose')} />}
             {signingMode === 'link' && (
               <div>
                 <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '16px' }}>Send a signing link to the customer:</p>
@@ -439,12 +511,7 @@ export default function LogisticsPage() {
                   <button onClick={() => setLinkMethod('email')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${linkMethod === 'email' ? '#01ae42' : '#e2e8f0'}`, background: linkMethod === 'email' ? '#f0fdf4' : '#fff', color: linkMethod === 'email' ? '#01ae42' : '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>Email</button>
                   <button onClick={() => setLinkMethod('sms')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${linkMethod === 'sms' ? '#01ae42' : '#e2e8f0'}`, background: linkMethod === 'sms' ? '#f0fdf4' : '#fff', color: linkMethod === 'sms' ? '#01ae42' : '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>SMS</button>
                 </div>
-                <input
-                  style={{ ...input, marginBottom: '12px' }}
-                  value={linkContact}
-                  onChange={e => setLinkContact(e.target.value)}
-                  placeholder={linkMethod === 'email' ? r?.customer?.email || 'customer@email.com' : r?.customer?.phone || '04XX XXX XXX'}
-                />
+                <input style={{ ...input, marginBottom: '12px' }} value={linkContact} onChange={e => setLinkContact(e.target.value)} placeholder={linkMethod === 'email' ? r?.customer?.email || 'customer@email.com' : r?.customer?.phone || '04XX XXX XXX'} />
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => setSigningMode('choose')} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>Back</button>
                   <button onClick={() => { setLinkSent(true); setTimeout(() => { setLinkSent(false); setSigningMode('done'); }, 1500); }} disabled={linkSent} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
@@ -453,7 +520,6 @@ export default function LogisticsPage() {
                 </div>
               </div>
             )}
-
             {signingMode === 'done' && (
               <div style={{ textAlign: 'center', padding: '20px' }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
@@ -462,10 +528,7 @@ export default function LogisticsPage() {
                 <button onClick={() => { setShowOnHireModal(false); setSigningMode('choose'); }} style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Done</button>
               </div>
             )}
-
-            {markOnHire.isPending && (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#01ae42', fontSize: '14px' }}>Processing On Hire...</div>
-            )}
+            {markOnHire.isPending && <div style={{ textAlign: 'center', padding: '20px', color: '#01ae42', fontSize: '14px' }}>Processing On Hire...</div>}
           </div>
         </div>
       )}
@@ -475,24 +538,12 @@ export default function LogisticsPage() {
           <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Delivery photos</h2>
-              <button onClick={() => setShowPhotosModal(false)} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}>x</button>
+              <button onClick={() => setShowPhotosModal(false)} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}>×</button>
             </div>
             <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '16px' }}>Take pre-condition photos of the vehicle before delivery. Up to 10 photos.</p>
             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-              <button
-                onClick={() => cameraInputRef.current?.click()}
-                disabled={deliveryPhotos.length >= 10}
-                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#f8fafc', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: deliveryPhotos.length >= 10 ? 'not-allowed' : 'pointer' }}
-              >
-                Take photo
-              </button>
-              <button
-                onClick={() => photoInputRef.current?.click()}
-                disabled={deliveryPhotos.length >= 10}
-                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#f8fafc', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: deliveryPhotos.length >= 10 ? 'not-allowed' : 'pointer' }}
-              >
-                Upload photo
-              </button>
+              <button onClick={() => cameraInputRef.current?.click()} disabled={deliveryPhotos.length >= 10} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#f8fafc', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: deliveryPhotos.length >= 10 ? 'not-allowed' : 'pointer' }}>Take photo</button>
+              <button onClick={() => photoInputRef.current?.click()} disabled={deliveryPhotos.length >= 10} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#f8fafc', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: deliveryPhotos.length >= 10 ? 'not-allowed' : 'pointer' }}>Upload photo</button>
             </div>
             <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={async (e) => {
               const file = e.target.files?.[0];
@@ -501,10 +552,7 @@ export default function LogisticsPage() {
               const reader = new FileReader();
               reader.onload = async () => {
                 const token = await getToken();
-                const res = await api.post(`/logistics/${selectedJob.id}/photos`, {
-                  url: reader.result as string,
-                  key: `delivery-${selectedJob.id}-${Date.now()}`,
-                }, { headers: { Authorization: `Bearer ${token}` } });
+                const res = await api.post(`/logistics/${selectedJob.id}/photos`, { url: reader.result as string, key: `delivery-${selectedJob.id}-${Date.now()}` }, { headers: { Authorization: `Bearer ${token}` } });
                 setDeliveryPhotos(prev => [...prev, res.data]);
                 setUploadingPhoto(false);
               };
@@ -518,10 +566,7 @@ export default function LogisticsPage() {
               const reader = new FileReader();
               reader.onload = async () => {
                 const token = await getToken();
-                const res = await api.post(`/logistics/${selectedJob.id}/photos`, {
-                  url: reader.result as string,
-                  key: `delivery-${selectedJob.id}-${Date.now()}`,
-                }, { headers: { Authorization: `Bearer ${token}` } });
+                const res = await api.post(`/logistics/${selectedJob.id}/photos`, { url: reader.result as string, key: `delivery-${selectedJob.id}-${Date.now()}` }, { headers: { Authorization: `Bearer ${token}` } });
                 setDeliveryPhotos(prev => [...prev, res.data]);
                 setUploadingPhoto(false);
               };
@@ -545,52 +590,169 @@ export default function LogisticsPage() {
         </div>
       )}
 
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Logistics</h1>
-        <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Deliveries and driver dispatch</p>
+      {showBulkAssign && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginTop: 0, marginBottom: '8px' }}>Bulk assign driver</h2>
+            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>{selectedIds.length} job{selectedIds.length !== 1 ? 's' : ''} selected</p>
+            <select style={{ ...input, marginBottom: '16px' }} value={bulkDriverId} onChange={e => setBulkDriverId(e.target.value)}>
+              <option value="">Select a driver...</option>
+              {drivers?.map((d: any) => (
+                <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
+              ))}
+            </select>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => { setShowBulkAssign(false); setBulkDriverId(''); }} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { if (bulkDriverId) bulkAssign.mutate({ jobIds: selectedIds, driverId: bulkDriverId }); }} disabled={!bulkDriverId || bulkAssign.isPending} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: !bulkDriverId ? 'not-allowed' : 'pointer' }}>
+                {bulkAssign.isPending ? 'Assigning...' : 'Assign'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddJobModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginTop: 0, marginBottom: '20px' }}>Add job</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Job type</div>
+                <select style={input} value={newJob.jobType} onChange={e => setNewJob(p => ({ ...p, jobType: e.target.value }))}>
+                  <option value="DELIVERY">Delivery</option>
+                  <option value="RETURN">Return</option>
+                  <option value="EXCHANGE">Exchange</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="DOCU_RESIGN">Docu Resign</option>
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Reservation</div>
+                <select style={input} value={newJob.reservationId} onChange={e => setNewJob(p => ({ ...p, reservationId: e.target.value }))}>
+                  <option value="">Select reservation...</option>
+                  {pendingReservations?.map((res: any) => (
+                    <option key={res.id} value={res.id}>{res.reservationNumber} — {res.customer?.firstName} {res.customer?.lastName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Address</div>
+                <input style={input} value={newJob.address} onChange={e => setNewJob(p => ({ ...p, address: e.target.value }))} placeholder="Street address" />
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Suburb</div>
+                <input style={input} value={newJob.suburb} onChange={e => setNewJob(p => ({ ...p, suburb: e.target.value }))} placeholder="Suburb" />
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Scheduled date & time</div>
+                <input type="datetime-local" style={input} value={newJob.scheduledAt} onChange={e => setNewJob(p => ({ ...p, scheduledAt: e.target.value }))} />
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Driver (optional)</div>
+                <select style={input} value={newJob.driverId} onChange={e => setNewJob(p => ({ ...p, driverId: e.target.value }))}>
+                  <option value="">Unassigned</option>
+                  {drivers?.map((d: any) => (
+                    <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '24px' }}>
+              <button onClick={() => setShowAddJobModal(false)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { if (!newJob.reservationId || !newJob.address || !newJob.suburb || !newJob.scheduledAt) return; createJob.mutate({ ...newJob, driverId: newJob.driverId || undefined }); }} disabled={!newJob.reservationId || !newJob.address || !newJob.suburb || !newJob.scheduledAt || createJob.isPending} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+                {createJob.isPending ? 'Creating...' : 'Create job'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Schedule</h1>
+          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}></p>
+        </div>
+        <button onClick={() => setShowAddJobModal(true)} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>+ Add job</button>
       </div>
+
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <select style={{ ...input, width: 'auto', minWidth: '140px' }} value={filterJobType} onChange={e => setFilterJobType(e.target.value)}>
+          <option value="">All job types</option>
+          <option value="DELIVERY">Delivery</option>
+          <option value="RETURN">Return</option>
+          <option value="EXCHANGE">Exchange</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="DOCU_RESIGN">Docu Resign</option>
+        </select>
+        <select style={{ ...input, width: 'auto', minWidth: '140px' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <option value="">All statuses</option>
+          <option value="SCHEDULED">Scheduled</option>
+          <option value="DISPATCHED">Dispatched</option>
+          <option value="EN_ROUTE">En Route</option>
+          <option value="DELIVERED">Delivered</option>
+          <option value="FAILED">Failed</option>
+        </select>
+        <select style={{ ...input, width: 'auto', minWidth: '140px' }} value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
+          <option value="">All drivers</option>
+          {drivers?.map((d: any) => (
+            <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
+          ))}
+        </select>
+        <select style={{ ...input, width: 'auto', minWidth: '140px' }} value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
+          <option value="">All branches</option>
+          {branches?.map((b: any) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>
+        {(filterJobType || filterStatus || filterDriver || filterBranch) && (
+          <button onClick={() => { setFilterJobType(''); setFilterStatus(''); setFilterDriver(''); setFilterBranch(''); }} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>Clear filters</button>
+        )}
+      </div>
+
+      {selectedIds.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', marginBottom: '12px' }}>
+          <span style={{ fontSize: '14px', color: '#15803d', fontWeight: 500 }}>{selectedIds.length} job{selectedIds.length !== 1 ? 's' : ''} selected</span>
+          <button onClick={() => setShowBulkAssign(true)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Assign driver</button>
+          <button onClick={() => setSelectedIds([])} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>Clear</button>
+        </div>
+      )}
 
       <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              {['Date', 'Time', 'Customer', 'Contact', 'Delivery Location', 'Customer Vehicle', 'Assigned Fleet', 'Driver', 'Status'].map(h => (
+              <th style={{ padding: '12px 16px', width: '40px' }}>
+                <input type="checkbox" checked={selectedIds.length === filtered.length && filtered.length > 0} onChange={() => toggleSelectAll(filtered)} />
+              </th>
+              {['Date', 'Time', 'Job Type', 'Customer', 'Contact', 'Location', 'Customer Vehicle', 'Assigned Fleet', 'Driver', 'Status'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={9} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading...</td></tr>
-            ) : data?.length === 0 ? (
-              <tr><td colSpan={9} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No deliveries scheduled.</td></tr>
-            ) : data?.map((d: any) => (
-              <tr key={d.id} onClick={() => setSelectedJob(d)} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
-                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                  {new Date(d.scheduledAt).toLocaleDateString('en-AU')}
+              <tr><td colSpan={11} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={11} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No jobs found.</td></tr>
+            ) : filtered.map((d: any) => (
+              <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', background: selectedIds.includes(d.id) ? '#f0fdf4' : '#fff' }}>
+                <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
+                  <input type="checkbox" checked={selectedIds.includes(d.id)} onChange={() => toggleSelect(d.id)} />
                 </td>
-                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                  {new Date(d.scheduledAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}
+                <td onClick={() => setSelectedJob(d)} style={{ padding: '12px 16px', fontSize: '13px', color: '#0f172a', whiteSpace: 'nowrap', cursor: 'pointer' }}>{new Date(d.scheduledAt).toLocaleDateString('en-AU')}</td>
+                <td onClick={() => setSelectedJob(d)} style={{ padding: '12px 16px', fontSize: '13px', color: '#0f172a', whiteSpace: 'nowrap', cursor: 'pointer' }}>{new Date(d.scheduledAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}</td>
+                <td onClick={() => setSelectedJob(d)} style={{ padding: '12px 16px', cursor: 'pointer' }}>
+                  <span style={{ background: jobTypeColors[d.jobType]?.bg, color: jobTypeColors[d.jobType]?.color, padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {jobTypeLabels[d.jobType] || d.jobType}
+                  </span>
                 </td>
-                <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 500, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                  {d.reservation?.customer?.firstName} {d.reservation?.customer?.lastName}
-                </td>
-                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>
-                  {d.reservation?.customer?.phone || '—'}
-                </td>
-                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
-                  {d.address}, {d.suburb}
-                </td>
-                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>
-                  {d.reservation?.vehicle?.make} {d.reservation?.vehicle?.model}
-                </td>
-                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                  {d.reservation?.vehicle?.registration || '—'}
-                </td>
-                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>
-                  {d.driver?.firstName} {d.driver?.lastName}
-                </td>
-                <td style={{ padding: '12px 16px' }}>
+                <td onClick={() => setSelectedJob(d)} style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 500, color: '#0f172a', whiteSpace: 'nowrap', cursor: 'pointer' }}>{d.reservation?.customer?.firstName} {d.reservation?.customer?.lastName}</td>
+                <td onClick={() => setSelectedJob(d)} style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap', cursor: 'pointer' }}>{d.reservation?.customer?.phone || '—'}</td>
+                <td onClick={() => setSelectedJob(d)} style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b', cursor: 'pointer' }}>{d.address}, {d.suburb}</td>
+                <td onClick={() => setSelectedJob(d)} style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap', cursor: 'pointer' }}>{d.reservation?.vehicle?.make} {d.reservation?.vehicle?.model}</td>
+                <td onClick={() => setSelectedJob(d)} style={{ padding: '12px 16px', fontSize: '13px', color: '#0f172a', whiteSpace: 'nowrap', cursor: 'pointer' }}>{d.reservation?.vehicle?.registration || '—'}</td>
+                <td onClick={() => setSelectedJob(d)} style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap', cursor: 'pointer' }}>{d.driver ? `${d.driver.firstName} ${d.driver.lastName}` : <span style={{ color: '#cbd5e1' }}>Unassigned</span>}</td>
+                <td onClick={() => setSelectedJob(d)} style={{ padding: '12px 16px', cursor: 'pointer' }}>
                   <span style={{ background: statusColors[d.status] + '20', color: statusColors[d.status], padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     {d.status.replace('_', ' ')}
                   </span>

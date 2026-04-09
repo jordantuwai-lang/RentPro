@@ -16,20 +16,53 @@ function F({ label: l, children, full: f }: { label: string; children: React.Rea
   return <div style={f ? full : {}}><label style={labelStyle}>{l}</label>{children}</div>;
 }
 
+const AUSTRALIAN_BANKS: Record<string, string> = {
+  '01': 'ANZ Bank', '03': 'Westpac', '06': 'Commonwealth Bank', '08': 'NAB',
+  '09': 'Reserve Bank of Australia', '10': 'BankSA', '11': 'St George Bank',
+  '12': 'Bank of Queensland', '14': 'Citibank', '18': 'Macquarie Bank',
+  '19': 'Bankwest', '24': 'Bendigo Bank', '33': 'St George Bank', '34': 'HSBC',
+  '40': 'ING Direct', '48': 'Suncorp Bank', '55': 'Teachers Mutual Bank',
+  '61': 'Greater Bank', '62': 'Newcastle Permanent', '63': 'Heritage Bank',
+  '72': 'Bank Australia', '73': 'Beyond Bank', '76': 'ME Bank', '80': 'Citi', '91': 'AMP Bank',
+};
+
+function getBankFromBSB(bsb: string): string {
+  const prefix = bsb.replace('-', '').substring(0, 2);
+  return AUSTRALIAN_BANKS[prefix] || '';
+}
+
 export default function NewRepairerPage() {
   const { getToken } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
-
-  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', territory: '', branchId: '' });
+  const [showPaymentSetup, setShowPaymentSetup] = useState(false);
+  const [form, setForm] = useState({
+    name: '', phone: '', email: '', address: '', suburb: '', postcode: '',
+    state: '', territory: '', branchId: '', paymentType: '', bsb: '',
+    accountNumber: '', accountName: '', bankName: '',
+  });
   const upd = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }));
+
+  const handleBSBChange = (bsb: string) => {
+    upd('bsb', bsb);
+    const bank = getBankFromBSB(bsb);
+    if (bank) upd('bankName', bank);
+  };
 
   const { data: branches } = useQuery({
     queryKey: ['branches'],
     queryFn: async () => {
-      const token = await getToken();
-      const res = await api.get('/branches', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get('/branches');
       return res.data;
+    },
+  });
+
+  const { data: bdmUsers } = useQuery({
+    queryKey: ['bdm-users'],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/users', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data.filter((u: any) => u.role === 'BDM');
     },
   });
 
@@ -74,7 +107,14 @@ export default function NewRepairerPage() {
               <option value="WA">WA</option>
             </select>
           </F>
-          <F label="Territory"><input style={input} value={form.territory} onChange={e => upd('territory', e.target.value)} placeholder="North West Melbourne" /></F>
+          <F label="Assigned Sales Rep">
+            <select style={input} value={form.territory} onChange={e => upd('territory', e.target.value)}>
+              <option value="">Select sales rep...</option>
+              {bdmUsers?.map((u: any) => (
+                <option key={u.id} value={`${u.firstName} ${u.lastName}`}>{u.firstName} {u.lastName}</option>
+              ))}
+            </select>
+          </F>
           <F label="Branch *" full>
             <select style={input} value={form.branchId} onChange={e => upd('branchId', e.target.value)}>
               <option value="">Select branch...</option>
@@ -84,6 +124,61 @@ export default function NewRepairerPage() {
             </select>
           </F>
         </div>
+      </div>
+
+      <div style={section}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showPaymentSetup ? '20px' : '0' }}>
+          <h2 style={{ ...heading, marginBottom: 0 }}>Payment setup</h2>
+          <button
+            onClick={() => setShowPaymentSetup(!showPaymentSetup)}
+            style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', background: showPaymentSetup ? '#f0fdf4' : '#fff', color: showPaymentSetup ? '#01ae42' : '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+          >
+            {showPaymentSetup ? 'Hide' : 'Payment Setup'}
+          </button>
+        </div>
+
+        {showPaymentSetup && (
+          <div>
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
+              {['Gift Card', 'EFT'].map(type => (
+                <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500, color: '#0f172a' }}>
+                  <input
+                    type="radio"
+                    name="paymentType"
+                    value={type}
+                    checked={form.paymentType === type}
+                    onChange={e => upd('paymentType', e.target.value)}
+                    style={{ width: '18px', height: '18px', accentColor: '#01ae42' }}
+                  />
+                  {type}
+                </label>
+              ))}
+            </div>
+
+            {form.paymentType === 'EFT' && (
+              <div style={grid2}>
+                <F label="BSB *">
+                  <input style={input} value={form.bsb} onChange={e => handleBSBChange(e.target.value)} placeholder="000-000" maxLength={7} />
+                </F>
+                <F label="Bank">
+                  <input style={{ ...input, background: '#f8fafc', color: '#64748b' }} value={form.bankName} onChange={e => upd('bankName', e.target.value)} placeholder="Auto-populated from BSB" />
+                </F>
+                <F label="Account number *">
+                  <input style={input} value={form.accountNumber} onChange={e => upd('accountNumber', e.target.value)} placeholder="000000000" />
+                </F>
+                <F label="Account name *">
+                  <input style={input} value={form.accountName} onChange={e => upd('accountName', e.target.value)} placeholder="Business name on account" />
+                </F>
+              </div>
+            )}
+
+            {form.paymentType === 'Gift Card' && (
+              <div style={{ padding: '16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                <p style={{ color: '#065f46', fontSize: '14px', margin: 0 }}>Gift card payments will be processed manually by the finance team.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {mutation.isError && (

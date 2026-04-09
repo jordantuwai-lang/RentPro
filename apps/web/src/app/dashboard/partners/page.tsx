@@ -70,7 +70,7 @@ export default function PartnersPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                {['Name', 'Phone', 'Email', 'Suburb', 'State', 'Territory'].map(h => (
+                {['Name', 'Phone', 'Email', 'Suburb', 'State', 'Sales Rep'].map(h => (
                   <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                 ))}
               </tr>

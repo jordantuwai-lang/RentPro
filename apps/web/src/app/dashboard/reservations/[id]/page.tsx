@@ -1,5 +1,6 @@
 'use client';
 import { use, useState } from 'react';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
@@ -259,7 +260,13 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
           <div style={{ display: 'grid', gap: '16px' }}>
             <div>
               <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>Delivery address *</label>
-              <input style={input} value={scheduleForm.address} onChange={e => setScheduleForm(p => ({ ...p, address: e.target.value }))} placeholder="123 Main Street" />
+              <AddressAutocomplete
+                value={scheduleForm.address}
+                onChange={v => setScheduleForm(p => ({ ...p, address: v }))}
+                onSelect={result => setScheduleForm(p => ({ ...p, address: result.address, suburb: result.suburb, postcode: result.postcode }))}
+                style={input}
+                placeholder="Start typing address..."
+              />
             </div>
             <div style={grid2}>
               <div>

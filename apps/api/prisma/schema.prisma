@@ -48,6 +48,14 @@ enum ClaimStatus {
   DISPUTED
 }
 
+enum JobType {
+  DELIVERY
+  RETURN
+  EXCHANGE
+  IN_PROGRESS
+  DOCU_RESIGN
+}
+
 enum DeliveryStatus {
   SCHEDULED
   DISPATCHED
@@ -138,9 +146,14 @@ model Repairer {
   postcode  String?
   state     String?
   territory String?
-  branch    Branch?  @relation(fields: [branchId], references: [id])
-  branchId  String?
-  claims    Claim[]
+  branch         Branch?  @relation(fields: [branchId], references: [id])
+  branchId       String?
+  paymentType    String?
+  bsb            String?
+  accountNumber  String?
+  accountName    String?
+  bankName       String?
+  claims         Claim[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -221,6 +234,7 @@ model Delivery {
   scheduledAt   DateTime
   deliveredAt   DateTime?
   status        DeliveryStatus @default(SCHEDULED)
+  jobType       JobType        @default(DELIVERY)
   notes         String?
   createdAt     DateTime       @default(now())
   photos        DeliveryPhoto[]

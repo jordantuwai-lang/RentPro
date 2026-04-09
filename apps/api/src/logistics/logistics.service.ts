@@ -7,7 +7,7 @@ export class LogisticsService {
 
   findAll(branchId?: string) {
     return this.prisma.delivery.findMany({
-      where: branchId ? { reservation: { vehicle: { branchId } } } : undefined,
+      where: (branchId && branchId !== 'null' && branchId !== 'all') ? { reservation: { vehicle: { branchId } } } : undefined,
       include: {
         reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
         driver: true,
@@ -24,7 +24,7 @@ export class LogisticsService {
     return this.prisma.delivery.findMany({
       where: {
         scheduledAt: { gte: start, lte: end },
-        ...(branchId ? { reservation: { vehicle: { branchId } } } : {}),
+        ...((branchId && branchId !== 'null' && branchId !== 'all') ? { reservation: { vehicle: { branchId } } } : {}),
       },
       include: {
         reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
@@ -53,12 +53,11 @@ export class LogisticsService {
       scheduledAt: new Date(data.scheduledAt),
       notes: data.notes || null,
       status: 'SCHEDULED',
+      jobType: data.jobType || 'DELIVERY',
     };
-
     if (data.driverId) {
       deliveryData.driver = { connect: { id: data.driverId } };
     }
-
     return this.prisma.delivery.create({
       data: deliveryData,
       include: {
@@ -91,14 +90,23 @@ export class LogisticsService {
         address: data.address,
         suburb: data.suburb,
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,
-        driverId: data.driverId,
+        driverId: data.driverId !== undefined ? data.driverId : undefined,
         notes: data.notes,
+        jobType: data.jobType ? data.jobType : undefined,
       },
       include: {
         reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
         driver: true,
       },
     });
+  }
+
+  async bulkAssignDriver(jobIds: string[], driverId: string) {
+    await this.prisma.delivery.updateMany({
+      where: { id: { in: jobIds } },
+      data: { driverId },
+    });
+    return { updated: jobIds.length };
   }
 
   async addDeliveryPhoto(deliveryId: string, data: any) {

@@ -20,7 +20,7 @@ export class ReservationsService {
 
   findAll(branchId?: string) {
     return this.prisma.reservation.findMany({
-      where: branchId ? { vehicle: { branchId } } : undefined,
+      where: (branchId && branchId !== "null" && branchId !== "all") ? { vehicle: { branchId } } : undefined,
       include: {
         customer: true,
         vehicle: { include: { branch: true } },

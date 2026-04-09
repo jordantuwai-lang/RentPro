@@ -8,7 +8,7 @@ import { useState } from 'react';
 const nav = [
   { label: 'Dashboard', href: '/dashboard', icon: '▦' },
   { label: 'Reservations', href: '/dashboard/reservations', icon: '📋' },
-  { label: 'Logistics', href: '/dashboard/logistics', icon: '🚚' },
+  { label: 'Schedule', href: '/dashboard/logistics', icon: '🚚' },
   { label: 'On Hired', href: '/dashboard/on-hire', icon: '🔑' },
   { label: 'Claims', href: '/dashboard/claims', icon: '📁' },
   { label: 'Fleet', href: '/dashboard/fleet', icon: '🚗' },

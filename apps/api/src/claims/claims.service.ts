@@ -115,6 +115,11 @@ export class ClaimsService {
         state: data.state || undefined,
         territory: data.territory || undefined,
         branchId: data.branchId || undefined,
+        paymentType: data.paymentType || undefined,
+        bsb: data.bsb || undefined,
+        accountNumber: data.accountNumber || undefined,
+        accountName: data.accountName || undefined,
+        bankName: data.bankName || undefined,
       },
     });
   }

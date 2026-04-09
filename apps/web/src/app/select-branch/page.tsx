@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -9,21 +10,27 @@ export default function SelectBranchPage() {
   const { getToken, isLoaded, user } = useAuth();
   const router = useRouter();
   const { setSelectedBranch } = useBranch();
+  const [selectedId, setSelectedId] = useState('');
 
   const { data: branches, isLoading } = useQuery({
     queryKey: ['branches'],
     enabled: isLoaded,
     queryFn: async () => {
-      const token = await getToken();
-      const res = await api.get('/branches', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get('/branches');
       return res.data;
     },
   });
 
   const isAdmin = user?.publicMetadata?.role === 'ADMIN';
 
-  const handleSelect = (branch: { id: string; name: string; code: string }) => {
-    setSelectedBranch(branch);
+  const handleContinue = () => {
+    if (!selectedId) return;
+    if (selectedId === 'ALL') {
+      setSelectedBranch({ id: 'all', name: 'All Branches', code: 'ALL' });
+    } else {
+      const branch = branches?.find((b: any) => b.id === selectedId);
+      if (branch) setSelectedBranch({ id: branch.id, name: branch.name, code: branch.code });
+    }
     router.push('/dashboard');
   };
 
@@ -36,7 +43,7 @@ export default function SelectBranchPage() {
       justifyContent: 'center',
       padding: '24px',
     }}>
-      <div style={{ width: '100%', maxWidth: '480px' }}>
+      <div style={{ width: '100%', maxWidth: '420px' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{ fontSize: '32px', fontWeight: 700, color: '#fff', letterSpacing: '-1px', marginBottom: '8px' }}>
             Rent<span style={{ color: '#01ae42' }}>Pro</span>
@@ -46,64 +53,63 @@ export default function SelectBranchPage() {
           </p>
         </div>
 
-        {isLoading ? (
-          <div style={{ textAlign: 'center', color: '#86efac' }}>Loading branches...</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {branches?.map((b: any) => (
-              <button
-                key={b.id}
-                onClick={() => handleSelect({ id: b.id, name: b.name, code: b.code })}
-                style={{
-                  padding: '20px 24px',
-                  borderRadius: '12px',
-                  border: '1px solid #025c27',
-                  background: 'rgba(255,255,255,0.05)',
-                  color: '#fff',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: 600 }}>{b.name}</div>
-                  <div style={{ fontSize: '13px', color: '#86efac', marginTop: '2px' }}>{b.code} · {b.address}</div>
-                </div>
-                <span style={{ color: '#01ae42', fontSize: '20px' }}>→</span>
-              </button>
-            ))}
+        <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '24px', border: '1px solid #025c27' }}>
+          <label style={{ fontSize: '13px', fontWeight: 500, color: '#86efac', marginBottom: '8px', display: 'block' }}>
+            Select branch
+          </label>
+          {isLoading ? (
+            <div style={{ color: '#86efac', fontSize: '14px', padding: '10px 0' }}>Loading branches...</div>
+          ) : (
+            <select
+              value={selectedId}
+              onChange={e => setSelectedId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: '1px solid #025c27',
+                background: '#012d13',
+                color: selectedId ? '#fff' : '#86efac',
+                fontSize: '15px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                marginBottom: '16px',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2386efac' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 16px center',
+                paddingRight: '40px',
+              }}
+            >
+              <option value="">Select a branch...</option>
+              {branches?.map((b: any) => (
+                <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
+              ))}
+              {isAdmin && (
+                <option value="ALL">All Branches (Admin view)</option>
+              )}
+            </select>
+          )}
 
-            {isAdmin && (
-              <button
-                onClick={() => handleSelect({ id: 'all', name: 'All Branches', code: 'ALL' })}
-                style={{
-                  padding: '20px 24px',
-                  borderRadius: '12px',
-                  border: '1px dashed #01ae42',
-                  background: 'transparent',
-                  color: '#01ae42',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: 600 }}>All Branches</div>
-                  <div style={{ fontSize: '13px', color: '#4ade80', marginTop: '2px' }}>Admin view — see all data</div>
-                </div>
-                <span style={{ color: '#01ae42', fontSize: '20px' }}>→</span>
-              </button>
-            )}
-          </div>
-        )}
+          <button
+            onClick={handleContinue}
+            disabled={!selectedId}
+            style={{
+              width: '100%',
+              padding: '14px',
+              borderRadius: '8px',
+              border: 'none',
+              background: !selectedId ? '#025c27' : '#01ae42',
+              color: !selectedId ? '#86efac' : '#fff',
+              fontSize: '15px',
+              fontWeight: 600,
+              cursor: !selectedId ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            Continue
+          </button>
+        </div>
       </div>
     </div>
   );

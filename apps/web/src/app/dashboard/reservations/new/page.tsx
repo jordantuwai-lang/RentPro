@@ -1,5 +1,10 @@
 'use client';
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
+=======
+import { useState } from 'react';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
+>>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
 import { useAuth } from '@clerk/nextjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -75,12 +80,37 @@ function PersonFields({ data, onChange }: { data: any; onChange: (f: string, v: 
     <div style={grid2}>
       <F label="First name *"><input style={input} value={data.firstName} onChange={e => onChange('firstName', e.target.value)} /></F>
       <F label="Last name *"><input style={input} value={data.lastName} onChange={e => onChange('lastName', e.target.value)} /></F>
-      <F label="Address" full><input style={input} value={data.address} onChange={e => onChange('address', e.target.value)} /></F>
+      <F label="Address" full>
+        <AddressAutocomplete
+          value={data.address}
+          onChange={v => onChange('address', v)}
+          onSelect={result => {
+            onChange('address', result.address);
+            onChange('suburb', result.suburb);
+            onChange('postcode', result.postcode);
+          }}
+          style={input}
+          placeholder="Start typing address..."
+        />
+      </F>
       <F label="Suburb"><input style={input} value={data.suburb} onChange={e => onChange('suburb', e.target.value)} /></F>
       <F label="Postcode"><input style={input} value={data.postcode} onChange={e => onChange('postcode', e.target.value)} /></F>
       <F label="Contact number *"><input style={input} value={data.phone} onChange={e => onChange('phone', e.target.value)} /></F>
       <F label="Email"><input style={input} value={data.email} onChange={e => onChange('email', e.target.value)} /></F>
       <F label="Licence number"><input style={input} value={data.licenceNumber} onChange={e => onChange('licenceNumber', e.target.value)} /></F>
+      <F label="Licence state">
+        <select style={input} value={data.licenceState || ''} onChange={e => onChange('licenceState', e.target.value)}>
+          <option value="">Select state...</option>
+          <option value="International">International</option>
+          <option value="NSW">NSW</option>
+          <option value="NT">NT</option>
+          <option value="QLD">QLD</option>
+          <option value="SA">SA</option>
+          <option value="TAS">TAS</option>
+          <option value="VIC">VIC</option>
+          <option value="WA">WA</option>
+        </select>
+      </F>
       <F label="Licence expiry"><input type="date" style={input} value={data.licenceExpiry} onChange={e => onChange('licenceExpiry', e.target.value)} /></F>
       <F label="Date of birth"><input type="date" style={input} value={data.dob} onChange={e => onChange('dob', e.target.value)} /></F>
     </div>
@@ -154,6 +184,7 @@ export default function NewReservationPage() {
   const [branchId, setBranchId] = useState('');
   const [startDate, setStartDate] = useState('');
   const [sourceOfBusiness, setSourceOfBusiness] = useState('');
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState('');
   const [showPartnerModal, setShowPartnerModal] = useState(false);
 
@@ -242,7 +273,59 @@ export default function NewReservationPage() {
         <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>New Reservation</h1>
       </div>
 
+<<<<<<< HEAD
       {/* Partner Modal */}
+=======
+      {showEmailModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', width: '560px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Email Application</h2>
+              <button onClick={() => setShowEmailModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>x</button>
+            </div>
+            <div style={{ background: '#f8fdf9', borderRadius: '8px', border: '1px solid #dcfce7', padding: '20px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>To:</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a', marginBottom: '16px' }}>{driver.email || 'No email on file'}</div>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Subject:</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a', marginBottom: '16px' }}>Right2Drive — Accident Replacement Vehicle Application</div>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>Message preview:</div>
+              <div style={{ fontSize: '14px', color: '#0f172a', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+                {`Dear ${driver.firstName || 'Customer'},
+
+Thank you for choosing Right2Drive for your accident replacement vehicle.
+
+We have received your application and our team will be in touch shortly to arrange delivery of your replacement vehicle.
+
+Your details:
+Name: ${driver.firstName} ${driver.lastName}
+Phone: ${driver.phone}
+Branch: ${branchId ? branches?.find((b: any) => b.id === branchId)?.name : 'TBC'}
+
+If you have any questions, please don't hesitate to contact us.
+
+Kind regards,
+Right2Drive Team`}
+              </div>
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '20px' }}>
+              Note: Email sending requires Resend integration. Configure your email template in Admin → Documents.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setShowEmailModal(false)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button
+                onClick={() => { alert(`Email would be sent to ${driver.email}`); setShowEmailModal(false); }}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Send email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+>>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
       {showPartnerModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', width: '480px', maxHeight: '70vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
@@ -257,7 +340,11 @@ export default function NewReservationPage() {
             ) : repairers.map((r: any) => (
               <div
                 key={r.id}
-                onClick={() => { setSelectedPartner(r.name); setShowPartnerModal(false); }}
+                onClick={() => { 
+                  setSelectedPartner(r.name); 
+                  setShowPartnerModal(false);
+                  setRepairer(prev => ({ ...prev, businessName: r.name, phone: r.phone || '' }));
+                }}
                 style={{
                   padding: '14px 16px', borderRadius: '8px',
                   border: `1px solid ${selectedPartner === r.name ? '#01ae42' : '#e2e8f0'}`,
@@ -407,6 +494,7 @@ export default function NewReservationPage() {
 
       {/* Repairer Details */}
       <div style={section}>
+<<<<<<< HEAD
         <SectionHeader title="Repairer Details" sectionKey="repairerDetails" openState={open} onToggle={toggle} />
         {open.repairerDetails && (
           <div style={grid2}>
@@ -417,6 +505,27 @@ export default function NewReservationPage() {
             <F label="Contact number"><input style={input} value={repairer.contact} onChange={e => updRepairer('contact', e.target.value)} /></F>
           </div>
         )}
+=======
+        <h2 style={heading}>Repairer details</h2>
+        <div style={grid2}>
+          <F label="Business name"><input style={input} value={repairer.businessName} onChange={e => updRepairer('businessName', e.target.value)} /></F>
+          <F label="Phone number"><input style={input} value={repairer.phone} onChange={e => updRepairer('phone', e.target.value)} /></F>
+          <F label="Address" full>
+            <AddressAutocomplete
+              value={repairer.address}
+              onChange={v => updRepairer('address', v)}
+              onSelect={result => {
+                updRepairer('address', result.address);
+                updRepairer('suburb', result.suburb);
+              }}
+              style={input}
+              placeholder="Start typing address..."
+            />
+          </F>
+          <F label="Suburb"><input style={input} value={repairer.suburb} onChange={e => updRepairer('suburb', e.target.value)} /></F>
+          <F label="Contact number"><input style={input} value={repairer.contact} onChange={e => updRepairer('contact', e.target.value)} /></F>
+        </div>
+>>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
       </div>
 
       {/* Payment Card */}
@@ -499,6 +608,7 @@ export default function NewReservationPage() {
                 + Add driver
               </button>
             </div>
+<<<<<<< HEAD
             {additionalDrivers.length === 0 && (
               <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No additional drivers added.</p>
             )}
@@ -520,6 +630,27 @@ export default function NewReservationPage() {
             ))}
           </>
         )}
+=======
+          </div>
+        ))}
+      </div>
+
+      <div style={section}>
+        <h2 style={heading}>Booking details</h2>
+        <div style={grid2}>
+          <F label="Branch *">
+            <select style={input} value={branchId} onChange={e => setBranchId(e.target.value)}>
+              <option value="">Select branch...</option>
+              {branches?.map((b: any) => (
+                <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
+              ))}
+            </select>
+          </F>
+          <F label="Booking date *">
+            <input type="date" style={input} value={startDate} onChange={e => setStartDate(e.target.value)} />
+          </F>
+        </div>
+>>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
       </div>
 
       {mutation.isError && (
@@ -528,23 +659,29 @@ export default function NewReservationPage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '12px', paddingBottom: '40px' }}>
-        <button onClick={() => router.push('/dashboard/reservations')} style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+      <div style={{ display: 'flex', gap: '12px', paddingBottom: '40px', flexWrap: 'wrap' }}>
+        <button onClick={() => router.push('/dashboard/reservations')} style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', minWidth: '140px' }}>
           Cancel
         </button>
         <button
           onClick={() => mutation.mutate('DRAFT')}
           disabled={!driver.firstName || !driver.lastName || !driver.phone || mutation.isPending}
-          style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+          style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: !driver.firstName ? 'not-allowed' : 'pointer', minWidth: '140px', opacity: !driver.firstName || !driver.lastName || !driver.phone ? 0.6 : 1 }}
         >
-          Save draft
+          {mutation.isPending ? 'Saving...' : 'Save Draft'}
         </button>
         <button
+<<<<<<< HEAD
           onClick={() => mutation.mutate('PENDING')}
           disabled={!driver.firstName || !driver.lastName || !driver.phone || mutation.isPending}
           style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: mutation.isPending ? '#86efac' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: mutation.isPending ? 'not-allowed' : 'pointer' }}
+=======
+          onClick={() => setShowEmailModal(true)}
+          disabled={!driver.firstName || !driver.lastName || !driver.email}
+          style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: !driver.firstName ? 'not-allowed' : 'pointer', minWidth: '140px', opacity: !driver.firstName || !driver.lastName || !driver.email ? 0.6 : 1 }}
+>>>>>>> Rebuild logistics page: job types, filters, bulk assign, add job modal
         >
-          {mutation.isPending ? 'Creating...' : 'Create reservation'}
+          Email Application
         </button>
       </div>
     </div>

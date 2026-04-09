@@ -13,8 +13,10 @@ const BranchContext = createContext<BranchContextType>({
   isAllBranches: false,
 });
 
+const DEFAULT_BRANCH = { id: 'all', name: 'All Branches', code: 'ALL' };
+
 export function BranchProvider({ children }: { children: React.ReactNode }) {
-  const [selectedBranch, setSelectedBranchState] = useState<{ id: string; name: string; code: string } | null>(null);
+  const [selectedBranch, setSelectedBranchState] = useState<{ id: string; name: string; code: string } | null>(DEFAULT_BRANCH);
 
   const setSelectedBranch = (branch: { id: string; name: string; code: string } | null) => {
     setSelectedBranchState(branch);
