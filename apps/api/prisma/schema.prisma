@@ -96,8 +96,8 @@ model Vehicle {
 state        String        @default("")
   category     String
   status       VehicleStatus @default(AVAILABLE)
-  branch       Branch        @relation(fields: [branchId], references: [id])
-  branchId     String
+  branch       Branch?       @relation(fields: [branchId], references: [id])
+  branchId     String?
   reservations Reservation[]
 photos       VehiclePhoto[]
   createdAt    DateTime      @default(now())
@@ -162,7 +162,12 @@ paymentCards     PaymentCard[]
 additionalDrivers AdditionalDriver[]
 reservationNotes  ReservationNote[]
 signature         SignatureRecord?
+  payments          Payment[]
   createdAt  DateTime          @default(now())
+  cancellationReason  String?
+  cancellationComment String?
+  sourceOfBusiness    String?
+  partnerName         String?
   updatedAt  DateTime          @updatedAt
 }
 
@@ -275,6 +280,30 @@ model DeliveryPhoto {
   key        String
   caption    String?
   createdAt  DateTime @default(now())
+}
+
+model ChargeType {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  defaultAmount Float?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+}
+
+model Payment {
+  id            String      @id @default(cuid())
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  reservationId String
+  chargeType    String
+  description   String?
+  amount        Float
+  status        String      @default("PENDING")
+  method        String?
+  cardReference String?
+  processedAt   DateTime?
+  processedBy   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model DocumentTemplate {

@@ -70,6 +70,16 @@ export default function ReportsPage() {
     },
   });
 
+  const { data: cancellations } = useQuery({
+    queryKey: ['cancellations', fromDate, toDate],
+    enabled: isLoaded,
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get(`/reservations/cancellations?from=${fromDate}&to=${toDate}`, { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
+
   const { data: repairers } = useQuery({
     queryKey: ['repairers'],
     enabled: isLoaded,
@@ -278,6 +288,74 @@ export default function ReportsPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div style={section}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 style={{ ...heading, marginBottom: 0 }}>Cancellation reasons</h2>
+          {cancellations && cancellations.length > 0 && (
+            <button
+              onClick={() => {
+                const data = cancellations.map((c: any) => ({
+                  'Rez #': c.reservationNumber,
+                  'File #': c.fileNumber || '',
+                  'Customer': c.customer,
+                  'Phone': c.phone || '',
+                  'Branch': c.branch || '',
+                  'Reason': c.reason,
+                  'Cancelled': new Date(c.cancelledAt).toLocaleDateString('en-AU'),
+                }));
+                exportToExcel(data, `rentpro-cancellations-${fromDate}-to-${toDate}`);
+              }}
+              style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+            >
+              Export cancellations
+            </button>
+          )}
+        </div>
+        {!cancellations || cancellations.length === 0 ? (
+          <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No cancellations in this period.</p>
+        ) : (
+          <>
+            <div style={{ marginBottom: '16px' }}>
+              {(() => {
+                const reasonCounts: Record<string, number> = {};
+                cancellations.forEach((c: any) => {
+                  reasonCounts[c.reason] = (reasonCounts[c.reason] || 0) + 1;
+                });
+                return Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]).map(([reason, count]) => (
+                  <div key={reason} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+                    <span style={{ fontSize: '13px', color: '#0f172a' }}>{reason}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: `${Math.min((count / cancellations.length) * 150, 150)}px`, height: '6px', background: '#ef4444', borderRadius: '3px' }} />
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#ef4444', minWidth: '20px' }}>{count}</span>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  {['Rez #', 'Customer', 'Branch', 'Reason', 'Date'].map(h => (
+                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {cancellations.map((c: any, i: number) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px 12px', fontSize: '13px', color: '#01ae42', fontWeight: 600 }}>{c.reservationNumber}</td>
+                    <td style={{ padding: '10px 12px', fontSize: '13px', color: '#0f172a' }}>{c.customer}</td>
+                    <td style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b' }}>{c.branch || '—'}</td>
+                    <td style={{ padding: '10px 12px', fontSize: '13px', color: '#0f172a' }}>{c.reason}</td>
+                    <td style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>{new Date(c.cancelledAt).toLocaleDateString('en-AU')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
 
       <div style={section}>

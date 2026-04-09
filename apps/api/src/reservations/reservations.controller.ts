@@ -21,6 +21,11 @@ export class ReservationsController {
     return this.reservationsService.checkAvailability(branchId, category, startDate);
   }
 
+  @Get('next-number')
+  getNextNumber() {
+    return this.reservationsService.getNextNumber();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.reservationsService.findOne(id);
@@ -39,6 +44,11 @@ export class ReservationsController {
   @Patch(':id/cancel')
   cancel(@Param('id') id: string) {
     return this.reservationsService.cancel(id);
+  }
+
+  @Get('cancellations')
+  getCancellationReasons(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.reservationsService.getCancellationReasons(from, to);
   }
 
   @Post(':id/on-hire')

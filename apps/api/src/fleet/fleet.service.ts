@@ -29,8 +29,12 @@ export class FleetService {
   }
 
   create(data: any) {
+    const { branchId, ...rest } = data;
     return this.prisma.vehicle.create({
-      data,
+      data: {
+        ...rest,
+        ...(branchId ? { branch: { connect: { id: branchId } } } : {}),
+      },
       include: { branch: true },
     });
   }

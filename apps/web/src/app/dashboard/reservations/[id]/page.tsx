@@ -57,6 +57,9 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
   const queryClient = useQueryClient();
 
   const [showNotesModal, setShowNotesModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelComment, setCancelComment] = useState('');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [scheduleForm, setScheduleForm] = useState({ address: '', suburb: '', postcode: '', scheduledAt: '', driverId: '' });
@@ -99,6 +102,23 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservation', id] });
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
+    },
+  });
+
+  const cancelReservation = useMutation({
+    mutationFn: async () => {
+      const token = await getToken();
+      await api.patch(`/reservations/${id}`, { status: 'CANCELLED' }, { headers: { Authorization: `Bearer ${token}` } });
+      const authorName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Staff';
+      const noteText = cancelReason === 'Other' ? `Cancellation reason: ${cancelComment}` : `Cancellation reason: ${cancelReason}`;
+      await api.post(`/reservations/${id}/notes`, { note: noteText, authorName }, { headers: { Authorization: `Bearer ${token}` } });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reservation', id] });
+      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      setShowCancelModal(false);
+      setCancelReason('');
+      setCancelComment('');
     },
   });
 
@@ -148,6 +168,56 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div style={{ maxWidth: '800px' }}>
+
+      {showCancelModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', width: '480px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', marginTop: 0, marginBottom: '8px' }}>Cancel reservation</h2>
+            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Please provide a reason for cancelling this reservation.</p>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>Cancellation reason *</label>
+              <select
+                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' as const }}
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+              >
+                <option value="">Select reason...</option>
+                <option value="Intercepted by Insurer">Intercepted by Insurer</option>
+                <option value="Has access to another vehicle">Has access to another vehicle</option>
+                <option value="Does not have enough at fault details">Does not have enough at fault details</option>
+                <option value="Liability dispute">Liability dispute</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            {cancelReason === 'Other' && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>Comment *</label>
+                <textarea
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' as const, height: '100px', resize: 'vertical' }}
+                  value={cancelComment}
+                  onChange={e => setCancelComment(e.target.value)}
+                  placeholder="Please describe the reason for cancellation..."
+                />
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => { setShowCancelModal(false); setCancelReason(''); setCancelComment(''); }}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+              >
+                Go back
+              </button>
+              <button
+                onClick={() => cancelReservation.mutate()}
+                disabled={!cancelReason || (cancelReason === 'Other' && !cancelComment.trim()) || cancelReservation.isPending}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: !cancelReason || (cancelReason === 'Other' && !cancelComment.trim()) ? '#fca5a5' : '#ef4444', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                {cancelReservation.isPending ? 'Cancelling...' : 'Confirm cancellation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showNotesModal && (
         <Modal title="Notes" onClose={() => setShowNotesModal(false)}>
@@ -275,7 +345,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
             </button>
           )}
           {r.status !== 'CANCELLED' && r.status !== 'COMPLETED' && (
-            <button onClick={() => updateStatus.mutate('CANCELLED')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+            <button onClick={() => setShowCancelModal(true)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
               Cancel
             </button>
           )}

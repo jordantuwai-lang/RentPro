@@ -92,7 +92,7 @@ export default function NewVehiclePage() {
     },
   });
 
-  const isValid = form.registration && form.make && form.model && form.year && form.colour && form.category && form.state && form.branchId;
+  const isValid = form.registration && form.make && form.model && form.year && form.colour && form.category && form.state;
 
   return (
     <div style={{ maxWidth: '700px' }}>

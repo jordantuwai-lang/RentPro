@@ -279,4 +279,31 @@ export class ReservationsService {
   deleteAdditionalDriver(id: string) {
     return this.prisma.additionalDriver.delete({ where: { id } });
   }
+
+  async getNextNumber() {
+    const counter = await this.prisma.reservationCounter.findFirst();
+    const next = (counter?.current ?? 1000) + 1;
+    return { nextNumber: `REZ${next}` };
+  }
+
+  async getCancellationReasons(from?: string, to?: string) {
+    const where: any = {
+      status: 'CANCELLED',
+    };
+    if (from && to) {
+      where.updatedAt = {
+        gte: new Date(from),
+        lte: new Date(to),
+      };
+    }
+    const reservations = await this.prisma.reservation.findMany({
+      where,
+      select: {
+        cancellationReason: true,
+        cancellationComment: true,
+        updatedAt: true,
+      },
+    });
+    return reservations;
+  }
 }
