@@ -65,7 +65,7 @@ export default function ReservationsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#0a2e14', margin: 0 }}>Reservations</h1>
-          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>All active and past hire reservations</p>
+
         </div>
         <Link href="/dashboard/reservations/new" style={{
           background: '#01ae42', color: '#fff', padding: '10px 20px',

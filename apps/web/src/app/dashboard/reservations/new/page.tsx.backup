@@ -734,14 +734,14 @@ export default function NewReservationPage() {
         </button>
         <button
           onClick={() => mutation.mutate('DRAFT')}
-          disabled={mutation.isPending}
-          style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', minWidth: '140px' }}
+          disabled={!driver.firstName || !driver.lastName || !driver.phone || mutation.isPending}
+          style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: !driver.firstName ? 'not-allowed' : 'pointer', minWidth: '140px', opacity: !driver.firstName || !driver.lastName || !driver.phone ? 0.6 : 1 }}
         >
           {mutation.isPending ? 'Saving...' : 'Save Draft'}
         </button>
         <button
           onClick={() => mutation.mutate('PENDING')}
-          disabled={mutation.isPending}
+          disabled={!driver.firstName || !driver.lastName || !driver.phone || mutation.isPending}
           style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: mutation.isPending ? 'not-allowed' : 'pointer', minWidth: '140px', opacity: !driver.firstName || !driver.lastName || !driver.phone ? 0.6 : 1 }}
         >
           Email Application

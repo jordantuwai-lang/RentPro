@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 
@@ -15,6 +15,11 @@ export class AdminController {
   @Post('users')
   createUser(@Body() body: any) {
     return this.adminService.createUser(body);
+  }
+
+  @Patch('users/:clerkId')
+  updateUser(@Param('clerkId') clerkId: string, @Body() body: any) {
+    return this.adminService.updateUser(clerkId, body);
   }
 
   @Delete('users/:clerkId')

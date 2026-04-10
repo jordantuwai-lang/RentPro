@@ -11,8 +11,12 @@ const nav = [
   { label: 'Schedule', href: '/dashboard/logistics', icon: '🚚' },
   { label: 'On Hired', href: '/dashboard/on-hire', icon: '🔑' },
   { label: 'Claims', href: '/dashboard/claims', icon: '📁' },
+  { label: 'Recoveries', href: '/dashboard/recoveries', icon: '🔄' },
   { label: 'Fleet', href: '/dashboard/fleet', icon: '🚗' },
   { label: 'Reports', href: '/dashboard/reports', icon: '📊' },
+];
+
+const financeNav = [
   { label: 'Payments', href: '/dashboard/payments', icon: '💳' },
   { label: 'Invoicing', href: '/dashboard/invoicing', icon: '🧾' },
 ];
@@ -31,6 +35,7 @@ export default function Sidebar() {
   const { user } = useUser();
   const { selectedBranch, setSelectedBranch } = useBranch();
   const [adminOpen, setAdminOpen] = useState(pathname.startsWith('/dashboard/admin') || pathname.startsWith('/dashboard/partners'));
+  const [financeOpen, setFinanceOpen] = useState(pathname.startsWith('/dashboard/payments') || pathname.startsWith('/dashboard/invoicing'));
 
   const isAdmin = user?.publicMetadata?.role === 'ADMIN';
 
@@ -63,10 +68,9 @@ export default function Sidebar() {
       flexShrink: 0,
     }}>
       <div style={{ padding: '0 20px 32px', borderBottom: '1px solid #025c27' }}>
-        <div style={{ fontSize: '20px', fontWeight: '700', color: '#fff', letterSpacing: '-0.5px' }}>
+        <div style={{ fontSize: '28px', fontWeight: '700', color: '#fff', letterSpacing: '-0.5px' }}>
           Rent<span style={{ color: '#01ae42' }}>Pro</span>
         </div>
-        <div style={{ fontSize: '11px', color: '#4ade80', marginTop: '2px' }}>Right2Drive Ops</div>
       </div>
 
       <nav style={{ flex: 1, padding: '16px 12px' }}>
@@ -76,6 +80,44 @@ export default function Sidebar() {
             {item.label}
           </Link>
         ))}
+
+        {/* Finance section */}
+        <div style={{ marginTop: '8px' }}>
+          <button
+            onClick={() => setFinanceOpen(!financeOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '10px 12px',
+              borderRadius: '8px',
+              background: financeOpen ? 'rgba(1,174,66,0.15)' : 'transparent',
+              color: '#86efac',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              marginBottom: '4px',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '16px' }}>💰</span>
+              Finance
+            </span>
+            <span style={{ fontSize: '10px', transition: 'transform 0.2s', transform: financeOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+          </button>
+          {financeOpen && (
+            <div style={{ paddingLeft: '12px', borderLeft: '2px solid #025c27', marginLeft: '12px' }}>
+              {financeNav.map((item) => (
+                <Link key={item.href} href={item.href} style={{ ...linkStyle(item.href), fontSize: '13px' }}>
+                  <span style={{ fontSize: '14px' }}>{item.icon}</span>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
 
         {isAdmin && (
           <div style={{ marginTop: '8px' }}>

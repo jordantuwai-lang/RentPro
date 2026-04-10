@@ -60,6 +60,13 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   const [selectedStatus, setSelectedStatus] = useState('');
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [staffName, setStaffName] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ registration: '', make: '', model: '', year: '', colour: '', category: '', state: '', odometer: '' });
+  const updEdit = (f: string, v: string) => setEditForm(p => ({ ...p, [f]: v }));
+
+  const [editAccessories, setEditAccessories] = useState<string[]>([]);
+  const toggleEditAccessory = (item: string) => setEditAccessories(prev => prev.includes(item) ? prev.filter(a => a !== item) : [...prev, item]);
+
 
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ['vehicle', id],
@@ -86,6 +93,29 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     },
   });
 
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      const token = await getToken();
+      return api.patch(`/fleet/${id}`, {
+        registration: editForm.registration.toUpperCase(),
+        make: editForm.make,
+        model: editForm.model,
+        year: parseInt(editForm.year),
+        colour: editForm.colour,
+        category: editForm.category,
+        state: editForm.state,
+        odometer: editForm.odometer ? parseInt(editForm.odometer) : undefined,
+        accessories: editAccessories,
+      }, { headers: { Authorization: `Bearer ${token}` } });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicle', id] });
+      queryClient.invalidateQueries({ queryKey: ['fleet'] });
+      setShowEditModal(false);
+    },
+  });
+
+
   const handleStatusChange = (status: string) => {
     setSelectedStatus(status);
     if (status === 'WITH_STAFF') {
@@ -105,6 +135,174 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <div style={{ maxWidth: '800px' }}>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', width: '620px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Edit Vehicle</h2>
+              <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>×</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              {[
+                { label: 'Registration *', field: 'registration', placeholder: 'ABC123' },
+                { label: 'Make *', field: 'make', placeholder: 'Toyota' },
+                { label: 'Model *', field: 'model', placeholder: 'Corolla' },
+                { label: 'Year *', field: 'year', placeholder: '2023' },
+                { label: 'Colour *', field: 'colour', placeholder: 'White' },
+                { label: 'Odometer (km)', field: 'odometer', placeholder: '45000' },
+              ].map(({ label, field, placeholder }) => (
+                <div key={field}>
+                  <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>{label}</label>
+                  <input
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' }}
+                    value={(editForm as any)[field]}
+                    onChange={e => updEdit(field, e.target.value)}
+                    placeholder={placeholder}
+                  />
+                </div>
+              ))}
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>State *</label>
+                <select style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' }} value={editForm.state} onChange={e => updEdit('state', e.target.value)}>
+                  <option value="">Select state...</option>
+                  {['NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>Category *</label>
+                <select style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' }} value={editForm.category} onChange={e => updEdit('category', e.target.value)}>
+                  <option value="">Select category...</option>
+                  {['Small','Medium','Large','SUV','Van','Ute'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Accessories</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+                {accessoryOptions.map(item => (
+                  <div
+                    key={item}
+                    onClick={() => toggleEditAccessory(item)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '7px', border: `1px solid ${editAccessories.includes(item) ? '#01ae42' : '#e2e8f0'}`, background: editAccessories.includes(item) ? '#f0fdf4' : '#fff', cursor: 'pointer', fontSize: '13px', color: editAccessories.includes(item) ? '#166534' : '#374151', fontWeight: editAccessories.includes(item) ? 500 : 400 }}
+                  >
+                    <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1.5px solid ${editAccessories.includes(item) ? '#01ae42' : '#cbd5e1'}`, background: editAccessories.includes(item) ? '#01ae42' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {editAccessories.includes(item) && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1,5 4,8 9,2" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>}
+                    </div>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {editMutation.isError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#dc2626', fontSize: '14px' }}>
+                Something went wrong. Please try again.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowEditModal(false)} style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button
+                onClick={() => editMutation.mutate()}
+                disabled={editMutation.isPending}
+                style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', opacity: editMutation.isPending ? 0.6 : 1 }}
+              >
+                {editMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', width: '620px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Edit Vehicle</h2>
+              <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>×</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              {[
+                { label: 'Registration *', field: 'registration', placeholder: 'ABC123' },
+                { label: 'Make *', field: 'make', placeholder: 'Toyota' },
+                { label: 'Model *', field: 'model', placeholder: 'Corolla' },
+                { label: 'Year *', field: 'year', placeholder: '2023' },
+                { label: 'Colour *', field: 'colour', placeholder: 'White' },
+                { label: 'Odometer (km)', field: 'odometer', placeholder: '45000' },
+              ].map(({ label, field, placeholder }) => (
+                <div key={field}>
+                  <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>{label}</label>
+                  <input
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' }}
+                    value={(editForm as any)[field]}
+                    onChange={e => updEdit(field, e.target.value)}
+                    placeholder={placeholder}
+                  />
+                </div>
+              ))}
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>State *</label>
+                <select style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' }} value={editForm.state} onChange={e => updEdit('state', e.target.value)}>
+                  <option value="">Select state...</option>
+                  {['NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>Category *</label>
+                <select style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' }} value={editForm.category} onChange={e => updEdit('category', e.target.value)}>
+                  <option value="">Select category...</option>
+                  {['Small','Medium','Large','SUV','Van','Ute'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Accessories</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+                {accessoryOptions.map(item => (
+                  <div
+                    key={item}
+                    onClick={() => toggleEditAccessory(item)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '7px', border: `1px solid ${editAccessories.includes(item) ? '#01ae42' : '#e2e8f0'}`, background: editAccessories.includes(item) ? '#f0fdf4' : '#fff', cursor: 'pointer', fontSize: '13px', color: editAccessories.includes(item) ? '#166534' : '#374151', fontWeight: editAccessories.includes(item) ? 500 : 400 }}
+                  >
+                    <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1.5px solid ${editAccessories.includes(item) ? '#01ae42' : '#cbd5e1'}`, background: editAccessories.includes(item) ? '#01ae42' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {editAccessories.includes(item) && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1,5 4,8 9,2" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>}
+                    </div>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {editMutation.isError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#dc2626', fontSize: '14px' }}>
+                Something went wrong. Please try again.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowEditModal(false)} style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button
+                onClick={() => editMutation.mutate()}
+                disabled={editMutation.isPending}
+                style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', opacity: editMutation.isPending ? 0.6 : 1 }}
+              >
+                {editMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showStaffModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -168,6 +366,26 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
             <option value="RETIRED">Retired</option>
             <option value="WITH_STAFF">With staff</option>
           </select>
+          <button
+            onClick={() => {
+              setEditForm({ registration: vehicle.registration, make: vehicle.make, model: vehicle.model, year: vehicle.year?.toString(), colour: vehicle.colour, category: vehicle.category, state: vehicle.state || '', odometer: vehicle.odometer?.toString() || '' });
+              setEditAccessories(vehicle.accessories || []);
+              setShowEditModal(true);
+            }}
+            style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => {
+              setEditForm({ registration: vehicle.registration, make: vehicle.make, model: vehicle.model, year: vehicle.year?.toString(), colour: vehicle.colour, category: vehicle.category, state: vehicle.state || '', odometer: vehicle.odometer?.toString() || '' });
+              setEditAccessories(vehicle.accessories || []);
+              setShowEditModal(true);
+            }}
+            style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+          >
+            Edit
+          </button>
           <button onClick={() => router.push('/dashboard/fleet')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
             Back
           </button>
@@ -185,8 +403,22 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
           <Field label="Colour" value={vehicle.colour} />
           <Field label="Category" value={vehicle.category} />
           <Field label="Branch" value={vehicle.branch?.name} />
+          <Field label="Odometer Reading" value={vehicle.odometer ? vehicle.odometer.toLocaleString() + ' km' : undefined} />
         </div>
       </div>
+
+      {vehicle.accessories?.length > 0 && (
+        <div style={section}>
+          <h2 style={heading}>Accessories</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {vehicle.accessories.map((a: string) => (
+              <div key={a} style={{ padding: '4px 12px', borderRadius: '99px', background: '#f0fdf4', color: '#166534', fontSize: '13px', border: '1px solid #bbf7d0', fontWeight: 500 }}>
+                {a}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {vehicle.photos?.length > 0 && (
         <div style={section}>

@@ -22,8 +22,20 @@ export default function NewVehiclePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ registration: '', make: '', model: '', year: '', colour: '', category: '', state: '', branchId: '' });
+  const [form, setForm] = useState({ registration: '', make: '', model: '', year: '', colour: '', category: '', state: '', branchId: '', odometer: '' });
   const [photos, setPhotos] = useState<{ dataUrl: string; caption: string }[]>([]);
+  const [accessories, setAccessories] = useState<string[]>([]);
+
+  const accessoryOptions = [
+    'Roof racks', 'Tow ball', 'Tow bar', 'Bike rack', 'Cargo barrier',
+    'Bull bar', 'Nudge bar', 'Side steps', 'Canopy', 'Toolbox',
+    'Snorkel', 'Winch', 'Running boards', 'Sunroof', 'Tinted windows',
+    'Dashcam', 'Reversing camera', 'GPS', 'Child seat anchor points',
+  ];
+
+  const toggleAccessory = (item: string) => {
+    setAccessories(prev => prev.includes(item) ? prev.filter(a => a !== item) : [...prev, item]);
+  };
   const [showPhotos, setShowPhotos] = useState(false);
   const [createdVehicleId, setCreatedVehicleId] = useState<string | null>(null);
 
@@ -63,6 +75,7 @@ export default function NewVehiclePage() {
       const res = await api.post('/fleet', {
         registration: form.registration.toUpperCase(),
         make: form.make,
+        odometer: form.odometer ? parseInt(form.odometer) : undefined,
         model: form.model,
         year: parseInt(form.year),
         colour: form.colour,
@@ -138,7 +151,45 @@ export default function NewVehiclePage() {
               {branches?.map((b: any) => <option key={b.id} value={b.id}>{b.name} ({b.code})</option>)}
             </select>
           </F>
+          <F label="Odometer Reading (km)">
+            <input
+              style={input}
+              type="number"
+              value={form.odometer}
+              onChange={e => upd('odometer', e.target.value)}
+              placeholder="e.g. 45000"
+            />
+          </F>
         </div>
+      </div>
+
+      <div style={section}>
+        <h2 style={heading}>Accessories</h2>
+        <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', marginTop: '-12px' }}>Select all accessories fitted to this vehicle.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '8px' }}>
+          {accessoryOptions.map(item => (
+            <div
+              key={item}
+              onClick={() => toggleAccessory(item)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${accessories.includes(item) ? '#01ae42' : '#e2e8f0'}`, background: accessories.includes(item) ? '#f0fdf4' : '#fff', cursor: 'pointer', fontSize: '13px', color: accessories.includes(item) ? '#166534' : '#374151', fontWeight: accessories.includes(item) ? 500 : 400 }}
+            >
+              <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1.5px solid ${accessories.includes(item) ? '#01ae42' : '#cbd5e1'}`, background: accessories.includes(item) ? '#01ae42' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {accessories.includes(item) && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1,5 4,8 9,2" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>}
+              </div>
+              {item}
+            </div>
+          ))}
+        </div>
+        {accessories.length > 0 && (
+          <div style={{ marginTop: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {accessories.map(a => (
+              <div key={a} style={{ padding: '4px 10px', borderRadius: '99px', background: '#f0fdf4', color: '#166534', fontSize: '12px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {a}
+                <button onClick={() => toggleAccessory(a)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#166534', fontSize: '14px', lineHeight: 1, padding: 0 }}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={section}>

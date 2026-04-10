@@ -28,6 +28,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
+
+
 export default function UsersPage() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
@@ -35,11 +37,25 @@ export default function UsersPage() {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', role: '', branchId: '' });
+  const updEdit = (f: string, v: string) => setEditForm(p => ({ ...p, [f]: v }));
   const [passwordMode, setPasswordMode] = useState<'invite' | 'password'>('invite');
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', role: '', branchId: '' });
   const [error, setError] = useState('');
 
   const upd = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }));
+
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      const token = await getToken();
+      return api.patch(`/admin/users/${showEditModal.clerkId}`, editForm, { headers: { Authorization: `Bearer ${token}` } });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setShowEditModal(null);
+    },
+  });
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users'],
@@ -202,12 +218,20 @@ export default function UsersPage() {
           <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>User Management</h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Manage staff accounts and roles</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          style={{ background: '#01ae42', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
-        >
-          + Add user
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => setShowAddModal(true)}
+            style={{ background: '#01ae42', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+          >
+            + Add user
+          </button>
+          <button
+            onClick={() => {}}
+            style={{ background: '#01ae42', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+          >
+            + Bulk Add
+          </button>
+        </div>
       </div>
 
       <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
@@ -235,20 +259,65 @@ export default function UsersPage() {
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{u.branch || '—'}</td>
                 <td style={{ padding: '14px 16px' }}>
-                  {u.clerkId !== user?.id && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <button
-                      onClick={() => setShowDeleteConfirm(u.clerkId)}
-                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
+                      onClick={() => { setShowEditModal(u); setEditForm({ firstName: u.firstName, lastName: u.lastName, role: u.role || '', branchId: u.branchId || '' }); }}
+                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#374151', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
                     >
-                      Remove
+                      Edit
                     </button>
-                  )}
+                    {u.clerkId !== user?.id && (
+                      <button
+                        onClick={() => setShowDeleteConfirm(u.clerkId)}
+                        style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {/* Edit User Modal */}
+      {showEditModal && (
+        <Modal title="Edit User" onClose={() => setShowEditModal(null)}>
+          <div style={grid2}>
+            <F label="First name"><input style={input} value={editForm.firstName} onChange={e => updEdit('firstName', e.target.value)} /></F>
+            <F label="Last name"><input style={input} value={editForm.lastName} onChange={e => updEdit('lastName', e.target.value)} /></F>
+          </div>
+          <div style={{ marginTop: '16px' }}>
+            <F label="Role">
+              <select style={input} value={editForm.role} onChange={e => updEdit('role', e.target.value)}>
+                <option value="">Select role...</option>
+                <option value="ADMIN">Admin</option>
+                <option value="OPS_MANAGER">Ops Manager</option>
+                <option value="BDM">BDM</option>
+                <option value="DRIVER">Driver</option>
+              </select>
+            </F>
+          </div>
+          {editMutation.isError && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', marginTop: '16px', color: '#dc2626', fontSize: '14px' }}>
+              Something went wrong. Please try again.
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
+            <button onClick={() => setShowEditModal(null)} style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+              Cancel
+            </button>
+            <button
+              onClick={() => editMutation.mutate()}
+              disabled={editMutation.isPending}
+              style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', opacity: editMutation.isPending ? 0.6 : 1 }}
+            >
+              {editMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

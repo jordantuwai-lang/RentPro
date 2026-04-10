@@ -164,8 +164,8 @@ reservationNumber String            @unique @default("")
 fileNumber        String?           @unique
   customer   Customer          @relation(fields: [customerId], references: [id])
   customerId String
-  vehicle    Vehicle           @relation(fields: [vehicleId], references: [id])
-  vehicleId  String
+  vehicle    Vehicle?          @relation(fields: [vehicleId], references: [id])
+  vehicleId  String?
   startDate  DateTime
   endDate    DateTime?
   status     ReservationStatus @default(PENDING)

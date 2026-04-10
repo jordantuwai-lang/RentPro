@@ -121,7 +121,7 @@ export default function FleetPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead>
                       <tr style={{ background: '#f8fafc' }}>
-                        {['Registration', 'State', 'Year', 'Make', 'Model', 'Colour', 'Category', 'Branch', 'Status'].map(h => (
+                        {['Registration', 'State', 'Year', 'Make', 'Model', 'Colour', 'Category', 'Status'].map(h => (
                           <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#64748b', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
@@ -136,7 +136,6 @@ export default function FleetPage() {
                           <td style={{ padding: '10px 12px', color: '#0f172a' }}>{row.model}</td>
                           <td style={{ padding: '10px 12px', color: '#0f172a' }}>{row.colour}</td>
                           <td style={{ padding: '10px 12px', color: '#0f172a' }}>{row.category}</td>
-                          <td style={{ padding: '10px 12px', color: '#0f172a' }}>{row.branch}</td>
                           <td style={{ padding: '10px 12px' }}>
                             <span style={{ padding: '3px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 500, background: row.valid ? '#f0fdf4' : '#fef2f2', color: row.valid ? '#01ae42' : '#ef4444' }}>
                               {row.valid ? 'Ready' : 'Error'}
@@ -199,7 +198,7 @@ export default function FleetPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              {['Registration', 'Vehicle', 'Year', 'Category', 'Branch', 'Status'].map(h => (
+              {['Registration', 'Vehicle', 'Year', 'Category', 'Current KMs', 'Status'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
               ))}
             </tr>
@@ -215,7 +214,7 @@ export default function FleetPage() {
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#0a2e14' }}>{v.make} {v.model}</td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{v.year}</td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{v.category}</td>
-                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{v.branch?.code}</td>
+                <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{v.odometer ? v.odometer.toLocaleString() + ' km' : '—'}</td>
                 <td style={{ padding: '14px 16px' }}>
                   <span style={{ background: statusColors[v.status] + '20', color: statusColors[v.status], padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '500' }}>
                     {v.status.replace('_', ' ')}

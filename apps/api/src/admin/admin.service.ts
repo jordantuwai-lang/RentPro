@@ -55,6 +55,29 @@ export class AdminService {
     return clerkUser;
   }
 
+  async updateUser(clerkId: string, data: any) {
+    await clerk.users.updateUser(clerkId, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      publicMetadata: {
+        role: data.role,
+        branchId: data.branchId || null,
+      },
+    });
+
+    await this.prisma.user.updateMany({
+      where: { clerkId },
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: data.role,
+        branchId: data.branchId || null,
+      },
+    });
+
+    return { success: true };
+  }
+
   async deleteUser(clerkId: string) {
     await clerk.users.deleteUser(clerkId);
     await this.prisma.user.deleteMany({ where: { clerkId } });
