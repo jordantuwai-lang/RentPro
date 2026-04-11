@@ -9,10 +9,21 @@ datasource db {
 
 enum Role {
   ADMIN
+  LEADERSHIP
   OPS_MANAGER
-  BDM
-  DRIVER
-  REPAIRER
+  BRANCH_MANAGER
+  RECOVERY_MANAGER
+  CLAIMS_MANAGER
+  SALES_MANAGER
+  FLEET_MANAGER
+  FINANCE_MANAGER
+  CLAIMS_TEAM_IN
+  CLAIMS_TEAM_OUT
+  CLAIMS_TEAM_LIABILITY
+  CSE_DRIVER
+  SALES_REP
+  RECOVERY_AGENT
+  FLEET_COORDINATOR
 }
 
 enum VehicleStatus {
@@ -65,7 +76,7 @@ model User {
   email      String     @unique
   firstName  String
   lastName   String
-  role       Role       @default(DRIVER)
+  role       Role       @default(CSE_DRIVER)
   branch     Branch?    @relation(fields: [branchId], references: [id])
   branchId   String?
   deliveries Delivery[]
@@ -90,21 +101,21 @@ model Branch {
 }
 
 model Vehicle {
-  id           String        @id @default(cuid())
-  registration String        @unique
+  id           String         @id @default(cuid())
+  registration String         @unique
   make         String
   model        String
   year         Int
   colour       String
-  state        String        @default("")
+  state        String         @default("")
   category     String
-  status       VehicleStatus @default(AVAILABLE)
-  branch       Branch?       @relation(fields: [branchId], references: [id])
+  status       VehicleStatus  @default(AVAILABLE)
+  branch       Branch?        @relation(fields: [branchId], references: [id])
   branchId     String?
   reservations Reservation[]
   photos       VehiclePhoto[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
 
 model Customer {
@@ -154,16 +165,16 @@ model Repairer {
 }
 
 model Reservation {
-  id                  String            @id @default(cuid())
-  reservationNumber   String            @unique @default("")
-  fileNumber          String?           @unique
-  customer            Customer          @relation(fields: [customerId], references: [id])
+  id                  String             @id @default(cuid())
+  reservationNumber   String             @unique @default("")
+  fileNumber          String?            @unique
+  customer            Customer           @relation(fields: [customerId], references: [id])
   customerId          String
-  vehicle             Vehicle?          @relation(fields: [vehicleId], references: [id])
+  vehicle             Vehicle?           @relation(fields: [vehicleId], references: [id])
   vehicleId           String?
   startDate           DateTime
   endDate             DateTime?
-  status              ReservationStatus @default(PENDING)
+  status              ReservationStatus  @default(PENDING)
   claim               Claim?
   delivery            Delivery?
   paymentCards        PaymentCard[]
@@ -176,8 +187,8 @@ model Reservation {
   sourceOfBusiness    String?
   licencePhotoUrl     String?
   partnerName         String?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 }
 
 model Claim {

@@ -27,7 +27,18 @@ async function main() {
     },
   });
 
-  console.log('Branches created: KPK, COB');
+  const dan = await prisma.branch.upsert({
+    where: { code: 'DAN' },
+    update: {},
+    create: {
+      name: 'Dandenong',
+      code: 'DAN',
+      address: '123 Dandenong Rd , Dandenong, VIC 3058',
+      phone: '03 9000 0003',
+    },
+  });
+
+  console.log('Branches created: KPK, COB, DAN');
 
   const vehicles = [
     { registration: '1ABC123', make: 'Toyota', model: 'Corolla', year: 2022, colour: 'White', category: 'Small', branchId: kpk.id },
