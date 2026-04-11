@@ -15,8 +15,6 @@ enum Role {
   REPAIRER
 }
 
-
-
 enum VehicleStatus {
   AVAILABLE
   BOOKED_FOR_REPAIR
@@ -41,11 +39,8 @@ enum ReservationStatus {
 
 enum ClaimStatus {
   OPEN
-  PENDING_APPROVAL
-  APPROVED
-  INVOICED
+  IN_PROGRESS
   CLOSED
-  DISPUTED
 }
 
 enum JobType {
@@ -101,13 +96,13 @@ model Vehicle {
   model        String
   year         Int
   colour       String
-state        String        @default("")
+  state        String        @default("")
   category     String
   status       VehicleStatus @default(AVAILABLE)
   branch       Branch?       @relation(fields: [branchId], references: [id])
   branchId     String?
   reservations Reservation[]
-photos       VehiclePhoto[]
+  photos       VehiclePhoto[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -137,69 +132,81 @@ model Insurer {
 }
 
 model Repairer {
-  id        String   @id @default(cuid())
-  name      String
-  phone     String
-  email     String?
-  address   String
-  suburb    String
-  postcode  String?
-  state     String?
-  territory String?
-  branch         Branch?  @relation(fields: [branchId], references: [id])
-  branchId       String?
-  paymentType    String?
-  bsb            String?
-  accountNumber  String?
-  accountName    String?
-  bankName       String?
-  claims         Claim[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  phone         String
+  email         String?
+  address       String
+  suburb        String
+  postcode      String?
+  state         String?
+  territory     String?
+  branch        Branch?  @relation(fields: [branchId], references: [id])
+  branchId      String?
+  paymentType   String?
+  bsb           String?
+  accountNumber String?
+  accountName   String?
+  bankName      String?
+  claims        Claim[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Reservation {
-  id         String            @id @default(cuid())
-reservationNumber String            @unique @default("")
-fileNumber        String?           @unique
-  customer   Customer          @relation(fields: [customerId], references: [id])
-  customerId String
-  vehicle    Vehicle?          @relation(fields: [vehicleId], references: [id])
-  vehicleId  String?
-  startDate  DateTime
-  endDate    DateTime?
-  status     ReservationStatus @default(PENDING)
-  claim      Claim?
-  delivery   Delivery?
-paymentCards     PaymentCard[]
-additionalDrivers AdditionalDriver[]
-reservationNotes  ReservationNote[]
-signature         SignatureRecord?
-  payments          Payment[]
-  createdAt  DateTime          @default(now())
+  id                  String            @id @default(cuid())
+  reservationNumber   String            @unique @default("")
+  fileNumber          String?           @unique
+  customer            Customer          @relation(fields: [customerId], references: [id])
+  customerId          String
+  vehicle             Vehicle?          @relation(fields: [vehicleId], references: [id])
+  vehicleId           String?
+  startDate           DateTime
+  endDate             DateTime?
+  status              ReservationStatus @default(PENDING)
+  claim               Claim?
+  delivery            Delivery?
+  paymentCards        PaymentCard[]
+  additionalDrivers   AdditionalDriver[]
+  reservationNotes    ReservationNote[]
+  signature           SignatureRecord?
+  payments            Payment[]
   cancellationReason  String?
   cancellationComment String?
   sourceOfBusiness    String?
   licencePhotoUrl     String?
   partnerName         String?
-  updatedAt  DateTime          @updatedAt
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 }
 
 model Claim {
-  id            String      @id @default(cuid())
-  reservation   Reservation @relation(fields: [reservationId], references: [id])
-  reservationId String      @unique
-  insurer       Insurer     @relation(fields: [insurerId], references: [id])
-  insurerId     String
-  repairer      Repairer?   @relation(fields: [repairerId], references: [id])
-  repairerId    String?
-  claimNumber   String?
-  status        ClaimStatus @default(OPEN)
-  documents     Document[]
-  invoices      Invoice[]
-  notes         String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id               String      @id @default(cuid())
+  reservation      Reservation @relation(fields: [reservationId], references: [id])
+  reservationId    String      @unique
+  insurer          Insurer?    @relation(fields: [insurerId], references: [id])
+  insurerId        String?
+  repairer         Repairer?   @relation(fields: [repairerId], references: [id])
+  repairerId       String?
+  claimNumber      String?     @unique
+  claimReference   String?
+  sourceOfBusiness String?
+  claimHandlerId   String?
+  status           ClaimStatus @default(OPEN)
+  notes            ClaimNote[]
+  documents        Document[]
+  invoices         Invoice[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model ClaimNote {
+  id         String   @id @default(cuid())
+  claim      Claim    @relation(fields: [claimId], references: [id])
+  claimId    String
+  note       String
+  authorName String
+  createdAt  DateTime @default(now())
 }
 
 model Document {
@@ -252,9 +259,9 @@ model ReservationNote {
 }
 
 model FileNumberCounter {
-  id      Int    @id @default(1)
-  KPK     Int    @default(1000)
-  COB     Int    @default(1000)
+  id  Int @id @default(1)
+  KPK Int @default(1000)
+  COB Int @default(1000)
 }
 
 model ReservationCounter {
@@ -263,15 +270,15 @@ model ReservationCounter {
 }
 
 model PaymentCard {
-  id            String      @id @default(cuid())
-referenceCode String      @unique @default("")
-  reservation   Reservation @relation(fields: [reservationId], references: [id])
-  reservationId String
-  cardType      String
-  cardNumber    String
-  expiryDate    String
+  id             String      @id @default(cuid())
+  referenceCode  String      @unique @default("")
+  reservation    Reservation @relation(fields: [reservationId], references: [id])
+  reservationId  String
+  cardType       String
+  cardNumber     String
+  expiryDate     String
   cardholderName String
-  createdAt     DateTime    @default(now())
+  createdAt      DateTime    @default(now())
 }
 
 model AdditionalDriver {
@@ -298,11 +305,11 @@ model DeliveryPhoto {
 }
 
 model ChargeType {
-  id          String    @id @default(cuid())
-  name        String    @unique
+  id            String   @id @default(cuid())
+  name          String   @unique
   defaultAmount Float?
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
 }
 
 model Payment {
@@ -322,13 +329,13 @@ model Payment {
 }
 
 model DocumentTemplate {
-  id          String   @id @default(cuid())
-  type        String   @unique
-  name        String
-  url         String
-  key         String
-  uploadedAt  DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  type       String   @unique
+  name       String
+  url        String
+  key        String
+  uploadedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model SignatureRecord {

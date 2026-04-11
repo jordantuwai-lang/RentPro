@@ -1,49 +1,77 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ClaimsService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(branchId?: string) {
-    return this.prisma.claim.findMany({
+  async findAll(branchId?: string) {
+    const claims = await this.prisma.claim.findMany({
       include: {
-        reservation: { include: { customer: true, vehicle: true } },
+        reservation: {
+          include: {
+            customer: true,
+            vehicle: { include: { branch: true } },
+          },
+        },
         insurer: true,
         repairer: true,
-        documents: true,
-        invoices: true,
+        notes: { orderBy: { createdAt: 'desc' } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    if (!branchId) return claims;
+
+    return claims.filter(
+      (c) => c.reservation?.vehicle?.branch?.id === branchId,
+    );
   }
 
   findOne(id: string) {
     return this.prisma.claim.findUnique({
       where: { id },
       include: {
-        reservation: { include: { customer: true, vehicle: { include: { branch: true } } } },
+        reservation: {
+          include: {
+            customer: true,
+            vehicle: { include: { branch: true } },
+          },
+        },
         insurer: true,
         repairer: true,
+        notes: { orderBy: { createdAt: 'desc' } },
         documents: true,
         invoices: true,
       },
     });
   }
 
-  create(data: any) {
+  async create(data: any) {
+    // Auto-generate claim number CLM-000001 format
+    const count = await this.prisma.claim.count();
+    const claimNumber = `CLM-${String(count + 1).padStart(6, '0')}`;
+
     return this.prisma.claim.create({
       data: {
         reservation: { connect: { id: data.reservationId } },
-        insurer: { connect: { id: data.insurerId } },
-        repairer: data.repairerId ? { connect: { id: data.repairerId } } : undefined,
-        claimNumber: data.claimNumber,
-        notes: data.notes,
+        insurer: data.insurerId
+          ? { connect: { id: data.insurerId } }
+          : undefined,
+        repairer: data.repairerId
+          ? { connect: { id: data.repairerId } }
+          : undefined,
+        claimNumber,
+        claimReference: data.claimReference,
+        sourceOfBusiness: data.sourceOfBusiness,
+        claimHandlerId: data.claimHandlerId,
+        status: data.status || 'OPEN',
       },
       include: {
-        reservation: true,
+        reservation: { include: { customer: true, vehicle: true } },
         insurer: true,
         repairer: true,
+        notes: true,
       },
     });
   }
@@ -54,12 +82,31 @@ export class ClaimsService {
       data: {
         status: data.status,
         claimNumber: data.claimNumber,
-        notes: data.notes,
+        claimReference: data.claimReference,
+        sourceOfBusiness: data.sourceOfBusiness,
+        claimHandlerId: data.claimHandlerId,
+        insurer: data.insurerId
+          ? { connect: { id: data.insurerId } }
+          : undefined,
+        repairer: data.repairerId
+          ? { connect: { id: data.repairerId } }
+          : undefined,
       },
       include: {
-        reservation: true,
+        reservation: { include: { customer: true, vehicle: true } },
         insurer: true,
         repairer: true,
+        notes: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+  }
+
+  addNote(claimId: string, data: any) {
+    return this.prisma.claimNote.create({
+      data: {
+        claim: { connect: { id: claimId } },
+        note: data.note,
+        authorName: data.authorName,
       },
     });
   }

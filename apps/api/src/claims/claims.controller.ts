@@ -52,6 +52,11 @@ export class ClaimsController {
     return this.claimsService.update(id, body);
   }
 
+  @Post(':id/notes')
+  addNote(@Param('id') id: string, @Body() body: any) {
+    return this.claimsService.addNote(id, body);
+  }
+
   @Post(':id/documents')
   addDocument(@Param('id') id: string, @Body() body: any) {
     return this.claimsService.addDocument(id, body);
