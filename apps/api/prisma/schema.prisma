@@ -143,25 +143,38 @@ model Insurer {
 }
 
 model Repairer {
-  id            String   @id @default(cuid())
-  name          String
-  phone         String
-  email         String?
-  address       String
-  suburb        String
-  postcode      String?
-  state         String?
-  territory     String?
-  branch        Branch?  @relation(fields: [branchId], references: [id])
-  branchId      String?
-  paymentType   String?
-  bsb           String?
-  accountNumber String?
-  accountName   String?
-  bankName      String?
-  claims        Claim[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String             @id @default(cuid())
+  name             String
+  phone            String
+  email            String?
+  address          String
+  suburb           String
+  postcode         String?
+  state            String?
+  territory        String?
+  branch           Branch?            @relation(fields: [branchId], references: [id])
+  branchId         String?
+  paymentType      String?
+  bsb              String?
+  accountNumber    String?
+  accountName      String?
+  bankName         String?
+  referralAmount   Decimal?
+  paymentFrequency String?
+  claims           Claim[]
+  documents        RepairerDocument[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model RepairerDocument {
+  id          String   @id @default(cuid())
+  repairer    Repairer @relation(fields: [repairerId], references: [id])
+  repairerId  String
+  name        String
+  fileData    String   // base64
+  mimeType    String
+  createdAt   DateTime @default(now())
 }
 
 model Reservation {
@@ -187,10 +200,29 @@ model Reservation {
   sourceOfBusiness    String?
   licencePhotoUrl     String?
   partnerName         String?
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-}
 
+  // Accident & Claims fields
+  typeOfCover        String?
+  hireType           String?
+  towIn              String?
+  totalLoss          String?
+  settlementReceived String?
+  repairStartDate    DateTime?
+  repairEndDate      DateTime?
+  estimateDate       DateTime?
+  assessmentDate     DateTime?
+  repairerInvoiceNo  String?
+  repairerInvoiceAmt Decimal?
+  thirdPartyRecovery String?
+  witnessName        String?
+  witnessPhone       String?
+  policeContactName  String?
+  policePhone        String?
+  policeEventNo      String?
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
 model Claim {
   id               String      @id @default(cuid())
   reservation      Reservation @relation(fields: [reservationId], references: [id])

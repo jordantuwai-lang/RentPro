@@ -48,19 +48,14 @@ export class ClaimsService {
   }
 
   async create(data: any) {
-    // Auto-generate claim number CLM-000001 format
     const count = await this.prisma.claim.count();
     const claimNumber = `CLM-${String(count + 1).padStart(6, '0')}`;
 
     return this.prisma.claim.create({
       data: {
         reservation: { connect: { id: data.reservationId } },
-        insurer: data.insurerId
-          ? { connect: { id: data.insurerId } }
-          : undefined,
-        repairer: data.repairerId
-          ? { connect: { id: data.repairerId } }
-          : undefined,
+        insurer: data.insurerId ? { connect: { id: data.insurerId } } : undefined,
+        repairer: data.repairerId ? { connect: { id: data.repairerId } } : undefined,
         claimNumber,
         claimReference: data.claimReference,
         sourceOfBusiness: data.sourceOfBusiness,
@@ -85,12 +80,8 @@ export class ClaimsService {
         claimReference: data.claimReference,
         sourceOfBusiness: data.sourceOfBusiness,
         claimHandlerId: data.claimHandlerId,
-        insurer: data.insurerId
-          ? { connect: { id: data.insurerId } }
-          : undefined,
-        repairer: data.repairerId
-          ? { connect: { id: data.repairerId } }
-          : undefined,
+        insurer: data.insurerId ? { connect: { id: data.insurerId } } : undefined,
+        repairer: data.repairerId ? { connect: { id: data.repairerId } } : undefined,
       },
       include: {
         reservation: { include: { customer: true, vehicle: true } },
@@ -167,7 +158,33 @@ export class ClaimsService {
         accountNumber: data.accountNumber || undefined,
         accountName: data.accountName || undefined,
         bankName: data.bankName || undefined,
+        referralAmount: data.referralAmount ? parseFloat(data.referralAmount) : undefined,
+        paymentFrequency: data.paymentFrequency || undefined,
       },
+    });
+  }
+
+  getRepairerDocuments(repairerId: string) {
+    return this.prisma.repairerDocument.findMany({
+      where: { repairerId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  addRepairerDocument(repairerId: string, data: any) {
+    return this.prisma.repairerDocument.create({
+      data: {
+        repairer: { connect: { id: repairerId } },
+        name: data.name,
+        fileData: data.fileData,
+        mimeType: data.mimeType,
+      },
+    });
+  }
+
+  deleteRepairerDocument(documentId: string) {
+    return this.prisma.repairerDocument.delete({
+      where: { id: documentId },
     });
   }
 }

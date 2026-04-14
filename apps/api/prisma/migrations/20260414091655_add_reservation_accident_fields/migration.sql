@@ -1,0 +1,18 @@
+-- AlterTable
+ALTER TABLE "Reservation" ADD COLUMN     "assessmentDate" TIMESTAMP(3),
+ADD COLUMN     "estimateDate" TIMESTAMP(3),
+ADD COLUMN     "hireType" TEXT,
+ADD COLUMN     "policeContactName" TEXT,
+ADD COLUMN     "policeEventNo" TEXT,
+ADD COLUMN     "policePhone" TEXT,
+ADD COLUMN     "repairEndDate" TIMESTAMP(3),
+ADD COLUMN     "repairStartDate" TIMESTAMP(3),
+ADD COLUMN     "repairerInvoiceAmt" DECIMAL(65,30),
+ADD COLUMN     "repairerInvoiceNo" TEXT,
+ADD COLUMN     "settlementReceived" TEXT,
+ADD COLUMN     "thirdPartyRecovery" TEXT,
+ADD COLUMN     "totalLoss" TEXT,
+ADD COLUMN     "towIn" TEXT,
+ADD COLUMN     "typeOfCover" TEXT,
+ADD COLUMN     "witnessName" TEXT,
+ADD COLUMN     "witnessPhone" TEXT;

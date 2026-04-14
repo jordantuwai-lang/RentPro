@@ -1,5 +1,5 @@
 'use client';
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -17,32 +17,14 @@ function F({ label: l, children, full: f }: { label: string; children: React.Rea
 }
 
 const AUSTRALIAN_BANKS: Record<string, string> = {
-  '01': 'ANZ Bank',
-  '03': 'Westpac',
-  '06': 'Commonwealth Bank',
-  '08': 'NAB',
-  '09': 'Reserve Bank of Australia',
-  '10': 'BankSA',
-  '11': 'St George Bank',
-  '12': 'Bank of Queensland',
-  '14': 'Citibank',
-  '18': 'Macquarie Bank',
-  '19': 'Bankwest',
-  '24': 'Bendigo Bank',
-  '30': 'Westpac (formerly Bank of Melbourne)',
-  '33': 'St George Bank',
-  '34': 'HSBC',
-  '40': 'ING Direct',
-  '48': 'Suncorp Bank',
-  '55': 'Teachers Mutual Bank',
-  '61': 'Greater Bank',
-  '62': 'Newcastle Permanent',
-  '63': 'Heritage Bank',
-  '72': 'Bank Australia',
-  '73': 'Beyond Bank',
-  '76': 'ME Bank',
-  '80': 'Citi',
-  '91': 'AMP Bank',
+  '01': 'ANZ Bank', '03': 'Westpac', '06': 'Commonwealth Bank', '08': 'NAB',
+  '09': 'Reserve Bank of Australia', '10': 'BankSA', '11': 'St George Bank',
+  '12': 'Bank of Queensland', '14': 'Citibank', '18': 'Macquarie Bank',
+  '19': 'Bankwest', '24': 'Bendigo Bank', '30': 'Westpac (formerly Bank of Melbourne)',
+  '33': 'St George Bank', '34': 'HSBC', '40': 'ING Direct', '48': 'Suncorp Bank',
+  '55': 'Teachers Mutual Bank', '61': 'Greater Bank', '62': 'Newcastle Permanent',
+  '63': 'Heritage Bank', '72': 'Bank Australia', '73': 'Beyond Bank',
+  '76': 'ME Bank', '80': 'Citi', '91': 'AMP Bank',
 };
 
 function getBankFromBSB(bsb: string): string {
@@ -55,12 +37,17 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
   const { getToken, isLoaded } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [showPaymentSetup, setShowPaymentSetup] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     name: '', phone: '', email: '', address: '', suburb: '',
     postcode: '', state: '', territory: '', branchId: '',
     paymentType: '', bsb: '', accountNumber: '', accountName: '', bankName: '',
+    referralAmount: '', paymentFrequency: '',
   });
   const upd = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }));
 
@@ -70,8 +57,17 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
     queryFn: async () => {
       const token = await getToken();
       const res = await api.get('/claims/repairers', { headers: { Authorization: `Bearer ${token}` } });
-      const found = res.data.find((r: any) => r.id === id);
-      return found || null;
+      return res.data.find((r: any) => r.id === id) || null;
+    },
+  });
+
+  const { data: documents, refetch: refetchDocs } = useQuery({
+    queryKey: ['repairer-documents', id],
+    enabled: isLoaded,
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get(`/claims/repairers/${id}/documents`, { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
     },
   });
 
@@ -110,6 +106,8 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
         accountNumber: repairer.accountNumber || '',
         accountName: repairer.accountName || '',
         bankName: repairer.bankName || '',
+        referralAmount: repairer.referralAmount ? String(repairer.referralAmount) : '',
+        paymentFrequency: repairer.paymentFrequency || '',
       });
       if (repairer.paymentType) setShowPaymentSetup(true);
       setLoaded(true);
@@ -134,6 +132,48 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
     },
   });
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDoc(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64 = (reader.result as string).split(',')[1];
+        const token = await getToken();
+        await api.post(`/claims/repairers/${id}/documents`, {
+          name: file.name,
+          fileData: base64,
+          mimeType: file.type,
+        }, { headers: { Authorization: `Bearer ${token}` } });
+        refetchDocs();
+      } finally {
+        setUploadingDoc(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDeleteDoc = async (docId: string) => {
+    if (!confirm('Delete this document?')) return;
+    setDeletingDocId(docId);
+    try {
+      const token = await getToken();
+      await api.delete(`/claims/repairers/documents/${docId}`, { headers: { Authorization: `Bearer ${token}` } });
+      refetchDocs();
+    } finally {
+      setDeletingDocId(null);
+    }
+  };
+
+  const handleDownload = (doc: any) => {
+    const link = document.createElement('a');
+    link.href = `data:${doc.mimeType};base64,${doc.fileData}`;
+    link.download = doc.name;
+    link.click();
+  };
+
   const isValid = form.name && form.phone && form.address && form.suburb;
 
   if (!loaded) return <div style={{ padding: '40px', color: '#94a3b8' }}>Loading...</div>;
@@ -145,6 +185,7 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
         <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Edit repairer details</p>
       </div>
 
+      {/* Repairer Details */}
       <div style={section}>
         <h2 style={heading}>Repairer details</h2>
         <div style={grid2}>
@@ -157,13 +198,7 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
           <F label="State">
             <select style={input} value={form.state} onChange={e => upd('state', e.target.value)}>
               <option value="">Select state...</option>
-              <option value="NSW">NSW</option>
-              <option value="NT">NT</option>
-              <option value="QLD">QLD</option>
-              <option value="SA">SA</option>
-              <option value="TAS">TAS</option>
-              <option value="VIC">VIC</option>
-              <option value="WA">WA</option>
+              {['NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </F>
           <F label="Assigned Sales Rep">
@@ -185,6 +220,36 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
+      {/* Deal Section */}
+      <div style={section}>
+        <h2 style={heading}>Deal</h2>
+        <div style={grid2}>
+          <F label="Referral Amount (ex GST)">
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontSize: '14px' }}>$</span>
+              <input
+                style={{ ...input, paddingLeft: '24px' }}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={form.referralAmount}
+                onChange={e => upd('referralAmount', e.target.value)}
+              />
+            </div>
+          </F>
+          <F label="Payment Frequency">
+            <select style={input} value={form.paymentFrequency} onChange={e => upd('paymentFrequency', e.target.value)}>
+              <option value="">Select frequency...</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Fortnightly">Fortnightly</option>
+              <option value="Monthly">Monthly</option>
+            </select>
+          </F>
+        </div>
+      </div>
+
+      {/* Payment Setup */}
       <div style={section}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showPaymentSetup ? '20px' : '0' }}>
           <h2 style={{ ...heading, marginBottom: 0 }}>Payment setup</h2>
@@ -195,43 +260,23 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
             {showPaymentSetup ? 'Hide' : 'Payment Setup'}
           </button>
         </div>
-
         {showPaymentSetup && (
           <div>
             <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
               {['Gift Card', 'EFT'].map(type => (
                 <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500, color: '#0f172a' }}>
-                  <input
-                    type="radio"
-                    name="paymentType"
-                    value={type}
-                    checked={form.paymentType === type}
-                    onChange={e => upd('paymentType', e.target.value)}
-                    style={{ width: '18px', height: '18px', accentColor: '#01ae42' }}
-                  />
+                  <input type="radio" name="paymentType" value={type} checked={form.paymentType === type} onChange={e => upd('paymentType', e.target.value)} style={{ width: '18px', height: '18px', accentColor: '#01ae42' }} />
                   {type}
                 </label>
               ))}
             </div>
-
             {form.paymentType === 'EFT' && (
               <div style={grid2}>
                 <F label="BSB *">
-                  <input
-                    style={input}
-                    value={form.bsb}
-                    onChange={e => handleBSBChange(e.target.value)}
-                    placeholder="000-000"
-                    maxLength={7}
-                  />
+                  <input style={input} value={form.bsb} onChange={e => handleBSBChange(e.target.value)} placeholder="000-000" maxLength={7} />
                 </F>
                 <F label="Bank">
-                  <input
-                    style={{ ...input, background: '#f8fafc', color: '#64748b' }}
-                    value={form.bankName}
-                    onChange={e => upd('bankName', e.target.value)}
-                    placeholder="Auto-populated from BSB"
-                  />
+                  <input style={{ ...input, background: '#f8fafc', color: '#64748b' }} value={form.bankName} onChange={e => upd('bankName', e.target.value)} placeholder="Auto-populated from BSB" />
                 </F>
                 <F label="Account number *">
                   <input style={input} value={form.accountNumber} onChange={e => upd('accountNumber', e.target.value)} placeholder="000000000" />
@@ -241,22 +286,56 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
                 </F>
               </div>
             )}
-
             {form.paymentType === 'Gift Card' && (
               <div style={{ padding: '16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                 <p style={{ color: '#065f46', fontSize: '14px', margin: 0 }}>Gift card payments will be processed manually by the finance team.</p>
               </div>
             )}
             <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => mutation.mutate()}
-                disabled={mutation.isPending}
-                style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
-              >
+              <button onClick={() => mutation.mutate()} disabled={mutation.isPending} style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
                 {mutation.isPending ? 'Saving...' : 'Save payment details'}
               </button>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Documents */}
+      <div style={section}>
+        <h2 style={heading}>Documents</h2>
+        <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileUpload} />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingDoc}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#f8fafc', color: '#475569', fontSize: '13px', fontWeight: 500, cursor: 'pointer', marginBottom: '16px' }}
+        >
+          {uploadingDoc ? 'Uploading...' : '+ Upload document'}
+        </button>
+
+        {documents && documents.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {documents.map((doc: any) => (
+              <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '18px' }}>📄</span>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: '#0f172a' }}>{doc.name}</p>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8' }}>{new Date(doc.createdAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => handleDownload(doc)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontSize: '12px', cursor: 'pointer' }}>
+                    Download
+                  </button>
+                  <button onClick={() => handleDeleteDoc(doc.id)} disabled={deletingDocId === doc.id} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#dc2626', fontSize: '12px', cursor: 'pointer' }}>
+                    {deletingDocId === doc.id ? '...' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ color: '#94a3b8', fontSize: '13px', margin: 0 }}>No documents uploaded yet.</p>
         )}
       </div>
 

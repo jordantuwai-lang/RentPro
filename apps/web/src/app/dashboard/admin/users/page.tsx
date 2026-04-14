@@ -10,6 +10,44 @@ const input: React.CSSProperties = { width: '100%', padding: '10px 12px', border
 const labelStyle: React.CSSProperties = { fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' };
 const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
 
+const ALL_ROLES: { value: string; label: string }[] = [
+  { value: 'ADMIN', label: 'Admin' },
+  { value: 'LEADERSHIP', label: 'Leadership' },
+  { value: 'OPS_MANAGER', label: 'Ops Manager' },
+  { value: 'BRANCH_MANAGER', label: 'Branch Manager' },
+  { value: 'RECOVERY_MANAGER', label: 'Recovery Manager' },
+  { value: 'CLAIMS_MANAGER', label: 'Claims Manager' },
+  { value: 'SALES_MANAGER', label: 'Sales Manager' },
+  { value: 'FLEET_MANAGER', label: 'Fleet Manager' },
+  { value: 'FINANCE_MANAGER', label: 'Finance Manager' },
+  { value: 'CLAIMS_TEAM_IN', label: 'Claims Team (Inbound)' },
+  { value: 'CLAIMS_TEAM_OUT', label: 'Claims Team (Outbound)' },
+  { value: 'CLAIMS_TEAM_LIABILITY', label: 'Claims Team (Liability)' },
+  { value: 'CSE_DRIVER', label: 'CSE Driver' },
+  { value: 'SALES_REP', label: 'Sales Rep' },
+  { value: 'RECOVERY_AGENT', label: 'Recovery Agent' },
+  { value: 'FLEET_COORDINATOR', label: 'Fleet Coordinator' },
+];
+
+const roleColors: Record<string, string> = {
+  ADMIN: '#ef4444',
+  LEADERSHIP: '#0ea5e9',
+  OPS_MANAGER: '#f59e0b',
+  BRANCH_MANAGER: '#f97316',
+  RECOVERY_MANAGER: '#ec4899',
+  CLAIMS_MANAGER: '#8b5cf6',
+  SALES_MANAGER: '#06b6d4',
+  FLEET_MANAGER: '#84cc16',
+  FINANCE_MANAGER: '#14b8a6',
+  CLAIMS_TEAM_IN: '#a78bfa',
+  CLAIMS_TEAM_OUT: '#c084fc',
+  CLAIMS_TEAM_LIABILITY: '#e879f9',
+  CSE_DRIVER: '#01ae42',
+  SALES_REP: '#6366f1',
+  RECOVERY_AGENT: '#f43f5e',
+  FLEET_COORDINATOR: '#22c55e',
+};
+
 function F({ label: l, children }: { label: string; children: React.ReactNode }) {
   return <div><label style={labelStyle}>{l}</label>{children}</div>;
 }
@@ -28,8 +66,6 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-
-
 export default function UsersPage() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
@@ -43,7 +79,6 @@ export default function UsersPage() {
   const [passwordMode, setPasswordMode] = useState<'invite' | 'password'>('invite');
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', role: '', branchId: '' });
   const [error, setError] = useState('');
-
   const upd = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }));
 
   const editMutation = useMutation({
@@ -112,14 +147,6 @@ export default function UsersPage() {
 
   const isValid = form.firstName && form.lastName && form.email && form.role && (passwordMode === 'invite' || form.password);
 
-  const roleColors: Record<string, string> = {
-    ADMIN: '#ef4444',
-    OPS_MANAGER: '#f59e0b',
-    BDM: '#8b5cf6',
-    DRIVER: '#01ae42',
-    'No role': '#94a3b8',
-  };
-
   return (
     <div>
       {showAddModal && (
@@ -133,10 +160,7 @@ export default function UsersPage() {
             <F label="Role *">
               <select style={input} value={form.role} onChange={e => upd('role', e.target.value)}>
                 <option value="">Select role...</option>
-                <option value="ADMIN">Admin</option>
-                <option value="OPS_MANAGER">Ops Manager</option>
-                <option value="BDM">BDM</option>
-                <option value="DRIVER">Driver</option>
+                {ALL_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </F>
             <F label="Branch">
@@ -147,20 +171,13 @@ export default function UsersPage() {
                 ))}
               </select>
             </F>
-
             <div>
               <label style={labelStyle}>Password setup</label>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <button
-                  onClick={() => setPasswordMode('invite')}
-                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${passwordMode === 'invite' ? '#01ae42' : '#e2e8f0'}`, background: passwordMode === 'invite' ? '#f0fdf4' : '#fff', color: passwordMode === 'invite' ? '#01ae42' : '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
-                >
+                <button onClick={() => setPasswordMode('invite')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${passwordMode === 'invite' ? '#01ae42' : '#e2e8f0'}`, background: passwordMode === 'invite' ? '#f0fdf4' : '#fff', color: passwordMode === 'invite' ? '#01ae42' : '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
                   Send email invite
                 </button>
-                <button
-                  onClick={() => setPasswordMode('password')}
-                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${passwordMode === 'password' ? '#01ae42' : '#e2e8f0'}`, background: passwordMode === 'password' ? '#f0fdf4' : '#fff', color: passwordMode === 'password' ? '#01ae42' : '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
-                >
+                <button onClick={() => setPasswordMode('password')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${passwordMode === 'password' ? '#01ae42' : '#e2e8f0'}`, background: passwordMode === 'password' ? '#f0fdf4' : '#fff', color: passwordMode === 'password' ? '#01ae42' : '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
                   Set password
                 </button>
               </div>
@@ -175,13 +192,11 @@ export default function UsersPage() {
                 </F>
               )}
             </div>
-
             {error && (
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', color: '#dc2626', fontSize: '13px' }}>
                 {error}
               </div>
             )}
-
             <button
               onClick={() => createUser.mutate()}
               disabled={!isValid || createUser.isPending}
@@ -219,16 +234,10 @@ export default function UsersPage() {
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Manage staff accounts and roles</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            onClick={() => setShowAddModal(true)}
-            style={{ background: '#01ae42', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
-          >
+          <button onClick={() => setShowAddModal(true)} style={{ background: '#01ae42', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
             + Add user
           </button>
-          <button
-            onClick={() => {}}
-            style={{ background: '#01ae42', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
-          >
+          <button onClick={() => {}} style={{ background: '#01ae42', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
             + Bulk Add
           </button>
         </div>
@@ -254,7 +263,7 @@ export default function UsersPage() {
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{u.email}</td>
                 <td style={{ padding: '14px 16px' }}>
                   <span style={{ background: (roleColors[u.role] || '#94a3b8') + '20', color: roleColors[u.role] || '#94a3b8', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>
-                    {u.role?.replace('_', ' ') || 'No role'}
+                    {ALL_ROLES.find(r => r.value === u.role)?.label || u.role || 'No role'}
                   </span>
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: '14px', color: '#64748b' }}>{u.branch || '—'}</td>
@@ -281,7 +290,7 @@ export default function UsersPage() {
           </tbody>
         </table>
       </div>
-      {/* Edit User Modal */}
+
       {showEditModal && (
         <Modal title="Edit User" onClose={() => setShowEditModal(null)}>
           <div style={grid2}>
@@ -292,10 +301,7 @@ export default function UsersPage() {
             <F label="Role">
               <select style={input} value={editForm.role} onChange={e => updEdit('role', e.target.value)}>
                 <option value="">Select role...</option>
-                <option value="ADMIN">Admin</option>
-                <option value="OPS_MANAGER">Ops Manager</option>
-                <option value="BDM">BDM</option>
-                <option value="DRIVER">Driver</option>
+                {ALL_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </F>
           </div>
