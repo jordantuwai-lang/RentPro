@@ -3,3 +3,13 @@ node_modules
 .env.local
 dist
 .next
+
+# OS files
+.DS_Store
+
+# Prisma generated client (optional, can be regenerated)
+# apps/api/node_modules/.prisma
+
+# Logs
+*.log
+npm-debug.log*

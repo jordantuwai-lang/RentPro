@@ -168,33 +168,33 @@ model Repairer {
 }
 
 model RepairerDocument {
-  id          String   @id @default(cuid())
-  repairer    Repairer @relation(fields: [repairerId], references: [id])
-  repairerId  String
-  name        String
-  fileData    String   // base64
-  mimeType    String
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  repairer   Repairer @relation(fields: [repairerId], references: [id])
+  repairerId String
+  name       String
+  fileData   String
+  mimeType   String
+  createdAt  DateTime @default(now())
 }
 
 model Reservation {
-  id                  String             @id @default(cuid())
-  reservationNumber   String             @unique @default("")
-  fileNumber          String?            @unique
-  customer            Customer           @relation(fields: [customerId], references: [id])
-  customerId          String
-  vehicle             Vehicle?           @relation(fields: [vehicleId], references: [id])
-  vehicleId           String?
-  startDate           DateTime
-  endDate             DateTime?
-  status              ReservationStatus  @default(PENDING)
-  claim               Claim?
-  delivery            Delivery?
-  paymentCards        PaymentCard[]
-  additionalDrivers   AdditionalDriver[]
-  reservationNotes    ReservationNote[]
-  signature           SignatureRecord?
-  payments            Payment[]
+  id                String             @id @default(cuid())
+  reservationNumber String             @unique @default("")
+  fileNumber        String?            @unique
+  customer          Customer           @relation(fields: [customerId], references: [id])
+  customerId        String
+  vehicle           Vehicle?           @relation(fields: [vehicleId], references: [id])
+  vehicleId         String?
+  startDate         DateTime
+  endDate           DateTime?
+  status            ReservationStatus  @default(PENDING)
+  claim             Claim?
+  delivery          Delivery?
+  paymentCards      PaymentCard[]
+  additionalDrivers AdditionalDriver[]
+  reservationNotes  ReservationNote[]
+  signature         SignatureRecord?
+  payments          Payment[]
   cancellationReason  String?
   cancellationComment String?
   sourceOfBusiness    String?
@@ -220,9 +220,16 @@ model Reservation {
   policePhone        String?
   policeEventNo      String?
 
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  // Customer's accident vehicle
+  accidentVehicleYear         String?
+  accidentVehicleMake         String?
+  accidentVehicleModel        String?
+  accidentVehicleRegistration String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
 model Claim {
   id               String      @id @default(cuid())
   reservation      Reservation @relation(fields: [reservationId], references: [id])

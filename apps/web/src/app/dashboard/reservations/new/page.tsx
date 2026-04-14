@@ -396,6 +396,10 @@ export default function NewReservationPage() {
         policeContactName: policeContactName || undefined,
         policePhone: policePhone || undefined,
         policeEventNo: policeEventNo || undefined,
+        accidentVehicleRegistration: nafVehicle.registration || undefined,
+        accidentVehicleMake: nafVehicle.make || undefined,
+        accidentVehicleModel: nafVehicle.model || undefined,
+        accidentVehicleYear: nafVehicle.year || undefined,
       }, { headers: { Authorization: `Bearer ${token}` } });
 
       const reservationId = res.data.id;

@@ -293,15 +293,23 @@ export default function UsersPage() {
 
       {showEditModal && (
         <Modal title="Edit User" onClose={() => setShowEditModal(null)}>
-          <div style={grid2}>
-            <F label="First name"><input style={input} value={editForm.firstName} onChange={e => updEdit('firstName', e.target.value)} /></F>
-            <F label="Last name"><input style={input} value={editForm.lastName} onChange={e => updEdit('lastName', e.target.value)} /></F>
-          </div>
-          <div style={{ marginTop: '16px' }}>
+          <div style={{ display: 'grid', gap: '16px' }}>
+            <div style={grid2}>
+              <F label="First name"><input style={input} value={editForm.firstName} onChange={e => updEdit('firstName', e.target.value)} /></F>
+              <F label="Last name"><input style={input} value={editForm.lastName} onChange={e => updEdit('lastName', e.target.value)} /></F>
+            </div>
             <F label="Role">
               <select style={input} value={editForm.role} onChange={e => updEdit('role', e.target.value)}>
                 <option value="">Select role...</option>
                 {ALL_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+            </F>
+            <F label="Branch">
+              <select style={input} value={editForm.branchId} onChange={e => updEdit('branchId', e.target.value)}>
+                <option value="">No branch assigned</option>
+                {branches?.map((b: any) => (
+                  <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
+                ))}
               </select>
             </F>
           </div>
