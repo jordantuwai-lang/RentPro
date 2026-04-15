@@ -1,3 +1,11 @@
+// ============================================================
+// RentPro — Prisma Schema
+// Updated: Claim model expanded with child models.
+// AccidentDetails, AtFaultParty, RepairDetails broken out
+// from Reservation. Document renamed to ClaimDocument.
+// New enums: LiabilityStatus, TypeOfCover, HireType.
+// ============================================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -6,6 +14,10 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
 
 enum Role {
   ADMIN
@@ -54,6 +66,27 @@ enum ClaimStatus {
   CLOSED
 }
 
+// Who is responsible for the accident
+enum LiabilityStatus {
+  PENDING
+  ACCEPTED
+  DISPUTED
+  DENIED
+}
+
+// The type of insurance cover the NAF (not-at-fault) driver holds
+enum TypeOfCover {
+  CTP
+  TPP
+  COMP
+}
+
+// Whether the hire is billed to the insurer (credit) or the customer directly
+enum HireType {
+  CREDIT_HIRE
+  DIRECT_HIRE
+}
+
 enum JobType {
   DELIVERY
   RETURN
@@ -69,6 +102,10 @@ enum DeliveryStatus {
   DELIVERED
   FAILED
 }
+
+// ─────────────────────────────────────────
+// CORE MODELS
+// ─────────────────────────────────────────
 
 model User {
   id         String     @id @default(cuid())
@@ -101,21 +138,21 @@ model Branch {
 }
 
 model Vehicle {
-  id           String         @id @default(cuid())
-  registration String         @unique
+  id           String        @id @default(cuid())
+  registration String        @unique
   make         String
   model        String
   year         Int
   colour       String
-  state        String         @default("")
+  state        String        @default("")
   category     String
-  status       VehicleStatus  @default(AVAILABLE)
-  branch       Branch?        @relation(fields: [branchId], references: [id])
+  status       VehicleStatus @default(AVAILABLE)
+  branch       Branch?       @relation(fields: [branchId], references: [id])
   branchId     String?
   reservations Reservation[]
   photos       VehiclePhoto[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Customer {
@@ -172,22 +209,35 @@ model RepairerDocument {
   repairer   Repairer @relation(fields: [repairerId], references: [id])
   repairerId String
   name       String
-  fileData   String
+  fileData   String   // base64 encoded file content
   mimeType   String
   createdAt  DateTime @default(now())
 }
 
+// ─────────────────────────────────────────
+// RESERVATION
+// Accident/claims fields removed — they now
+// live on the Claim model and its children.
+// ─────────────────────────────────────────
+
 model Reservation {
-  id                String             @id @default(cuid())
-  reservationNumber String             @unique @default("")
-  fileNumber        String?            @unique
-  customer          Customer           @relation(fields: [customerId], references: [id])
-  customerId        String
-  vehicle           Vehicle?           @relation(fields: [vehicleId], references: [id])
-  vehicleId         String?
-  startDate         DateTime
-  endDate           DateTime?
-  status            ReservationStatus  @default(PENDING)
+  id                  String             @id @default(cuid())
+  reservationNumber   String             @unique @default("")
+  fileNumber          String?            @unique
+  customer            Customer           @relation(fields: [customerId], references: [id])
+  customerId          String
+  vehicle             Vehicle?           @relation(fields: [vehicleId], references: [id])
+  vehicleId           String?
+  startDate           DateTime
+  endDate             DateTime?
+  status              ReservationStatus  @default(PENDING)
+  cancellationReason  String?
+  cancellationComment String?
+  sourceOfBusiness    String?
+  licencePhotoUrl     String?
+  partnerName         String?
+
+  // Relations
   claim             Claim?
   delivery          Delivery?
   paymentCards      PaymentCard[]
@@ -195,60 +245,182 @@ model Reservation {
   reservationNotes  ReservationNote[]
   signature         SignatureRecord?
   payments          Payment[]
-  cancellationReason  String?
-  cancellationComment String?
-  sourceOfBusiness    String?
-  licencePhotoUrl     String?
-  partnerName         String?
-
-  // Accident & Claims fields
-  typeOfCover        String?
-  hireType           String?
-  towIn              String?
-  totalLoss          String?
-  settlementReceived String?
-  repairStartDate    DateTime?
-  repairEndDate      DateTime?
-  estimateDate       DateTime?
-  assessmentDate     DateTime?
-  repairerInvoiceNo  String?
-  repairerInvoiceAmt Decimal?
-  thirdPartyRecovery String?
-  witnessName        String?
-  witnessPhone       String?
-  policeContactName  String?
-  policePhone        String?
-  policeEventNo      String?
-
-  // Customer's accident vehicle
-  accidentVehicleYear         String?
-  accidentVehicleMake         String?
-  accidentVehicleModel        String?
-  accidentVehicleRegistration String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+// ─────────────────────────────────────────
+// CLAIM
+// The core claim record. Parent of all
+// claim-related child models below.
+// ─────────────────────────────────────────
+
 model Claim {
-  id               String      @id @default(cuid())
-  reservation      Reservation @relation(fields: [reservationId], references: [id])
-  reservationId    String      @unique
-  insurer          Insurer?    @relation(fields: [insurerId], references: [id])
-  insurerId        String?
-  repairer         Repairer?   @relation(fields: [repairerId], references: [id])
-  repairerId       String?
-  claimNumber      String?     @unique
-  claimReference   String?
-  sourceOfBusiness String?
-  claimHandlerId   String?
-  status           ClaimStatus @default(OPEN)
-  notes            ClaimNote[]
-  documents        Document[]
-  invoices         Invoice[]
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id            String      @id @default(cuid())
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  reservationId String      @unique
+  insurer       Insurer?    @relation(fields: [insurerId], references: [id])
+  insurerId     String?
+  repairer      Repairer?   @relation(fields: [repairerId], references: [id])
+  repairerId    String?
+
+  // Core claim identity
+  claimNumber   String?  @unique
+  claimReference String?
+
+  // Claim handler at the insurer
+  claimHandlerName  String?
+  claimHandlerPhone String?
+  claimHandlerEmail String?
+
+  // Hire classification
+  hireType    HireType?
+  typeOfCover TypeOfCover?
+  policyNumber String?
+  excessAmount Decimal?
+
+  // Liability
+  liabilityStatus LiabilityStatus @default(PENDING)
+  liabilityNotes  String?
+
+  // Key flags
+  totalLoss          Boolean @default(false)
+  towIn              Boolean @default(false)
+  settlementReceived Boolean @default(false)
+  isDriverOwner      Boolean @default(true) // Is the NAF driver also the vehicle owner?
+
+  // Lifecycle
+  status ClaimStatus @default(OPEN)
+
+  // Child models
+  accidentDetails AccidentDetails?
+  atFaultParty    AtFaultParty?
+  repairDetails   RepairDetails?
+  notes           ClaimNote[]
+  documents       ClaimDocument[]
+  invoices        Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
+// ─────────────────────────────────────────
+// ACCIDENT DETAILS
+// What happened, when, where, police, witnesses.
+// Replaces the scattered fields that were on Reservation.
+// ─────────────────────────────────────────
+
+model AccidentDetails {
+  id      String @id @default(cuid())
+  claim   Claim  @relation(fields: [claimId], references: [id])
+  claimId String @unique
+
+  // Accident basics
+  accidentDate        DateTime?
+  accidentTime        String?
+  accidentLocation    String?
+  accidentDescription String?
+
+  // Police
+  policeAttended    Boolean @default(false)
+  policeEventNo     String?
+  policeStation     String?
+  policeContactName String?
+  policePhone       String?
+
+  // Witnesses
+  witnessName      String?
+  witnessPhone     String?
+  witnessStatement String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────
+// AT FAULT PARTY
+// The other driver involved in the accident.
+// Modelled after TSD's "At Fault Third Party" modal.
+// ─────────────────────────────────────────
+
+model AtFaultParty {
+  id      String @id @default(cuid())
+  claim   Claim  @relation(fields: [claimId], references: [id])
+  claimId String @unique
+
+  // Identity
+  firstName   String?
+  lastName    String?
+  phone       String?
+  email       String?
+  dateOfBirth String?
+
+  // Address
+  streetAddress String?
+  suburb        String?
+  state         String?
+  postcode      String?
+
+  // Licence
+  licenceNumber String?
+  licenceState  String?
+  licenceExpiry String?
+
+  // Their vehicle
+  vehicleRego   String?
+  vehicleMake   String?
+  vehicleModel  String?
+  vehicleYear   Int?
+  vehicleColour String?
+
+  // Their insurance (if known)
+  theirInsurer  String?
+  theirPolicyNo String?
+  theirClaimNo  String?
+
+  // Company details (if driving a business vehicle)
+  companyName  String?
+  companyABN   String?
+  companyPhone String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────
+// REPAIR DETAILS
+// Repair lifecycle tracking. Replaces repair
+// fields that were scattered on Reservation.
+// ─────────────────────────────────────────
+
+model RepairDetails {
+  id      String @id @default(cuid())
+  claim   Claim  @relation(fields: [claimId], references: [id])
+  claimId String @unique
+
+  estimateDate     DateTime?
+  assessmentDate   DateTime?
+  repairStartDate  DateTime?
+  repairEndDate    DateTime?
+  invoiceNumber    String?
+  invoiceAmount    Decimal?
+  authorisedAmount Decimal?
+
+  thirdPartyRecovery Boolean @default(false)
+  recoveryAmount     Decimal?
+
+  repairNotes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────
+// CLAIM NOTES
+// Internal notes against a claim (separate
+// from ReservationNotes which are on the hire).
+// ─────────────────────────────────────────
 
 model ClaimNote {
   id         String   @id @default(cuid())
@@ -259,15 +431,28 @@ model ClaimNote {
   createdAt  DateTime @default(now())
 }
 
-model Document {
+// ─────────────────────────────────────────
+// CLAIM DOCUMENTS
+// Documents attached to a claim: police reports,
+// repair authorities, photos, invoices, etc.
+// Renamed from Document for clarity.
+// ─────────────────────────────────────────
+
+model ClaimDocument {
   id        String   @id @default(cuid())
   claim     Claim    @relation(fields: [claimId], references: [id])
   claimId   String
   name      String
   url       String
+  // e.g. "POLICE_REPORT" | "REPAIR_AUTHORITY" | "PHOTO" | "INVOICE" | "OTHER"
   type      String
   createdAt DateTime @default(now())
 }
+
+// ─────────────────────────────────────────
+// INVOICES
+// Billing records attached to a claim.
+// ─────────────────────────────────────────
 
 model Invoice {
   id        String    @id @default(cuid())
@@ -280,6 +465,10 @@ model Invoice {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
+
+// ─────────────────────────────────────────
+// DELIVERY / LOGISTICS
+// ─────────────────────────────────────────
 
 model Delivery {
   id            String         @id @default(cuid())
@@ -294,10 +483,24 @@ model Delivery {
   status        DeliveryStatus @default(SCHEDULED)
   jobType       JobType        @default(DELIVERY)
   notes         String?
-  createdAt     DateTime       @default(now())
   photos        DeliveryPhoto[]
+  createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
+
+model DeliveryPhoto {
+  id         String   @id @default(cuid())
+  delivery   Delivery @relation(fields: [deliveryId], references: [id])
+  deliveryId String
+  url        String
+  key        String
+  caption    String?
+  createdAt  DateTime @default(now())
+}
+
+// ─────────────────────────────────────────
+// RESERVATION SUPPORT MODELS
+// ─────────────────────────────────────────
 
 model ReservationNote {
   id            String      @id @default(cuid())
@@ -306,17 +509,6 @@ model ReservationNote {
   note          String
   authorName    String
   createdAt     DateTime    @default(now())
-}
-
-model FileNumberCounter {
-  id  Int @id @default(1)
-  KPK Int @default(1000)
-  COB Int @default(1000)
-}
-
-model ReservationCounter {
-  id      Int @id @default(1)
-  current Int @default(1000)
 }
 
 model PaymentCard {
@@ -344,24 +536,6 @@ model AdditionalDriver {
   createdAt     DateTime    @default(now())
 }
 
-model DeliveryPhoto {
-  id         String   @id @default(cuid())
-  delivery   Delivery @relation(fields: [deliveryId], references: [id])
-  deliveryId String
-  url        String
-  key        String
-  caption    String?
-  createdAt  DateTime @default(now())
-}
-
-model ChargeType {
-  id            String   @id @default(cuid())
-  name          String   @unique
-  defaultAmount Float?
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-}
-
 model Payment {
   id            String      @id @default(cuid())
   reservation   Reservation @relation(fields: [reservationId], references: [id])
@@ -378,16 +552,6 @@ model Payment {
   updatedAt     DateTime    @updatedAt
 }
 
-model DocumentTemplate {
-  id         String   @id @default(cuid())
-  type       String   @unique
-  name       String
-  url        String
-  key        String
-  uploadedAt DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
 model SignatureRecord {
   id            String      @id @default(cuid())
   reservation   Reservation @relation(fields: [reservationId], references: [id])
@@ -398,6 +562,10 @@ model SignatureRecord {
   ipAddress     String?
 }
 
+// ─────────────────────────────────────────
+// FLEET SUPPORT MODELS
+// ─────────────────────────────────────────
+
 model VehiclePhoto {
   id        String   @id @default(cuid())
   vehicle   Vehicle  @relation(fields: [vehicleId], references: [id])
@@ -406,4 +574,37 @@ model VehiclePhoto {
   key       String
   caption   String?
   createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────
+// ADMIN / CONFIG MODELS
+// ─────────────────────────────────────────
+
+model ChargeType {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  defaultAmount Float?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+}
+
+model DocumentTemplate {
+  id         String   @id @default(cuid())
+  type       String   @unique
+  name       String
+  url        String
+  key        String
+  uploadedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model FileNumberCounter {
+  id  Int @id @default(1)
+  KPK Int @default(1000)
+  COB Int @default(1000)
+}
+
+model ReservationCounter {
+  id      Int @id @default(1)
+  current Int @default(1000)
 }
