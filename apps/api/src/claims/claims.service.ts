@@ -5,6 +5,8 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ClaimsService {
   constructor(private prisma: PrismaService) {}
 
+  // ─── LIST ────────────────────────────────────────────────────────────────────
+
   async findAll(branchId?: string) {
     const claims = await this.prisma.claim.findMany({
       include: {
@@ -17,16 +19,19 @@ export class ClaimsService {
         insurer: true,
         repairer: true,
         notes: { orderBy: { createdAt: 'desc' } },
+        accidentDetails: true,
+        repairDetails: true,
       },
       orderBy: { createdAt: 'desc' },
     });
 
     if (!branchId) return claims;
-
     return claims.filter(
       (c) => c.reservation?.vehicle?.branch?.id === branchId,
     );
   }
+
+  // ─── SINGLE ──────────────────────────────────────────────────────────────────
 
   findOne(id: string) {
     return this.prisma.claim.findUnique({
@@ -40,12 +45,17 @@ export class ClaimsService {
         },
         insurer: true,
         repairer: true,
+        accidentDetails: true,
+        atFaultParty: true,
+        repairDetails: true,
         notes: { orderBy: { createdAt: 'desc' } },
         documents: true,
         invoices: true,
       },
     });
   }
+
+  // ─── CREATE ──────────────────────────────────────────────────────────────────
 
   async create(data: any) {
     const count = await this.prisma.claim.count();
@@ -57,9 +67,21 @@ export class ClaimsService {
         insurer: data.insurerId ? { connect: { id: data.insurerId } } : undefined,
         repairer: data.repairerId ? { connect: { id: data.repairerId } } : undefined,
         claimNumber,
-        claimReference: data.claimReference,
-        sourceOfBusiness: data.sourceOfBusiness,
-        claimHandlerId: data.claimHandlerId,
+        claimReference: data.claimReference || null,
+        claimHandlerName: data.claimHandlerName || null,
+        claimHandlerPhone: data.claimHandlerPhone || null,
+        claimHandlerEmail: data.claimHandlerEmail || null,
+        sourceOfBusiness: data.sourceOfBusiness || null,
+        hireType: data.hireType || null,
+        typeOfCover: data.typeOfCover || null,
+        policyNumber: data.policyNumber || null,
+        excessAmount: data.excessAmount ? parseFloat(data.excessAmount) : null,
+        liabilityStatus: data.liabilityStatus || 'PENDING',
+        liabilityNotes: data.liabilityNotes || null,
+        totalLoss: data.totalLoss ?? false,
+        towIn: data.towIn ?? false,
+        settlementReceived: data.settlementReceived ?? false,
+        isDriverOwner: data.isDriverOwner ?? true,
         status: data.status || 'OPEN',
       },
       include: {
@@ -67,9 +89,14 @@ export class ClaimsService {
         insurer: true,
         repairer: true,
         notes: true,
+        accidentDetails: true,
+        atFaultParty: true,
+        repairDetails: true,
       },
     });
   }
+
+  // ─── UPDATE CORE CLAIM ───────────────────────────────────────────────────────
 
   update(id: string, data: any) {
     return this.prisma.claim.update({
@@ -78,8 +105,20 @@ export class ClaimsService {
         status: data.status,
         claimNumber: data.claimNumber,
         claimReference: data.claimReference,
+        claimHandlerName: data.claimHandlerName,
+        claimHandlerPhone: data.claimHandlerPhone,
+        claimHandlerEmail: data.claimHandlerEmail,
         sourceOfBusiness: data.sourceOfBusiness,
-        claimHandlerId: data.claimHandlerId,
+        hireType: data.hireType || undefined,
+        typeOfCover: data.typeOfCover || undefined,
+        policyNumber: data.policyNumber,
+        excessAmount: data.excessAmount != null ? parseFloat(data.excessAmount) : undefined,
+        liabilityStatus: data.liabilityStatus || undefined,
+        liabilityNotes: data.liabilityNotes,
+        totalLoss: data.totalLoss,
+        towIn: data.towIn,
+        settlementReceived: data.settlementReceived,
+        isDriverOwner: data.isDriverOwner,
         insurer: data.insurerId ? { connect: { id: data.insurerId } } : undefined,
         repairer: data.repairerId ? { connect: { id: data.repairerId } } : undefined,
       },
@@ -87,10 +126,103 @@ export class ClaimsService {
         reservation: { include: { customer: true, vehicle: true } },
         insurer: true,
         repairer: true,
+        accidentDetails: true,
+        atFaultParty: true,
+        repairDetails: true,
         notes: { orderBy: { createdAt: 'desc' } },
+        documents: true,
+        invoices: true,
       },
     });
   }
+
+  // ─── ACCIDENT DETAILS ────────────────────────────────────────────────────────
+  // Uses upsert — creates the record if it doesn't exist yet, updates if it does.
+  // This means the frontend never has to worry about whether to POST or PATCH.
+
+  upsertAccidentDetails(claimId: string, data: any) {
+    const payload = {
+      accidentDate: data.accidentDate ? new Date(data.accidentDate) : null,
+      accidentTime: data.accidentTime || null,
+      accidentLocation: data.accidentLocation || null,
+      accidentDescription: data.accidentDescription || null,
+      policeAttended: data.policeAttended ?? false,
+      policeEventNo: data.policeEventNo || null,
+      policeStation: data.policeStation || null,
+      policeContactName: data.policeContactName || null,
+      policePhone: data.policePhone || null,
+      witnessName: data.witnessName || null,
+      witnessPhone: data.witnessPhone || null,
+      witnessStatement: data.witnessStatement || null,
+    };
+
+    return this.prisma.accidentDetails.upsert({
+      where: { claimId },
+      create: { claim: { connect: { id: claimId } }, ...payload },
+      update: payload,
+    });
+  }
+
+  // ─── AT FAULT PARTY ──────────────────────────────────────────────────────────
+
+  upsertAtFaultParty(claimId: string, data: any) {
+    const payload = {
+      firstName: data.firstName || null,
+      lastName: data.lastName || null,
+      phone: data.phone || null,
+      email: data.email || null,
+      dateOfBirth: data.dateOfBirth || null,
+      streetAddress: data.streetAddress || null,
+      suburb: data.suburb || null,
+      state: data.state || null,
+      postcode: data.postcode || null,
+      licenceNumber: data.licenceNumber || null,
+      licenceState: data.licenceState || null,
+      licenceExpiry: data.licenceExpiry || null,
+      vehicleRego: data.vehicleRego || null,
+      vehicleMake: data.vehicleMake || null,
+      vehicleModel: data.vehicleModel || null,
+      vehicleYear: data.vehicleYear ? parseInt(data.vehicleYear) : null,
+      vehicleColour: data.vehicleColour || null,
+      theirInsurer: data.theirInsurer || null,
+      theirPolicyNo: data.theirPolicyNo || null,
+      theirClaimNo: data.theirClaimNo || null,
+      companyName: data.companyName || null,
+      companyABN: data.companyABN || null,
+      companyPhone: data.companyPhone || null,
+    };
+
+    return this.prisma.atFaultParty.upsert({
+      where: { claimId },
+      create: { claim: { connect: { id: claimId } }, ...payload },
+      update: payload,
+    });
+  }
+
+  // ─── REPAIR DETAILS ──────────────────────────────────────────────────────────
+
+  upsertRepairDetails(claimId: string, data: any) {
+    const payload = {
+      estimateDate: data.estimateDate ? new Date(data.estimateDate) : null,
+      assessmentDate: data.assessmentDate ? new Date(data.assessmentDate) : null,
+      repairStartDate: data.repairStartDate ? new Date(data.repairStartDate) : null,
+      repairEndDate: data.repairEndDate ? new Date(data.repairEndDate) : null,
+      invoiceNumber: data.invoiceNumber || null,
+      invoiceAmount: data.invoiceAmount != null ? parseFloat(data.invoiceAmount) : null,
+      authorisedAmount: data.authorisedAmount != null ? parseFloat(data.authorisedAmount) : null,
+      thirdPartyRecovery: data.thirdPartyRecovery ?? false,
+      recoveryAmount: data.recoveryAmount != null ? parseFloat(data.recoveryAmount) : null,
+      repairNotes: data.repairNotes || null,
+    };
+
+    return this.prisma.repairDetails.upsert({
+      where: { claimId },
+      create: { claim: { connect: { id: claimId } }, ...payload },
+      update: payload,
+    });
+  }
+
+  // ─── NOTES ───────────────────────────────────────────────────────────────────
 
   addNote(claimId: string, data: any) {
     return this.prisma.claimNote.create({
@@ -102,27 +234,37 @@ export class ClaimsService {
     });
   }
 
+  // ─── DOCUMENTS ───────────────────────────────────────────────────────────────
+
   addDocument(claimId: string, data: any) {
-    return this.prisma.document.create({
+    return this.prisma.claimDocument.create({
       data: {
         claim: { connect: { id: claimId } },
         name: data.name,
         url: data.url,
-        type: data.type,
+        type: data.type || 'OTHER',
       },
     });
   }
+
+  deleteDocument(documentId: string) {
+    return this.prisma.claimDocument.delete({ where: { id: documentId } });
+  }
+
+  // ─── INVOICES ────────────────────────────────────────────────────────────────
 
   createInvoice(claimId: string, data: any) {
     return this.prisma.invoice.create({
       data: {
         claim: { connect: { id: claimId } },
-        amount: data.amount,
+        amount: parseFloat(data.amount),
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        notes: data.notes,
+        notes: data.notes || null,
       },
     });
   }
+
+  // ─── INSURERS ────────────────────────────────────────────────────────────────
 
   getInsurerDirectory() {
     return this.prisma.insurer.findMany({ orderBy: { name: 'asc' } });
@@ -131,6 +273,8 @@ export class ClaimsService {
   createInsurer(data: any) {
     return this.prisma.insurer.create({ data });
   }
+
+  // ─── REPAIRERS ───────────────────────────────────────────────────────────────
 
   getRepairerDirectory() {
     return this.prisma.repairer.findMany({ orderBy: { name: 'asc' } });
@@ -183,8 +327,6 @@ export class ClaimsService {
   }
 
   deleteRepairerDocument(documentId: string) {
-    return this.prisma.repairerDocument.delete({
-      where: { id: documentId },
-    });
+    return this.prisma.repairerDocument.delete({ where: { id: documentId } });
   }
 }

@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import { useBranch } from '@/context/BranchContext';
 import api from '@/lib/api';
 
@@ -24,6 +25,7 @@ export default function OnHirePage() {
   const { getToken, isLoaded, user } = useAuth();
   const { selectedBranch, isAllBranches } = useBranch();
   const queryClient = useQueryClient();
+const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [newNote, setNewNote] = useState('');
@@ -160,16 +162,24 @@ export default function OnHirePage() {
                 <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>{selectedFile.reservationNumber} · {getDaysOnHire(selectedFile.startDate)}</p>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => setShowReturnModal(true)}
-                  style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  Return Vehicle
-                </button>
-                <button onClick={() => setSelectedFile(null)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}>
-                  Back
-                </button>
-              </div>
+  {selectedFile.claim && (
+    <button
+      onClick={() => router.push('/dashboard/claims')}
+      style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+    >
+      View Claim
+    </button>
+  )}
+  <button
+    onClick={() => setShowReturnModal(true)}
+    style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+  >
+    Return Vehicle
+  </button>
+  <button onClick={() => setSelectedFile(null)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}>
+    Back
+  </button>
+</div>
             </div>
 
             <div style={section}>
