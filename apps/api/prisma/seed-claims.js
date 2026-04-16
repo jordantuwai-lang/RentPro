@@ -87,7 +87,6 @@ async function main() {
   const reservation1 = await prisma.reservation.create({
     data: {
       reservationNumber: 'REZ9001',
-      fileNumber: 'KPKRP-41',
       status: 'ACTIVE',
       startDate: new Date('2026-03-31'),
       customer: { connect: { id: customer1.id } },
@@ -100,7 +99,6 @@ async function main() {
   const reservation2 = await prisma.reservation.create({
     data: {
       reservationNumber: 'REZ9002',
-      fileNumber: 'KPKRP-40',
       status: 'ACTIVE',
       startDate: new Date('2026-04-04'),
       customer: { connect: { id: customer2.id } },
@@ -112,7 +110,6 @@ async function main() {
   const reservation3 = await prisma.reservation.create({
     data: {
       reservationNumber: 'REZ9003',
-      fileNumber: 'COBRP-18',
       status: 'COMPLETED',
       startDate: new Date('2026-03-20'),
       endDate: new Date('2026-04-10'),
