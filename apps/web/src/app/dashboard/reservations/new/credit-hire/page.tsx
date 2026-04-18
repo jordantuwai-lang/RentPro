@@ -215,8 +215,104 @@ const emptyDriver = { firstName: '', lastName: '', licenceNumber: '', licenceExp
 
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
 
+
+// ─── Accident location map ────────────────────────────────────────────────────
+
+function AccidentMap({ value, onChange }: { value: string; onChange: (address: string, suburb: string) => void }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return;
+    if ((window as any).google?.maps) { setLoaded(true); return; }
+    if (document.getElementById('gmap-script')) {
+      const interval = setInterval(() => {
+        if ((window as any).google?.maps) { setLoaded(true); clearInterval(interval); }
+      }, 100);
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'gmap-script';
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&libraries=places';
+    script.async = true;
+    script.onload = () => setLoaded(true);
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded || !mapRef.current || !inputRef.current) return;
+    if (mapInstanceRef.current) return;
+    const google = (window as any).google;
+    const defaultCenter = { lat: -37.8136, lng: 144.9631 };
+    const map = new google.maps.Map(mapRef.current, {
+      center: defaultCenter, zoom: 13,
+      mapTypeControl: false, streetViewControl: false, fullscreenControl: true,
+    });
+    mapInstanceRef.current = map;
+    const marker = new google.maps.Marker({
+      map,
+      draggable: true,
+      visible: false,
+      icon: {
+        url: 'https://maps.google.com/mapfiles/ms/icons/cabs.png',
+        scaledSize: new google.maps.Size(32, 32),
+        anchor: new google.maps.Point(16, 16),
+      },
+    });
+    markerRef.current = marker;
+    marker.addListener('dragend', () => {
+      const pos = marker.getPosition();
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat: pos.lat(), lng: pos.lng() } }, (results: any, status: any) => {
+        if (status === 'OK' && results[0]) {
+          const result = results[0];
+          const suburb = result.address_components?.find((c: any) => c.types.includes('locality'))?.long_name ?? '';
+          onChange(result.formatted_address, suburb);
+        }
+      });
+    });
+    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
+      componentRestrictions: { country: 'au' },
+      fields: ['formatted_address', 'geometry', 'address_components'],
+    });
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (!place.geometry?.location) return;
+      map.setCenter(place.geometry.location);
+      map.setZoom(16);
+      marker.setPosition(place.geometry.location);
+      marker.setVisible(true);
+      const suburb = place.address_components?.find((c: any) => c.types.includes('locality'))?.long_name ?? '';
+      onChange(place.formatted_address ?? '', suburb);
+    });
+  }, [loaded]);
+
+  return (
+    <div>
+      <input
+        ref={inputRef}
+        type="text"
+        defaultValue={value}
+        placeholder="Search for accident location..."
+        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box', marginBottom: '12px' }}
+      />
+      <div
+        ref={mapRef}
+        style={{ width: '100%', height: '340px', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden', background: '#f8fafc' }}
+      />
+      <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
+        Search for an address or drag the pin to mark the exact accident location
+      </p>
+    </div>
+  );
+}
+
 function TabBar({ active, onChange }: { active: number; onChange: (i: number) => void }) {
-  const tabs = ['Main', 'Customer', 'Accident & Claims', 'Documents & Admin'];
+  const tabs = ['Main', 'Customer', 'At Fault', 'Accident Details', 'Vehicle Damage', 'Support', 'Card Details'];
   return (
     <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '24px', gap: '0' }}>
       {tabs.map((t, i) => (
@@ -288,8 +384,7 @@ export default function NewReservationPage() {
     setSameAsDriver(checked);
     if (checked) setOwner(o => ({ ...o, ...driver }));
   };
-
-  const [nafVehicle, setNafVehicle] = useState({ registration: '', registrationState: '', make: '', model: '', year: '', colour: '' });
+  const [nafVehicle, setNafVehicle] = useState({ registration: '', registrationState: '', make: '', model: '', year: '', colour: '', bodyType: '' });
   const updNafVehicle = (f: string, v: string) => setNafVehicle(p => ({ ...p, [f]: v }));
 
   const [vehicleDriveable, setVehicleDriveable] = useState('');
@@ -527,7 +622,7 @@ export default function NewReservationPage() {
                 onClick={() => {
                   setSelectedPartner(r.name);
                   setShowPartnerModal(false);
-                  setRepairer(prev => ({ ...prev, businessName: r.name, phone: r.phone || '' }));
+                  setRepairer(prev => ({ ...prev, businessName: r.name, phone: r.phone || '', address: r.address || '', suburb: r.suburb || '' }));
                 }}
                 style={{
                   padding: '14px 16px', borderRadius: '8px',
@@ -594,6 +689,49 @@ export default function NewReservationPage() {
       {/* ══════════════════════════════════════════════════════ TAB 1: CUSTOMER */}
       {activeTab === 1 && (
         <>
+                  {/* Vehicle Details */}
+                  <SectionBlock title="Vehicle Details">
+            <div style={grid2}>
+              <F label="State">
+                <select style={inp} value={nafVehicle.registrationState} onChange={e => updNafVehicle('registrationState', e.target.value)}>
+                  <option value="">Select state...</option>
+                  {['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </F>
+              <F label="Vehicle registration"><input style={inp} value={nafVehicle.registration} onChange={e => updNafVehicle('registration', e.target.value)} /></F>
+              <F label="Year"><input style={inp} value={nafVehicle.year} onChange={e => updNafVehicle('year', e.target.value)} placeholder="e.g. 2019" /></F>
+              <F label="Make"><input style={inp} value={nafVehicle.make} onChange={e => updNafVehicle('make', e.target.value)} /></F>
+              <F label="Model"><input style={inp} value={nafVehicle.model} onChange={e => updNafVehicle('model', e.target.value)} /></F>
+              <F label="Body type">
+                <select style={inp} value={nafVehicle.bodyType || ''} onChange={e => updNafVehicle('bodyType', e.target.value)}>
+                  <option value="">Select body type...</option>
+                  {['Sedan', 'Hatchback', 'Wagon', 'SUV', 'Ute', 'Van', 'Coupe', 'Convertible', 'People Mover', 'Truck', 'Motorcycle', 'Other'].map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </F>
+            </div>
+            <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => {}}
+                disabled={!nafVehicle.registration || !nafVehicle.registrationState}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: !nafVehicle.registration || !nafVehicle.registrationState ? '#e2e8f0' : '#0f172a',
+                  color: !nafVehicle.registration || !nafVehicle.registrationState ? '#94a3b8' : '#fff',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: !nafVehicle.registration || !nafVehicle.registrationState ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Validate Registration
+              </button>
+              <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                Requires state and registration to validate
+              </span>
+            </div>
+          </SectionBlock>
         {/* Driver Details */}
         <SectionBlock title="Driver Details">
             <PersonFields data={driver} onChange={updDriver} />
@@ -709,41 +847,119 @@ export default function NewReservationPage() {
         </>
       )}
 
-      {/* ═══════════════════════════════════════ TAB 2: ACCIDENT & CLAIMS */}
+      {/* ═══════════════════════════════════════ TAB 2: AT FAULT */}
       {activeTab === 2 && (
         <>
-          {/* NAF Vehicle Details */}
-          <SectionBlock title="NAF Vehicle Details">
+          {/* Vehicle Details */}
+          <SectionBlock title="Vehicle Details">
             <div style={grid2}>
-              <F label="Registration"><input style={inp} value={nafVehicle.registration} onChange={e => updNafVehicle('registration', e.target.value)} /></F>
-              <F label="Registration state">
-                <select style={inp} value={nafVehicle.registrationState} onChange={e => updNafVehicle('registrationState', e.target.value)}>
+              <F label="State">
+                <select style={inp} value={atFault.vehicleState || ''} onChange={e => updAtFault('vehicleState', e.target.value)}>
                   <option value="">Select state...</option>
                   {['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </F>
-              <F label="Year"><input style={inp} value={nafVehicle.year} onChange={e => updNafVehicle('year', e.target.value)} /></F>
-              <F label="Make"><input style={inp} value={nafVehicle.make} onChange={e => updNafVehicle('make', e.target.value)} /></F>
-              <F label="Model"><input style={inp} value={nafVehicle.model} onChange={e => updNafVehicle('model', e.target.value)} /></F>
-              <F label="Colour"><input style={inp} value={nafVehicle.colour} onChange={e => updNafVehicle('colour', e.target.value)} /></F>
+              <F label="Vehicle registration"><input style={inp} value={atFault.vehicleRegistration} onChange={e => updAtFault('vehicleRegistration', e.target.value)} /></F>
+              <F label="Year"><input style={inp} value={atFault.vehicleYear} onChange={e => updAtFault('vehicleYear', e.target.value)} placeholder="e.g. 2019" /></F>
+              <F label="Make"><input style={inp} value={atFault.vehicleMake} onChange={e => updAtFault('vehicleMake', e.target.value)} /></F>
+              <F label="Model"><input style={inp} value={atFault.vehicleModel} onChange={e => updAtFault('vehicleModel', e.target.value)} /></F>
+              <F label="Body type">
+                <select style={inp} value={atFault.vehicleBodyType || ''} onChange={e => updAtFault('vehicleBodyType', e.target.value)}>
+                  <option value="">Select body type...</option>
+                  {['Sedan', 'Hatchback', 'Wagon', 'SUV', 'Ute', 'Van', 'Coupe', 'Convertible', 'People Mover', 'Truck', 'Motorcycle', 'Other'].map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </F>
             </div>
-            <div style={{ display: 'flex', gap: '16px', marginTop: '20px', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: '160px' }}>
-                <label style={{ ...lbl, marginBottom: '10px' }}>Vehicle driveable?</label>
-                <ToggleYNU value={vehicleDriveable} onChange={setVehicleDriveable} labels={['Driveable', 'Not driveable', 'Unknown']} />
-              </div>
-              <div style={{ flex: 1, minWidth: '160px' }}>
-                <label style={{ ...lbl, marginBottom: '10px' }}>Tow in?</label>
-                <ToggleYNU value={towIn} onChange={setTowIn} />
-              </div>
-              <div style={{ flex: 1, minWidth: '160px' }}>
-                <label style={{ ...lbl, marginBottom: '10px' }}>Total loss?</label>
-                <ToggleYNU value={totalLoss} onChange={setTotalLoss} />
-              </div>
+            <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => {}}
+                disabled={!atFault.vehicleRegistration || !atFault.vehicleState}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: !atFault.vehicleRegistration || !atFault.vehicleState ? '#e2e8f0' : '#0f172a',
+                  color: !atFault.vehicleRegistration || !atFault.vehicleState ? '#94a3b8' : '#fff',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: !atFault.vehicleRegistration || !atFault.vehicleState ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Validate Registration
+              </button>
+              <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                Requires state and registration to validate
+              </span>
             </div>
           </SectionBlock>
 
-          {/* Vehicle Damage */}
+          {/* At Fault Party */}
+          <SectionBlock title="At Fault Party">
+            <PersonFields data={atFault} onChange={updAtFault} />
+            <div style={{ ...grid2, marginTop: '16px' }}>
+              <F label="Vehicle registration"><input style={inp} value={atFault.vehicleRegistration} onChange={e => updAtFault('vehicleRegistration', e.target.value)} /></F>
+              <F label="Vehicle year"><input style={inp} value={atFault.vehicleYear} onChange={e => updAtFault('vehicleYear', e.target.value)} /></F>
+              <F label="Vehicle make"><input style={inp} value={atFault.vehicleMake} onChange={e => updAtFault('vehicleMake', e.target.value)} /></F>
+              <F label="Vehicle model"><input style={inp} value={atFault.vehicleModel} onChange={e => updAtFault('vehicleModel', e.target.value)} /></F>
+              <F label="Insurance provider"><input style={inp} value={atFault.insuranceProvider} onChange={e => updAtFault('insuranceProvider', e.target.value)} /></F>
+              <F label="Claim number"><input style={inp} value={atFault.claimNumber} onChange={e => updAtFault('claimNumber', e.target.value)} /></F>
+            </div>
+            <div style={{ marginTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setShowAtFaultBusiness(!showAtFaultBusiness)}
+                style={{
+                  padding: '10px 20px', borderRadius: '8px', border: '1px dashed #cbd5e1',
+                  background: showAtFaultBusiness ? '#f0fdf4' : '#fff',
+                  color: showAtFaultBusiness ? '#01ae42' : '#64748b',
+                  fontSize: '13px', fontWeight: 500, cursor: 'pointer', width: '100%', textAlign: 'left', marginBottom: '16px',
+                }}
+              >
+                {showAtFaultBusiness ? '— Remove business details' : '+ Add business details (at fault party driving on behalf of a business)'}
+              </button>
+              {showAtFaultBusiness && <BusinessFields data={atFaultBusiness} onChange={updAtFaultBusiness} />}
+            </div>
+          </SectionBlock>
+        </>
+      )}
+
+      {/* ══════════════════════════════════════════ TAB 3:Accident Details*/}
+      {activeTab === 3 && (
+        <>
+  {/* Accident Details */}
+  <SectionBlock title="Accident Details">
+            <div style={grid2}>
+              <F label="Date of accident"><input type="date" style={inp} value={accident.date} onChange={e => updAccident('date', e.target.value)} /></F>
+              <F label="Location type">
+                <select style={inp} value={accident.locationType} onChange={e => updAccident('locationType', e.target.value)}>
+                  <option value="">Select type...</option>
+                  {['Road', 'Intersection', 'Car Park', 'Private Property', 'Other'].map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </F>
+              <F label="Suburb"><input style={inp} value={accident.suburb} onChange={e => updAccident('suburb', e.target.value)} /></F>
+              <F label="Accident description" full>
+                <textarea style={{ ...inp, height: '80px', resize: 'vertical' }} value={accident.description} onChange={e => updAccident('description', e.target.value)} />
+              </F>
+            </div>
+
+            {/* Interactive Google Map */}
+            <div style={{ marginTop: '20px' }}>
+              <label style={lbl}>Accident location</label>
+              <AccidentMap
+                value={accident.location}
+                onChange={(address, suburb) => {
+                  updAccident('location', address);
+                  if (suburb) updAccident('suburb', suburb);
+                }}
+              />
+            </div>
+          </SectionBlock>
+        </>
+      )}
+ {/* ══════════════════════════════════════════ TAB 4: VEHICLE DAMAGE */}
+ {activeTab === 4 && (
+        <>
           <SectionBlock title="Vehicle Damage">
             {[
               { key: 'front', label: 'Front', items: ['Bonnet', 'Front bumper', 'Front grille', 'Headlight (driver)', 'Headlight (passenger)', 'Front windscreen'] },
@@ -817,10 +1033,20 @@ export default function NewReservationPage() {
               />
             </div>
           </SectionBlock>
+        </>
+      )}
 
-          {/* Repair Dates */}
-          <SectionBlock title="Repair Dates">
+
+{/* ══════════════════════════════════════════ TAB 5: SUPPORT */}
+{activeTab === 5 && (
+        <>
+     {/* Repairer Details */}
+     <SectionBlock title="Repairer Details">
             <div style={grid2}>
+              <F label="Repairer name"><input style={inp} value={repairer.businessName} onChange={e => updRepairer('businessName', e.target.value)} /></F>
+              <F label="Contact number"><input style={inp} value={repairer.phone} onChange={e => updRepairer('phone', e.target.value)} /></F>
+              <F label="Address" full><input style={inp} value={repairer.address} onChange={e => updRepairer('address', e.target.value)} /></F>
+              <F label="Suburb"><input style={inp} value={repairer.suburb} onChange={e => updRepairer('suburb', e.target.value)} /></F>
               <F label="Estimate date"><input type="date" style={inp} value={estimateDate} onChange={e => setEstimateDate(e.target.value)} /></F>
               <F label="Assessment date"><input type="date" style={inp} value={assessmentDate} onChange={e => setAssessmentDate(e.target.value)} /></F>
               <F label="Repair start date"><input type="date" style={inp} value={repairStartDate} onChange={e => setRepairStartDate(e.target.value)} /></F>
@@ -837,62 +1063,6 @@ export default function NewReservationPage() {
               </div>
             </div>
           </SectionBlock>
-
-          {/* Accident Details */}
-          <SectionBlock title="Accident Details">
-            <div style={grid2}>
-              <F label="Date of accident"><input type="date" style={inp} value={accident.date} onChange={e => updAccident('date', e.target.value)} /></F>
-              <F label="Location type">
-                <select style={inp} value={accident.locationType} onChange={e => updAccident('locationType', e.target.value)}>
-                  <option value="">Select type...</option>
-                  {['Road', 'Intersection', 'Car Park', 'Private Property', 'Other'].map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </F>
-              <F label="Accident location" full>
-                <AddressAutocomplete
-                  value={accident.location}
-                  onChange={(v: string) => updAccident('location', v)}
-                  onSelect={(r: any) => { updAccident('location', r.address); updAccident('suburb', r.suburb); }}
-                  style={inp}
-                  placeholder="Search for accident location..."
-                />
-              </F>
-              <F label="Suburb"><input style={inp} value={accident.suburb} onChange={e => updAccident('suburb', e.target.value)} /></F>
-              <F label="Accident description" full>
-                <textarea style={{ ...inp, height: '80px', resize: 'vertical' }} value={accident.description} onChange={e => updAccident('description', e.target.value)} />
-              </F>
-            </div>
-          </SectionBlock>
-
-          {/* At Fault Party */}
-          <SectionBlock title="At Fault Party">
-            <PersonFields data={atFault} onChange={updAtFault} />
-            <div style={{ ...grid2, marginTop: '16px' }}>
-              <F label="Vehicle registration"><input style={inp} value={atFault.vehicleRegistration} onChange={e => updAtFault('vehicleRegistration', e.target.value)} /></F>
-              <F label="Vehicle year"><input style={inp} value={atFault.vehicleYear} onChange={e => updAtFault('vehicleYear', e.target.value)} /></F>
-              <F label="Vehicle make"><input style={inp} value={atFault.vehicleMake} onChange={e => updAtFault('vehicleMake', e.target.value)} /></F>
-              <F label="Vehicle model"><input style={inp} value={atFault.vehicleModel} onChange={e => updAtFault('vehicleModel', e.target.value)} /></F>
-              <F label="Insurance provider"><input style={inp} value={atFault.insuranceProvider} onChange={e => updAtFault('insuranceProvider', e.target.value)} /></F>
-              <F label="Claim number"><input style={inp} value={atFault.claimNumber} onChange={e => updAtFault('claimNumber', e.target.value)} /></F>
-            </div>
-            <div style={{ marginTop: '16px' }}>
-              <button
-                type="button"
-                onClick={() => setShowAtFaultBusiness(!showAtFaultBusiness)}
-                style={{
-                  padding: '10px 20px', borderRadius: '8px', border: '1px dashed #cbd5e1',
-                  background: showAtFaultBusiness ? '#f0fdf4' : '#fff',
-                  color: showAtFaultBusiness ? '#01ae42' : '#64748b',
-                  fontSize: '13px', fontWeight: 500, cursor: 'pointer', width: '100%', textAlign: 'left', marginBottom: '16px',
-                }}
-              >
-                {showAtFaultBusiness ? '— Remove business details' : '+ Add business details (at fault party driving on behalf of a business)'}
-              </button>
-              {showAtFaultBusiness && <BusinessFields data={atFaultBusiness} onChange={updAtFaultBusiness} />}
-            </div>
-          </SectionBlock>
-
-          {/* Witness */}
           <SectionBlock title="Witness">
             <div style={grid2}>
               <F label="Witness name"><input style={inp} value={witnessName} onChange={e => setWitnessName(e.target.value)} /></F>
@@ -900,7 +1070,6 @@ export default function NewReservationPage() {
             </div>
           </SectionBlock>
 
-          {/* Police */}
           <SectionBlock title="Police">
             <div style={grid2}>
               <F label="Contact name"><input style={inp} value={policeContactName} onChange={e => setPoliceContactName(e.target.value)} /></F>
@@ -910,11 +1079,9 @@ export default function NewReservationPage() {
           </SectionBlock>
         </>
       )}
-
-      {/* ══════════════════════════════════════════ TAB 3: DOCUMENTS & ADMIN */}
-      {activeTab === 3 && (
+      {/* ══════════════════════════════════════════ TAB 6: CARD DETAILS */}
+      {activeTab === 6 && (
         <>
-          {/* Payment Cards */}
           <SectionBlock title="Payment Cards">
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
               <button onClick={addCard} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
@@ -979,39 +1146,6 @@ export default function NewReservationPage() {
                 </div>
               </div>
             ))}
-          </SectionBlock>
-
-          {/* Additional Drivers */}
-          <SectionBlock title="Additional Drivers">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-              <button onClick={addAdditionalDriver} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
-                + Add driver
-              </button>
-            </div>
-            {additionalDrivers.length === 0 && (
-              <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No additional drivers added.</p>
-            )}
-            {additionalDrivers.map((d, i) => (
-              <div key={i} style={{ marginBottom: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#64748b' }}>Driver {i + 1}</span>
-                  <button onClick={() => removeAdditionalDriver(i)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '12px', cursor: 'pointer' }}>Remove</button>
-                </div>
-                <div style={grid2}>
-                  <F label="First name *"><input style={inp} value={d.firstName} onChange={e => updAdditionalDriver(i, 'firstName', e.target.value)} /></F>
-                  <F label="Last name *"><input style={inp} value={d.lastName} onChange={e => updAdditionalDriver(i, 'lastName', e.target.value)} /></F>
-                  <F label="Licence number *"><input style={inp} value={d.licenceNumber} onChange={e => updAdditionalDriver(i, 'licenceNumber', e.target.value)} /></F>
-                  <F label="Phone"><input style={inp} value={d.phone} onChange={e => updAdditionalDriver(i, 'phone', e.target.value)} /></F>
-                  <F label="Licence expiry"><input type="date" style={inp} value={d.licenceExpiry} onChange={e => updAdditionalDriver(i, 'licenceExpiry', e.target.value)} /></F>
-                  <F label="Date of birth"><input type="date" style={inp} value={d.dob} onChange={e => updAdditionalDriver(i, 'dob', e.target.value)} /></F>
-                </div>
-              </div>
-            ))}
-          </SectionBlock>
-
-          {/* Notes placeholder */}
-          <SectionBlock title="Notes">
-            <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>Notes can be added after the reservation is created.</p>
           </SectionBlock>
         </>
       )}
