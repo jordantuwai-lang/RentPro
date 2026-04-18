@@ -177,29 +177,23 @@ function BusinessFields({ data, onChange }: { data: any; onChange: (f: string, v
 function VehicleDiagram({ zones, onToggle }: { zones: Record<string, boolean>; onToggle: (z: string) => void }) {
   return (
     <svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', maxWidth: '480px', display: 'block', margin: '0 auto' }}>
-      {/* Body */}
       <rect x="220" y="40" width="240" height="260" rx="30" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="2" />
-      {/* Front */}
       <g onClick={() => onToggle('front')} style={{ cursor: 'pointer' }}>
         <rect x="255" y="40" width="170" height="50" rx="10" fill={zones['front'] ? '#dcfce7' : '#f0fdf4'} stroke={zones['front'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={zones['front'] ? 1 : 0.7} />
         <text x="340" y="71" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#64748b" fontWeight="600">Front</text>
       </g>
-      {/* Rear */}
       <g onClick={() => onToggle('rear')} style={{ cursor: 'pointer' }}>
         <rect x="255" y="250" width="170" height="50" rx="10" fill={zones['rear'] ? '#dcfce7' : '#f0fdf4'} stroke={zones['rear'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={zones['rear'] ? 1 : 0.7} />
         <text x="340" y="281" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#64748b" fontWeight="600">Rear</text>
       </g>
-      {/* Roof */}
       <g onClick={() => onToggle('roof')} style={{ cursor: 'pointer' }}>
         <rect x="270" y="110" width="140" height="120" rx="8" fill={zones['roof'] ? '#dcfce7' : '#f0fdf4'} stroke={zones['roof'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={zones['roof'] ? 1 : 0.7} />
         <text x="340" y="175" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#64748b" fontWeight="600">Roof / Interior</text>
       </g>
-      {/* Passenger side */}
       <g onClick={() => onToggle('passenger')} style={{ cursor: 'pointer' }}>
         <rect x="219" y="133" width="34" height="74" rx="5" fill={zones['passenger'] ? '#dcfce7' : '#f0fdf4'} stroke={zones['passenger'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={zones['passenger'] ? 1 : 0.7} />
         <text x="235" y="168" textAnchor="middle" fontSize="10" fontFamily="sans-serif" fill="#64748b" fontWeight="600" transform="rotate(-90 235 168)">Passenger side</text>
       </g>
-      {/* Driver side */}
       <g onClick={() => onToggle('driver')} style={{ cursor: 'pointer' }}>
         <rect x="427" y="133" width="34" height="74" rx="5" fill={zones['driver'] ? '#dcfce7' : '#f0fdf4'} stroke={zones['driver'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={zones['driver'] ? 1 : 0.7} />
         <text x="445" y="168" textAnchor="middle" fontSize="10" fontFamily="sans-serif" fill="#64748b" fontWeight="600" transform="rotate(90 445 168)">Driver side</text>
@@ -222,7 +216,7 @@ const emptyDriver = { firstName: '', lastName: '', licenceNumber: '', licenceExp
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
 
 function TabBar({ active, onChange }: { active: number; onChange: (i: number) => void }) {
-  const tabs = ['Main', 'Accident & Claims', 'Documents & Admin'];
+  const tabs = ['Main', 'Customer', 'Accident & Claims', 'Documents & Admin'];
   return (
     <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '24px', gap: '0' }}>
       {tabs.map((t, i) => (
@@ -273,6 +267,8 @@ export default function NewReservationPage() {
   const [branchId, setBranchId] = useState('');
   const [startDate, setStartDate] = useState('');
   const [vehicleId, setVehicleId] = useState('');
+
+  // ── Tab 2: Customer ──
   const [driver, setDriver] = useState({ ...emptyPerson });
   const [showDriverBusiness, setShowDriverBusiness] = useState(false);
   const [driverBusiness, setDriverBusiness] = useState({ ...emptyBusiness });
@@ -281,11 +277,10 @@ export default function NewReservationPage() {
   const updDriver = (f: string, v: string) => setDriver(p => ({ ...p, [f]: v }));
   const updDriverBusiness = (f: string, v: string) => setDriverBusiness(p => ({ ...p, [f]: v }));
 
-  // ── Tab 2: Accident & Claims ──
+  // ── Tab 3: Accident & Claims ──
   const [typeOfCover, setTypeOfCover] = useState('');
   const [hireType, setHireType] = useState('');
 
-  // Registered owner / NAF vehicle
   const [owner, setOwner] = useState({ ...emptyPerson, insuranceProvider: '', claimNumber: '' });
   const [sameAsDriver, setSameAsDriver] = useState(false);
   const updOwner = (f: string, v: string) => setOwner(p => ({ ...p, [f]: v }));
@@ -294,11 +289,9 @@ export default function NewReservationPage() {
     if (checked) setOwner(o => ({ ...o, ...driver }));
   };
 
-  // NAF vehicle
   const [nafVehicle, setNafVehicle] = useState({ registration: '', registrationState: '', make: '', model: '', year: '', colour: '' });
   const updNafVehicle = (f: string, v: string) => setNafVehicle(p => ({ ...p, [f]: v }));
 
-  // Vehicle damage
   const [vehicleDriveable, setVehicleDriveable] = useState('');
   const [towIn, setTowIn] = useState('');
   const [totalLoss, setTotalLoss] = useState('');
@@ -312,18 +305,15 @@ export default function NewReservationPage() {
     return n;
   });
 
-  // Accident
   const [accident, setAccident] = useState({ date: '', location: '', suburb: '', locationType: '', description: '' });
   const updAccident = (f: string, v: string) => setAccident(p => ({ ...p, [f]: v }));
 
-  // At fault
   const [atFault, setAtFault] = useState({ ...emptyPerson, vehicleRegistration: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' });
   const updAtFault = (f: string, v: string) => setAtFault(p => ({ ...p, [f]: v }));
   const [showAtFaultBusiness, setShowAtFaultBusiness] = useState(false);
   const [atFaultBusiness, setAtFaultBusiness] = useState({ ...emptyBusiness });
   const updAtFaultBusiness = (f: string, v: string) => setAtFaultBusiness(p => ({ ...p, [f]: v }));
 
-  // Misc flags
   const [settlementReceived, setSettlementReceived] = useState('');
   const [thirdPartyRecovery, setThirdPartyRecovery] = useState('');
   const [repairStartDate, setRepairStartDate] = useState('');
@@ -331,18 +321,16 @@ export default function NewReservationPage() {
   const [estimateDate, setEstimateDate] = useState('');
   const [assessmentDate, setAssessmentDate] = useState('');
 
-  // Repairer
   const [repairer, setRepairer] = useState({ businessName: '', phone: '', address: '', suburb: '', contact: '', invoiceNo: '', invoiceAmt: '' });
   const updRepairer = (f: string, v: string) => setRepairer(p => ({ ...p, [f]: v }));
 
-  // Witness / police
   const [witnessName, setWitnessName] = useState('');
   const [witnessPhone, setWitnessPhone] = useState('');
   const [policeContactName, setPoliceContactName] = useState('');
   const [policePhone, setPolicePhone] = useState('');
   const [policeEventNo, setPoliceEventNo] = useState('');
 
-  // ── Tab 3: Documents & Admin ──
+  // ── Tab 4: Documents & Admin ──
   const [cards, setCards] = useState([{ ...emptyCard }]);
   const [savedCards, setSavedCards] = useState<any[]>([]);
   const [additionalDrivers, setAdditionalDrivers] = useState<any[]>([]);
@@ -373,19 +361,12 @@ export default function NewReservationPage() {
   });
 
   // ── Licence scan handler ──
-  // When Credit Hire is selected, staff can tap this button to take or upload a
-  // photo of the customer's licence. It is sent to Claude Vision, which extracts
-  // the relevant fields and auto-populates the Driver Details section directly.
-  // The image itself is never stored — only the text output is used.
   const handleLicenceScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setLicenceScan({ status: 'scanning' });
 
-    // Step 1: Convert the image file to a base64 string so it can be sent in
-    // the API request. We strip the "data:image/...;base64," prefix because
-    // the Anthropic API expects only the raw base64 data portion.
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve((reader.result as string).split(',')[1]);
@@ -394,47 +375,14 @@ export default function NewReservationPage() {
     });
 
     try {
-      // Step 2: Send image + extraction prompt to Claude Vision.
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: { type: 'base64', media_type: file.type as any, data: base64 },
-                },
-                {
-                  type: 'text',
-                  text: `This is an Australian driver's licence. Extract the following fields and return ONLY a valid JSON object with no markdown, no explanation, and no backticks:
-{
-  "firstName": "",
-  "lastName": "",
-  "licenceNumber": "",
-  "licenceExpiry": "YYYY-MM-DD",
-  "dob": "YYYY-MM-DD",
-  "address": "",
-  "suburb": "",
-  "postcode": ""
-}
-If a field cannot be clearly found, leave it as an empty string. All dates must be in YYYY-MM-DD format.`,
-                },
-              ],
-            },
-          ],
-        }),
-      });
+      const token = await getToken();
+      const res = await api.post('/licence-scan', {
+        base64,
+        mediaType: file.type,
+      }, { headers: { Authorization: `Bearer ${token}` } });
 
-      const data = await res.json();
-      const rawText = data.content?.find((b: any) => b.type === 'text')?.text ?? '';
+      const rawText = res.data.text ?? '';
 
-      // Step 3: Parse the JSON response. Strip any accidental markdown fences
-      // just in case the model includes them despite the prompt instruction.
       let parsed: any = {};
       try {
         parsed = JSON.parse(rawText.replace(/```json|```/g, '').trim());
@@ -442,9 +390,6 @@ If a field cannot be clearly found, leave it as an empty string. All dates must 
         throw new Error('Could not parse licence data from response');
       }
 
-      // Step 4: Map extracted fields into driver state. Only update fields
-      // where Claude actually found a value — leave blanks untouched so staff
-      // can still fill them in manually if anything was missed.
       if (parsed.firstName)     updDriver('firstName', parsed.firstName);
       if (parsed.lastName)      updDriver('lastName', parsed.lastName);
       if (parsed.licenceNumber) updDriver('licenceNumber', parsed.licenceNumber);
@@ -461,7 +406,6 @@ If a field cannot be clearly found, leave it as an empty string. All dates must 
       setTimeout(() => setLicenceScan({ status: 'idle' }), 5000);
     }
 
-    // Reset so the same file can be re-scanned if needed
     if (licenceScanRef.current) licenceScanRef.current.value = '';
   };
 
@@ -543,7 +487,6 @@ If a field cannot be clearly found, leave it as an empty string. All dates must 
   // ── Render ──
   return (
     <div style={{ maxWidth: '820px' }}>
-      {/* Spinner keyframe for scan button loading state */}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
@@ -604,10 +547,9 @@ If a field cannot be clearly found, leave it as an empty string. All dates must 
       {/* Tab Bar */}
       <TabBar active={activeTab} onChange={setActiveTab} />
 
-      {/* ══════════════════════════════════════════════════════════ TAB 1: MAIN */}
+      {/* ══════════════════════════════════════════════════════════ TAB 0: MAIN */}
       {activeTab === 0 && (
         <>
-          {/* Booking Details — merged with Source of Business */}
           <SectionBlock title="Booking Details">
             <div style={grid2}>
               <F label="Source *">
@@ -646,77 +588,71 @@ If a field cannot be clearly found, leave it as an empty string. All dates must 
               </F>
             </div>
           </SectionBlock>
+        </>
+      )}
 
-          {/* Driver Details
-              ─────────────────────────────────────────────────────────────────
-              When Credit Hire is selected (on Tab 2), a licence scan button
-              appears at the top of this section. Tapping it opens the camera
-              (or file picker on desktop), sends the image to Claude Vision,
-              and auto-fills the fields below with the extracted data.
-          */}
-          <SectionBlock title="Driver Details">
-            {hireType === 'Credit Hire' && (
-              <div style={{ marginBottom: '20px' }}>
-                {/* Hidden file input — triggered by the scan button below.
-                    capture="environment" opens the rear camera on mobile devices
-                    which is optimal for photographing a physical licence card. */}
-                <input
-                  ref={licenceScanRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  style={{ display: 'none' }}
-                  onChange={handleLicenceScan}
-                />
-                <button
-                  type="button"
-                  onClick={() => licenceScanRef.current?.click()}
-                  disabled={licenceScan.status === 'scanning'}
-                  style={{
-                    width: '100%',
-                    padding: '13px 20px',
-                    borderRadius: '8px',
-                    border: `2px dashed ${licenceScan.status === 'error' ? '#fca5a5' : '#01ae42'}`,
-                    background:
-                      licenceScan.status === 'done' ? '#f0fdf4' :
-                      licenceScan.status === 'error' ? '#fef2f2' :
-                      '#f8fafc',
-                    color: licenceScan.status === 'error' ? '#dc2626' : '#01ae42',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: licenceScan.status === 'scanning' ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {licenceScan.status === 'scanning' && (
-                    <span style={{
-                      display: 'inline-block',
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid #01ae42',
-                      borderTopColor: 'transparent',
-                      borderRadius: '50%',
-                      animation: 'spin 0.7s linear infinite',
-                      flexShrink: 0,
-                    }} />
-                  )}
-                  {licenceScan.status === 'idle'     && '📷  Scan Driver\'s Licence'}
-                  {licenceScan.status === 'scanning' && 'Scanning licence...'}
-                  {licenceScan.status === 'done'     && `✓  ${licenceScan.message}`}
-                  {licenceScan.status === 'error'    && `✗  ${licenceScan.message}`}
-                </button>
-                {licenceScan.status === 'idle' && (
-                  <p style={{ fontSize: '12px', color: '#94a3b8', margin: '6px 0 0', textAlign: 'center' }}>
-                    Credit Hire — take a photo of the customer's licence to auto-fill fields below
-                  </p>
-                )}
-              </div>
-            )}
+      {/* ══════════════════════════════════════════════════════ TAB 1: CUSTOMER */}
+      {activeTab === 1 && (
+        <>
+        {/* Driver Details */}
+        <SectionBlock title="Driver Details">
             <PersonFields data={driver} onChange={updDriver} />
+            <div style={{ marginTop: '24px', marginBottom: '4px' }}>
+              <input
+                ref={licenceScanRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                style={{ display: 'none' }}
+                onChange={handleLicenceScan}
+              />
+              <button
+                type="button"
+                onClick={() => licenceScanRef.current?.click()}
+                disabled={licenceScan.status === 'scanning'}
+                style={{
+                  width: '100%',
+                  padding: '13px 20px',
+                  borderRadius: '8px',
+                  border: `2px dashed ${licenceScan.status === 'error' ? '#fca5a5' : '#01ae42'}`,
+                  background:
+                    licenceScan.status === 'done' ? '#f0fdf4' :
+                    licenceScan.status === 'error' ? '#fef2f2' :
+                    '#f8fafc',
+                  color: licenceScan.status === 'error' ? '#dc2626' : '#01ae42',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: licenceScan.status === 'scanning' ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {licenceScan.status === 'scanning' && (
+                  <span style={{
+                    display: 'inline-block',
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #01ae42',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 0.7s linear infinite',
+                    flexShrink: 0,
+                  }} />
+                )}
+                {licenceScan.status === 'idle'     && '📷  Scan Driver\'s Licence'}
+                {licenceScan.status === 'scanning' && 'Scanning licence...'}
+                {licenceScan.status === 'done'     && `✓  ${licenceScan.message}`}
+                {licenceScan.status === 'error'    && `✗  ${licenceScan.message}`}
+              </button>
+              {licenceScan.status === 'idle' && (
+                <p style={{ fontSize: '12px', color: '#94a3b8', margin: '6px 0 0', textAlign: 'center' }}>
+                  Take a photo of the customer's licence to auto-fill fields below
+                </p>
+              )}
+            </div>
           </SectionBlock>
 
           {/* Business Details (optional) */}
@@ -740,7 +676,7 @@ If a field cannot be clearly found, leave it as an empty string. All dates must 
             </SectionBlock>
           )}
 
-          {/* Registered Owner — collapsed by default since driver is owner in most cases */}
+          {/* Registered Owner (optional) */}
           <div style={{ marginBottom: '20px' }}>
             <button
               type="button"
@@ -773,10 +709,9 @@ If a field cannot be clearly found, leave it as an empty string. All dates must 
         </>
       )}
 
-      {/* ═══════════════════════════════════════════ TAB 2: ACCIDENT & CLAIMS */}
-      {activeTab === 1 && (
+      {/* ═══════════════════════════════════════ TAB 2: ACCIDENT & CLAIMS */}
+      {activeTab === 2 && (
         <>
-    
           {/* NAF Vehicle Details */}
           <SectionBlock title="NAF Vehicle Details">
             <div style={grid2}>
@@ -808,8 +743,8 @@ If a field cannot be clearly found, leave it as an empty string. All dates must 
             </div>
           </SectionBlock>
 
-        {/* Vehicle Damage */}
-        <SectionBlock title="Vehicle Damage">
+          {/* Vehicle Damage */}
+          <SectionBlock title="Vehicle Damage">
             {[
               { key: 'front', label: 'Front', items: ['Bonnet', 'Front bumper', 'Front grille', 'Headlight (driver)', 'Headlight (passenger)', 'Front windscreen'] },
               { key: 'driver', label: 'Driver side', items: ['Driver door', 'Driver mirror', 'Driver rear quarter', 'Driver front quarter', 'Driver running board'] },
@@ -977,7 +912,7 @@ If a field cannot be clearly found, leave it as an empty string. All dates must 
       )}
 
       {/* ══════════════════════════════════════════ TAB 3: DOCUMENTS & ADMIN */}
-      {activeTab === 2 && (
+      {activeTab === 3 && (
         <>
           {/* Payment Cards */}
           <SectionBlock title="Payment Cards">
