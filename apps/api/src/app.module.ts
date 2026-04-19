@@ -10,6 +10,7 @@ import { LogisticsModule } from './logistics/logistics.module';
 import { AdminModule } from './admin/admin.module';
 import { DocumentsModule } from './documents/documents.module';
 import { PaymentsModule } from './payments/payments.module';
+import { StorageModule } from './storage/storage.module';
 import { LicenceScanController } from './licence-scan/licence-scan.controller';
 
 @Module({
@@ -25,6 +26,7 @@ import { LicenceScanController } from './licence-scan/licence-scan.controller';
     AdminModule,
     DocumentsModule,
     PaymentsModule,
+    StorageModule,
   ],
   controllers: [LicenceScanController],
 })

@@ -17,17 +17,10 @@ const jobTypeColors: Record<string, { bg: string; color: string }> = {
   DOCU_RESIGN: { bg: '#fee2e2', color: '#b91c1c' },
 };
 
-const jobTypeLabels: Record<string, string> = {
-  DELIVERY: 'Delivery', RETURN: 'Return', EXCHANGE: 'Exchange', IN_PROGRESS: 'In Progress', DOCU_RESIGN: 'Docu Resign',
-};
-
-// Styles
 const section: React.CSSProperties = { background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', marginBottom: '16px' };
 const heading: React.CSSProperties = { fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: 0, marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' };
 const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', boxSizing: 'border-box' };
-
-// --- Sub-components ---
 
 function Field({ label, value }: { label: string; value?: string }) {
   return (
@@ -87,9 +80,9 @@ function SignatureCanvas({ onSave, onCancel }: { onSave: (data: string) => void;
     <div>
       <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px' }}>Please sign below to authorize this agreement.</p>
       <div ref={containerRef} style={{ border: '2px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', marginBottom: '12px' }}>
-        <canvas ref={canvasRef} style={{ display: 'block', touchAction: 'none', cursor: 'crosshair' }} 
-          onMouseDown={start} onMouseMove={move} onMouseUp={() => isDrawing.current = false}
-          onTouchStart={start} onTouchMove={move} onTouchEnd={() => isDrawing.current = false} />
+        <canvas ref={canvasRef} style={{ display: 'block', touchAction: 'none', cursor: 'crosshair' }}
+          onMouseDown={start} onMouseMove={move} onMouseUp={() => { isDrawing.current = false; }}
+          onTouchStart={start} onTouchMove={move} onTouchEnd={() => { isDrawing.current = false; }} />
       </div>
       <div style={{ display: 'flex', gap: '8px' }}>
         <button onClick={onCancel} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff' }}>Cancel</button>
@@ -99,24 +92,47 @@ function SignatureCanvas({ onSave, onCancel }: { onSave: (data: string) => void;
   );
 }
 
-// --- Main Component ---
-
 export default function SchedulePage() {
   const { getToken, isLoaded } = useAuth();
   const queryClient = useQueryClient();
 
-  // State
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [showOnHireModal, setShowOnHireModal] = useState(false);
-  const [signingMode, setSigningMode] = useState<'choose' | 'screen' | 'link' | 'done'>('choose');
-  
-  // Filtering State
+
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [filterDriver, setFilterDriver] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [completedIds, setCompletedIds] = useState<string[]>([]);
+  const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
+  const [pairingJobId, setPairingJobId] = useState<string | null>(null);
+  const [pairs, setPairs] = useState<Record<string, string>>({});
 
-  // Generate 7-day ribbon
+  const toggleCompleted = (id: string) =>
+    setCompletedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  const pairJobs = (idA: string, idB: string) => {
+    setPairs(prev => ({ ...prev, [idA]: idB, [idB]: idA }));
+    setPairingJobId(null);
+  };
+
+  const unpairJob = (id: string) => {
+    setPairs(prev => {
+      const partnerId = prev[id];
+      const next = { ...prev };
+      delete next[id];
+      if (partnerId) delete next[partnerId];
+      return next;
+    });
+  };
+
+  const updateTime = useMutation({
+    mutationFn: async ({ id, scheduledAt }: { id: string; scheduledAt: string }) => {
+      const token = await getToken();
+      return api.patch(`/logistics/${id}`, { scheduledAt }, { headers: { Authorization: `Bearer ${token}` } });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['logistics'] }),
+  });
+
   const dateTabs = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(); d.setDate(d.getDate() + i);
@@ -124,7 +140,6 @@ export default function SchedulePage() {
     });
   }, []);
 
-  // Queries
   const { data: logistics, isLoading } = useQuery({
     queryKey: ['logistics'],
     enabled: isLoaded,
@@ -143,7 +158,6 @@ export default function SchedulePage() {
     },
   });
 
-  // Filtered Logic
   const filteredJobs = useMemo(() => {
     return (logistics || []).filter((j: any) => {
       const jobDate = new Date(j.scheduledAt).toISOString().split('T')[0];
@@ -154,7 +168,6 @@ export default function SchedulePage() {
     });
   }, [logistics, selectedDate, filterStatus, filterDriver]);
 
-  // Mutations
   const markOnHire = useMutation({
     mutationFn: async ({ id, sig }: { id: string; sig: string }) => {
       const token = await getToken();
@@ -163,15 +176,130 @@ export default function SchedulePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['logistics'] });
-      setShowOnHireModal(false); setSelectedJob(null);
+      setShowOnHireModal(false);
+      setSelectedJob(null);
     },
   });
+
+  // Build table rows — merges job rows with pair separator rows in one pass
+  const tableRows = useMemo(() => {
+    if (!filteredJobs.length) return [];
+    return filteredJobs.reduce((acc: React.ReactNode[], job: any, idx: number) => {
+      const nextJob = filteredJobs[idx + 1];
+
+      acc.push(
+        <tr
+          key={job.id}
+          onClick={() => setSelectedJob(job)}
+          style={{
+            borderBottom: '1px solid #f1f5f9',
+            cursor: 'pointer',
+            background: completedIds.includes(job.id) ? '#f0fdf4' : '#fff',
+            transition: 'background 0.2s',
+            borderLeft: pairs[job.id] ? '3px solid #8b5cf6' : '3px solid transparent',
+          }}
+        >
+          <td style={{ padding: '14px' }} onClick={e => e.stopPropagation()}>
+            <input type="checkbox" />
+          </td>
+          <td style={{ padding: '14px', fontSize: '13px', fontWeight: 600 }} onClick={e => e.stopPropagation()}>
+            {editingTimeId === job.id ? (
+              <input
+                type="time"
+                autoFocus
+                defaultValue={new Date(job.scheduledAt).toTimeString().slice(0, 5)}
+                style={{ width: '90px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #01ae42', fontSize: '13px', fontWeight: 600, color: '#0f172a' }}
+                onBlur={e => {
+                  const [hours, minutes] = e.target.value.split(':');
+                  const updated = new Date(job.scheduledAt);
+                  updated.setHours(parseInt(hours), parseInt(minutes));
+                  updateTime.mutate({ id: job.id, scheduledAt: updated.toISOString() });
+                  setEditingTimeId(null);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                  if (e.key === 'Escape') setEditingTimeId(null);
+                }}
+              />
+            ) : (
+              <span
+                onClick={() => setEditingTimeId(job.id)}
+                title="Click to edit time"
+                style={{ cursor: 'text', borderBottom: '1px dashed #cbd5e1', paddingBottom: '1px' }}
+              >
+                {new Date(job.scheduledAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </td>
+          <td style={{ padding: '14px' }}>
+            <span style={{ background: jobTypeColors[job.jobType]?.bg, color: jobTypeColors[job.jobType]?.color, padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700 }}>
+              {job.jobType}
+            </span>
+          </td>
+          <td style={{ padding: '14px', fontSize: '13px', fontWeight: 500 }}>
+            {job.reservation?.customer?.firstName} {job.reservation?.customer?.lastName}
+          </td>
+          <td style={{ padding: '14px', fontSize: '13px', color: '#64748b' }}>{job.suburb}</td>
+          <td style={{ padding: '14px', fontSize: '13px' }}>{job.reservation?.vehicle?.registration || '—'}</td>
+          <td style={{ padding: '14px', fontSize: '13px' }}>
+            {job.driver ? `${job.driver.firstName[0]}. ${job.driver.lastName}` : 'Unassigned'}
+          </td>
+          <td style={{ padding: '14px' }}>
+            <span style={{ color: statusColors[job.status], fontSize: '12px', fontWeight: 700 }}>● {job.status}</span>
+          </td>
+          <td style={{ padding: '14px' }} onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => pairs[job.id] ? unpairJob(job.id) : setPairingJobId(job.id)}
+              title={pairs[job.id] ? 'Remove pair' : 'Pair with another job'}
+              style={{
+                width: '28px', height: '28px', borderRadius: '6px',
+                border: `1px solid ${pairs[job.id] ? '#01ae42' : '#e2e8f0'}`,
+                background: pairs[job.id] ? '#f0fdf4' : '#fff',
+                fontSize: '13px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              🔗
+            </button>
+          </td>
+          <td style={{ padding: '14px' }} onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => toggleCompleted(job.id)}
+              style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                border: `2px solid ${completedIds.includes(job.id) ? '#01ae42' : '#e2e8f0'}`,
+                background: completedIds.includes(job.id) ? '#01ae42' : '#fff',
+                color: '#fff', fontSize: '16px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+            >
+              {completedIds.includes(job.id) ? '✓' : ''}
+            </button>
+          </td>
+        </tr>
+      );
+
+      // Insert pair separator row if this job and the next are paired together
+      if (nextJob && pairs[job.id] === nextJob.id) {
+        acc.push(
+          <tr key={`pair-${job.id}`} style={{ background: '#faf5ff' }}>
+            <td colSpan={10} style={{ padding: '4px 24px', fontSize: '11px', color: '#8b5cf6', fontWeight: 600 }}>
+              ↕ Paired job sequence — {job.jobType} → {nextJob.jobType}
+            </td>
+          </tr>
+        );
+      }
+
+      return acc;
+    }, []);
+  }, [filteredJobs, completedIds, pairs, editingTimeId]);
 
   const r = selectedJob?.reservation;
 
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a' }}>Fleet Logistics</h1>
@@ -187,12 +315,13 @@ export default function SchedulePage() {
           return (
             <button key={dateStr} onClick={() => setSelectedDate(dateStr)}
               style={{
-                padding: '12px 20px', borderRadius: '12px', border: '1px solid', 
+                padding: '12px 20px', borderRadius: '12px', border: '1px solid',
                 borderColor: isSelected ? '#01ae42' : '#e2e8f0',
                 background: isSelected ? '#01ae42' : '#fff',
                 color: isSelected ? '#fff' : '#64748b',
-                minWidth: '90px', cursor: 'pointer', transition: '0.2s'
-              }}>
+                minWidth: '90px', cursor: 'pointer', transition: '0.2s',
+              }}
+            >
               <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.8 }}>
                 {isToday ? 'Today' : d.toLocaleDateString('en-AU', { weekday: 'short' })}
               </div>
@@ -200,7 +329,12 @@ export default function SchedulePage() {
             </button>
           );
         })}
-        <button onClick={() => setSelectedDate('')} style={{ padding: '12px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', background: selectedDate === '' ? '#0f172a' : '#fff', color: selectedDate === '' ? '#fff' : '#64748b' }}>All</button>
+        <button
+          onClick={() => setSelectedDate('')}
+          style={{ padding: '12px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', background: selectedDate === '' ? '#0f172a' : '#fff', color: selectedDate === '' ? '#fff' : '#64748b' }}
+        >
+          All
+        </button>
       </div>
 
       {/* Quick Filters */}
@@ -221,35 +355,57 @@ export default function SchedulePage() {
           <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
             <tr>
               <th style={{ padding: '14px', width: '40px' }}><input type="checkbox" /></th>
-              {['Time', 'Type', 'Customer', 'Location', 'Registration', 'Driver', 'Status'].map(h => (
+              {['Time', 'Type', 'Customer', 'Location', 'Registration', 'Driver', 'Status', 'Pair', 'Done'].map(h => (
                 <th key={h} style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading daily schedule...</td></tr>
+              <tr><td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading daily schedule...</td></tr>
             ) : filteredJobs.length === 0 ? (
-              <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No jobs scheduled for this date.</td></tr>
-            ) : filteredJobs.map((job: any) => (
-              <tr key={job.id} onClick={() => setSelectedJob(job)} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', hover: { background: '#f8fafc' } }}>
-                <td style={{ padding: '14px' }} onClick={e => e.stopPropagation()}><input type="checkbox" /></td>
-                <td style={{ padding: '14px', fontSize: '13px', fontWeight: 600 }}>{new Date(job.scheduledAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}</td>
-                <td style={{ padding: '14px' }}>
-                  <span style={{ background: jobTypeColors[job.jobType]?.bg, color: jobTypeColors[job.jobType]?.color, padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700 }}>{job.jobType}</span>
-                </td>
-                <td style={{ padding: '14px', fontSize: '13px', fontWeight: 500 }}>{job.reservation?.customer?.firstName} {job.reservation?.customer?.lastName}</td>
-                <td style={{ padding: '14px', fontSize: '13px', color: '#64748b' }}>{job.suburb}</td>
-                <td style={{ padding: '14px', fontSize: '13px' }}>{job.reservation?.vehicle?.registration || '—'}</td>
-                <td style={{ padding: '14px', fontSize: '13px' }}>{job.driver ? `${job.driver.firstName[0]}. ${job.driver.lastName}` : 'Unassigned'}</td>
-                <td style={{ padding: '14px' }}>
-                  <span style={{ color: statusColors[job.status], fontSize: '12px', fontWeight: 700 }}>● {job.status}</span>
-                </td>
-              </tr>
-            ))}
+              <tr><td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No jobs scheduled for this date.</td></tr>
+            ) : tableRows}
           </tbody>
         </table>
       </div>
+
+      {/* Pairing Modal */}
+      {pairingJobId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', width: '480px', maxHeight: '70vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Pair with job</h2>
+              <button onClick={() => setPairingJobId(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>×</button>
+            </div>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>Select a job to pair with this one. Paired jobs will be shown as a sequence in the schedule.</p>
+            {filteredJobs
+              .filter((j: any) => j.id !== pairingJobId && !pairs[j.id])
+              .map((j: any) => (
+                <div
+                  key={j.id}
+                  onClick={() => pairJobs(pairingJobId, j.id)}
+                  style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>
+                      {new Date(j.scheduledAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })} — {j.jobType}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                      {j.reservation?.customer?.firstName} {j.reservation?.customer?.lastName} · {j.suburb}
+                    </div>
+                  </div>
+                  <span style={{ background: jobTypeColors[j.jobType]?.bg, color: jobTypeColors[j.jobType]?.color, padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700 }}>
+                    {j.jobType}
+                  </span>
+                </div>
+              ))}
+            {filteredJobs.filter((j: any) => j.id !== pairingJobId && !pairs[j.id]).length === 0 && (
+              <p style={{ color: '#94a3b8', fontSize: '14px', textAlign: 'center' }}>No other jobs available to pair with.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Detail Overlay */}
       {selectedJob && (
@@ -259,7 +415,6 @@ export default function SchedulePage() {
               <button onClick={() => setSelectedJob(null)} style={{ background: 'none', border: 'none', color: '#01ae42', cursor: 'pointer', fontWeight: 600 }}>← Back to List</button>
               <button onClick={() => setShowOnHireModal(true)} style={{ padding: '12px 24px', background: '#01ae42', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700 }}>Process On Hire</button>
             </div>
-            
             <div style={section}>
               <h2 style={heading}>Job Overview</h2>
               <div style={grid2}>
@@ -278,9 +433,9 @@ export default function SchedulePage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
           <div style={{ background: '#fff', padding: '32px', borderRadius: '16px', width: '90%', maxWidth: '500px' }}>
             <h2 style={{ marginTop: 0 }}>Digital Signature</h2>
-            <SignatureCanvas 
-              onSave={(sig) => markOnHire.mutate({ id: r.id, sig })} 
-              onCancel={() => setShowOnHireModal(false)} 
+            <SignatureCanvas
+              onSave={(sig) => markOnHire.mutate({ id: r.id, sig })}
+              onCancel={() => setShowOnHireModal(false)}
             />
           </div>
         </div>

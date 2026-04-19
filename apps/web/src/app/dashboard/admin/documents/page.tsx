@@ -7,7 +7,7 @@ import api from '@/lib/api';
 const section: React.CSSProperties = { background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', marginBottom: '20px' };
 const heading: React.CSSProperties = { fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: 0, marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' };
 
-function DocumentCard({ type, title, description, onUpload, template, uploading }: any) {
+function DocumentCard({ type, title, description, onUpload, onView, template, uploading }: any) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -15,10 +15,13 @@ function DocumentCard({ type, title, description, onUpload, template, uploading 
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
+      // Split off the "data:application/pdf;base64," prefix — send only the raw base64
+      const dataUrl = reader.result as string;
+      const base64 = dataUrl.split(',')[1];
       onUpload(type, {
         name: file.name,
-        url: reader.result as string,
-        key: `${type}-${Date.now()}`,
+        fileData: base64,
+        mimeType: file.type,
       });
     };
     reader.readAsDataURL(file);
@@ -43,12 +46,7 @@ function DocumentCard({ type, title, description, onUpload, template, uploading 
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={() => {
-                const a = document.createElement('a');
-                a.href = template.url;
-                a.download = template.name;
-                a.click();
-              }}
+              onClick={() => onView(type)}
               style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #bbf7d0', background: '#fff', color: '#059669', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
             >
               View
@@ -76,7 +74,7 @@ function DocumentCard({ type, title, description, onUpload, template, uploading 
 
       {uploading && (
         <div style={{ padding: '10px', background: '#f0fdf4', borderRadius: '8px', color: '#059669', fontSize: '13px', textAlign: 'center' }}>
-          Uploading...
+          Uploading to secure storage...
         </div>
       )}
     </div>
@@ -88,6 +86,7 @@ export default function DocumentsPage() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<string | null>(null);
 
   const { data: templates } = useQuery({
     queryKey: ['document-templates'],
@@ -109,11 +108,30 @@ export default function DocumentsPage() {
       setSuccess(type);
       setTimeout(() => setSuccess(null), 3000);
     },
+    onError: () => {
+      setUploading(null);
+    },
   });
 
   const handleUpload = (type: string, data: any) => {
     setUploading(type);
     uploadMutation.mutate({ type, data });
+  };
+
+  // Fetch a fresh pre-signed URL from R2 and open it in a new tab
+  const handleView = async (type: string) => {
+    setViewing(type);
+    try {
+      const token = await getToken();
+      const res = await api.get(`/documents/templates/${type}/url`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      window.open(res.data.url, '_blank');
+    } catch {
+      alert('Could not load document. Please try again.');
+    } finally {
+      setViewing(null);
+    }
   };
 
   const getTemplate = (type: string) => templates?.find((t: any) => t.type === type);
@@ -127,7 +145,7 @@ export default function DocumentsPage() {
 
       {success && (
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#065f46', fontSize: '14px' }}>
-          Document uploaded successfully!
+          ✅ Document uploaded successfully to secure storage.
         </div>
       )}
 
@@ -137,6 +155,7 @@ export default function DocumentsPage() {
         description="This document authorises Right2Drive to act on behalf of the customer in relation to their accident replacement vehicle claim."
         template={getTemplate('authority-to-act')}
         onUpload={handleUpload}
+        onView={handleView}
         uploading={uploading === 'authority-to-act'}
       />
 
@@ -146,6 +165,7 @@ export default function DocumentsPage() {
         description="The rental agreement outlines the terms and conditions of the vehicle hire between Right2Drive and the customer."
         template={getTemplate('rental-agreement')}
         onUpload={handleUpload}
+        onView={handleView}
         uploading={uploading === 'rental-agreement'}
       />
     </div>

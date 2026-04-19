@@ -312,7 +312,7 @@ function AccidentMap({ value, onChange }: { value: string; onChange: (address: s
 }
 
 function TabBar({ active, onChange }: { active: number; onChange: (i: number) => void }) {
-  const tabs = ['Main', 'Customer', 'At Fault', 'Accident Details', 'Vehicle Damage', 'Support', 'Card Details'];
+  const tabs = ['Main', 'Customer', 'At Fault', 'Accident', 'Damage', 'Support', 'Cards'];
   return (
     <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '24px', gap: '0' }}>
       {tabs.map((t, i) => (
