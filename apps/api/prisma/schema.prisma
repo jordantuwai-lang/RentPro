@@ -209,7 +209,8 @@ model RepairerDocument {
   repairer   Repairer @relation(fields: [repairerId], references: [id])
   repairerId String
   name       String
-  fileData   String   // base64 encoded file content
+  key        String   @default("") // R2 object key
+  fileData   String   @default("") // legacy base64 - empty for new uploads
   mimeType   String
   createdAt  DateTime @default(now())
 }

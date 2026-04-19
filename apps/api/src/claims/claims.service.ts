@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class ClaimsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storage: StorageService,
+  ) {}
 
   // ─── LIST ────────────────────────────────────────────────────────────────────
 
@@ -137,8 +141,6 @@ export class ClaimsService {
   }
 
   // ─── ACCIDENT DETAILS ────────────────────────────────────────────────────────
-  // Uses upsert — creates the record if it doesn't exist yet, updates if it does.
-  // This means the frontend never has to worry about whether to POST or PATCH.
 
   upsertAccidentDetails(claimId: string, data: any) {
     const payload = {
@@ -308,25 +310,68 @@ export class ClaimsService {
     });
   }
 
-  getRepairerDocuments(repairerId: string) {
-    return this.prisma.repairerDocument.findMany({
+  // ─── REPAIRER DOCUMENTS (R2) ─────────────────────────────────────────────────
+
+  async getRepairerDocuments(repairerId: string) {
+    const docs = await this.prisma.repairerDocument.findMany({
       where: { repairerId },
       orderBy: { createdAt: 'desc' },
     });
+    // Strip fileData — never return base64 blobs in list responses
+    return docs.map(({ fileData, ...rest }) => rest);
   }
 
-  addRepairerDocument(repairerId: string, data: any) {
+  async getRepairerDocumentUrl(docId: string): Promise<{ url: string } | null> {
+    const doc = await this.prisma.repairerDocument.findUnique({
+      where: { id: docId },
+    });
+    if (!doc) return null;
+    // If doc has an R2 key, generate presigned URL
+    if (doc.key) {
+      const url = await this.storage.getPresignedUrl(doc.key);
+      return { url };
+    }
+    // Legacy fallback: doc still has base64 fileData, return as data URL
+    if (doc.fileData) {
+      return { url: `data:${doc.mimeType};base64,${doc.fileData}` };
+    }
+    return null;
+  }
+
+  async addRepairerDocument(
+    repairerId: string,
+    name: string,
+    buffer: Buffer,
+    mimeType: string,
+  ) {
+    const ext = mimeType.split('/')[1] || 'bin';
+    const key = `repairer-docs/${repairerId}/${Date.now()}-${name.replace(/\s+/g, '-')}.${ext}`;
+
+    await this.storage.upload(key, buffer, mimeType);
+
     return this.prisma.repairerDocument.create({
       data: {
         repairer: { connect: { id: repairerId } },
-        name: data.name,
-        fileData: data.fileData,
-        mimeType: data.mimeType,
+        name,
+        key,
+        fileData: '', // empty — file lives in R2
+        mimeType,
       },
     });
   }
 
-  deleteRepairerDocument(documentId: string) {
+  async deleteRepairerDocument(documentId: string) {
+    const doc = await this.prisma.repairerDocument.findUnique({
+      where: { id: documentId },
+    });
+    // Delete from R2 if it has a key
+    if (doc?.key) {
+      try {
+        await this.storage.delete(doc.key);
+      } catch {
+        // Non-fatal — still delete the DB record
+      }
+    }
     return this.prisma.repairerDocument.delete({ where: { id: documentId } });
   }
 }

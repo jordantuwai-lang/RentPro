@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { ClaimsService } from './claims.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
@@ -53,8 +54,17 @@ export class ClaimsController {
   }
 
   @Post('repairers/:id/documents')
-  addRepairerDocument(@Param('id') id: string, @Body() body: any) {
-    return this.claimsService.addRepairerDocument(id, body);
+  async addRepairerDocument(@Param('id') id: string, @Body() body: any) {
+    if (!body.fileData || !body.name || !body.mimeType) {
+      throw new BadRequestException('name, fileData, and mimeType are required');
+    }
+    const buffer = Buffer.from(body.fileData, 'base64');
+    return this.claimsService.addRepairerDocument(id, body.name, buffer, body.mimeType);
+  }
+
+  @Get('repairers/documents/:docId/url')
+  getRepairerDocumentUrl(@Param('docId') docId: string) {
+    return this.claimsService.getRepairerDocumentUrl(docId);
   }
 
   @Delete('repairers/documents/:docId')

@@ -167,11 +167,20 @@ export default function EditRepairerPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleDownload = (doc: any) => {
-    const link = document.createElement('a');
-    link.href = `data:${doc.mimeType};base64,${doc.fileData}`;
-    link.download = doc.name;
-    link.click();
+  const handleDownload = async (doc: any) => {
+    try {
+      const token = await getToken();
+      const res = await api.get(`/claims/repairers/documents/${doc.id}/url`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const link = document.createElement('a');
+      link.href = res.data.url;
+      link.target = '_blank';
+      link.download = doc.name;
+      link.click();
+    } catch {
+      alert('Could not download document. Please try again.');
+    }
   };
 
   const isValid = form.name && form.phone && form.address && form.suburb;
