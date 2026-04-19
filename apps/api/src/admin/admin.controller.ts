@@ -1,9 +1,12 @@
 import { Controller, Get, Post, Delete, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('admin')
-@UseGuards(ClerkAuthGuard)
+@UseGuards(ClerkAuthGuard, RolesGuard)
+@Roles('ADMIN')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
