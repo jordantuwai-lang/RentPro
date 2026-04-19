@@ -213,8 +213,21 @@ const emptyBusiness = { name: '', abn: '', phone: '', address: '', suburb: '', p
 const emptyCard = { cardType: '', cardNumber: '', expiryDate: '', cardholderName: '' };
 const emptyDriver = { firstName: '', lastName: '', licenceNumber: '', licenceExpiry: '', dob: '', phone: '' };
 
-// ─── Tab bar ──────────────────────────────────────────────────────────────────
+// ─── Document type options ────────────────────────────────────────────────────
 
+const DOC_TYPES = [
+  'Driver Licence',
+  'Insurance Certificate',
+  'Claim Form',
+  'Police Report',
+  'Repair Estimate',
+  'Assessment Report',
+  'Settlement Letter',
+  'Medical Certificate',
+  'Witness Statement',
+  'Tow Invoice',
+  'Other',
+];
 
 // ─── Accident location map ────────────────────────────────────────────────────
 
@@ -312,16 +325,16 @@ function AccidentMap({ value, onChange }: { value: string; onChange: (address: s
 }
 
 function TabBar({ active, onChange }: { active: number; onChange: (i: number) => void }) {
-  const tabs = ['Main', 'Customer', 'At Fault', 'Accident', 'Damage', 'Support', 'Cards'];
+  const tabs = ['Main', 'Customer', 'At Fault', 'Accident', 'Damage', 'Support', 'Cards', 'Documents'];
   return (
-    <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '24px', gap: '0' }}>
+    <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '24px', gap: '0', overflowX: 'auto' }}>
       {tabs.map((t, i) => (
         <button
           key={t}
           type="button"
           onClick={() => onChange(i)}
           style={{
-            padding: '12px 24px',
+            padding: '12px 20px',
             fontSize: '14px',
             fontWeight: active === i ? 600 : 500,
             color: active === i ? '#01ae42' : '#64748b',
@@ -330,6 +343,7 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
             borderBottom: active === i ? '2px solid #01ae42' : '2px solid transparent',
             marginBottom: '-2px',
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
           }}
         >
           {t}
@@ -425,7 +439,7 @@ export default function NewReservationPage() {
   const [policePhone, setPolicePhone] = useState('');
   const [policeEventNo, setPoliceEventNo] = useState('');
 
-  // ── Tab 4: Documents & Admin ──
+  // ── Tab 6: Cards ──
   const [cards, setCards] = useState([{ ...emptyCard }]);
   const [savedCards, setSavedCards] = useState<any[]>([]);
   const [additionalDrivers, setAdditionalDrivers] = useState<any[]>([]);
@@ -436,6 +450,50 @@ export default function NewReservationPage() {
   const updAdditionalDriver = (i: number, f: string, v: string) => setAdditionalDrivers(additionalDrivers.map((d, idx) => idx === i ? { ...d, [f]: v } : d));
   const addAdditionalDriver = () => setAdditionalDrivers([...additionalDrivers, { ...emptyDriver }]);
   const removeAdditionalDriver = (i: number) => setAdditionalDrivers(additionalDrivers.filter((_, idx) => idx !== i));
+
+  // ── Tab 7: Documents ──
+  const docUploadRef = useRef<HTMLInputElement>(null);
+  const [documents, setDocuments] = useState<{ name: string; docType: string; base64: string; mimeType: string; size: number }[]>([]);
+  const [docType, setDocType] = useState('');
+  const [docUploading, setDocUploading] = useState(false);
+
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    setDocUploading(true);
+    for (const file of files) {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      setDocuments(prev => [...prev, {
+        name: file.name,
+        docType: docType || 'Other',
+        base64,
+        mimeType: file.type,
+        size: file.size,
+      }]);
+    }
+    setDocUploading(false);
+    setDocType('');
+    if (docUploadRef.current) docUploadRef.current.value = '';
+  };
+
+  const removeDocument = (i: number) => setDocuments(prev => prev.filter((_, idx) => idx !== i));
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const docIcon = (mimeType: string) => {
+    if (mimeType === 'application/pdf') return '📄';
+    if (mimeType.startsWith('image/')) return '🖼️';
+    return '📎';
+  };
 
   // ── Fetch next reservation number ──
   useEffect(() => {
@@ -570,6 +628,14 @@ export default function NewReservationPage() {
           await api.post(`/reservations/${reservationId}/drivers`, d, { headers: { Authorization: `Bearer ${token}` } });
         }
       }
+      for (const doc of documents) {
+        await api.post(`/reservations/${reservationId}/documents`, {
+          name: doc.name,
+          docType: doc.docType,
+          base64: doc.base64,
+          mimeType: doc.mimeType,
+        }, { headers: { Authorization: `Bearer ${token}` } });
+      }
 
       return res;
     },
@@ -689,8 +755,8 @@ export default function NewReservationPage() {
       {/* ══════════════════════════════════════════════════════ TAB 1: CUSTOMER */}
       {activeTab === 1 && (
         <>
-                  {/* Vehicle Details */}
-                  <SectionBlock title="Vehicle Details">
+          {/* Vehicle Details */}
+          <SectionBlock title="Vehicle Details">
             <div style={grid2}>
               <F label="State">
                 <select style={inp} value={nafVehicle.registrationState} onChange={e => updNafVehicle('registrationState', e.target.value)}>
@@ -732,8 +798,9 @@ export default function NewReservationPage() {
               </span>
             </div>
           </SectionBlock>
-        {/* Driver Details */}
-        <SectionBlock title="Driver Details">
+
+          {/* Driver Details */}
+          <SectionBlock title="Driver Details">
             <PersonFields data={driver} onChange={updDriver} />
             <div style={{ marginTop: '24px', marginBottom: '4px' }}>
               <input
@@ -924,11 +991,10 @@ export default function NewReservationPage() {
         </>
       )}
 
-      {/* ══════════════════════════════════════════ TAB 3:Accident Details*/}
+      {/* ══════════════════════════════════════════ TAB 3: ACCIDENT DETAILS */}
       {activeTab === 3 && (
         <>
-  {/* Accident Details */}
-  <SectionBlock title="Accident Details">
+          <SectionBlock title="Accident Details">
             <div style={grid2}>
               <F label="Date of accident"><input type="date" style={inp} value={accident.date} onChange={e => updAccident('date', e.target.value)} /></F>
               <F label="Location type">
@@ -942,8 +1008,6 @@ export default function NewReservationPage() {
                 <textarea style={{ ...inp, height: '80px', resize: 'vertical' }} value={accident.description} onChange={e => updAccident('description', e.target.value)} />
               </F>
             </div>
-
-            {/* Interactive Google Map */}
             <div style={{ marginTop: '20px' }}>
               <label style={lbl}>Accident location</label>
               <AccidentMap
@@ -957,8 +1021,9 @@ export default function NewReservationPage() {
           </SectionBlock>
         </>
       )}
- {/* ══════════════════════════════════════════ TAB 4: VEHICLE DAMAGE */}
- {activeTab === 4 && (
+
+      {/* ══════════════════════════════════════════ TAB 4: VEHICLE DAMAGE */}
+      {activeTab === 4 && (
         <>
           <SectionBlock title="Vehicle Damage">
             {[
@@ -1036,12 +1101,10 @@ export default function NewReservationPage() {
         </>
       )}
 
-
-{/* ══════════════════════════════════════════ TAB 5: SUPPORT */}
-{activeTab === 5 && (
+      {/* ══════════════════════════════════════════ TAB 5: SUPPORT */}
+      {activeTab === 5 && (
         <>
-     {/* Repairer Details */}
-     <SectionBlock title="Repairer Details">
+          <SectionBlock title="Repairer Details">
             <div style={grid2}>
               <F label="Repairer name"><input style={inp} value={repairer.businessName} onChange={e => updRepairer('businessName', e.target.value)} /></F>
               <F label="Contact number"><input style={inp} value={repairer.phone} onChange={e => updRepairer('phone', e.target.value)} /></F>
@@ -1069,7 +1132,6 @@ export default function NewReservationPage() {
               <F label="Witness phone"><input style={inp} value={witnessPhone} onChange={e => setWitnessPhone(e.target.value)} /></F>
             </div>
           </SectionBlock>
-
           <SectionBlock title="Police">
             <div style={grid2}>
               <F label="Contact name"><input style={inp} value={policeContactName} onChange={e => setPoliceContactName(e.target.value)} /></F>
@@ -1079,7 +1141,8 @@ export default function NewReservationPage() {
           </SectionBlock>
         </>
       )}
-      {/* ══════════════════════════════════════════ TAB 6: CARD DETAILS */}
+
+      {/* ══════════════════════════════════════════ TAB 6: CARDS */}
       {activeTab === 6 && (
         <>
           <SectionBlock title="Payment Cards">
@@ -1146,6 +1209,152 @@ export default function NewReservationPage() {
                 </div>
               </div>
             ))}
+          </SectionBlock>
+        </>
+      )}
+
+      {/* ══════════════════════════════════════════ TAB 7: DOCUMENTS */}
+      {activeTab === 7 && (
+        <>
+          <SectionBlock title="Documents">
+
+            {/* Upload area */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', alignItems: 'flex-end', marginBottom: '12px' }}>
+                <F label="Document type">
+                  <select style={inp} value={docType} onChange={e => setDocType(e.target.value)}>
+                    <option value="">Select type...</option>
+                    {DOC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </F>
+                <div>
+                  <input
+                    ref={docUploadRef}
+                    type="file"
+                    accept=".pdf,image/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={handleDocUpload}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => docUploadRef.current?.click()}
+                    disabled={docUploading}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: '#0f172a',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: docUploading ? 'not-allowed' : 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {docUploading ? 'Uploading...' : '+ Upload file'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Drop zone */}
+              <div
+                onClick={() => docUploadRef.current?.click()}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => {
+                  e.preventDefault();
+                  const dt = e.dataTransfer;
+                  if (dt.files.length && docUploadRef.current) {
+                    const dataTransfer = new DataTransfer();
+                    Array.from(dt.files).forEach(f => dataTransfer.items.add(f));
+                    docUploadRef.current.files = dataTransfer.files;
+                    docUploadRef.current.dispatchEvent(new Event('change', { bubbles: true }));
+                  }
+                }}
+                style={{
+                  border: '2px dashed #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '32px 24px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  background: '#f8fafc',
+                  transition: 'border-color 0.2s',
+                }}
+              >
+                <div style={{ fontSize: '28px', marginBottom: '8px' }}>📎</div>
+                <div style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>Drop files here or click to browse</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>PDF, JPG, PNG supported</div>
+              </div>
+            </div>
+
+            {/* Staged documents list */}
+            {documents.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '14px' }}>
+                No documents added yet
+              </div>
+            ) : (
+              <div>
+                <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px' }}>
+                  {documents.length} document{documents.length !== 1 ? 's' : ''} staged — will be attached on save
+                </p>
+                {documents.map((doc, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      background: '#f0fdf4',
+                      borderRadius: '8px',
+                      border: '1px solid #bbf7d0',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                      <span style={{ fontSize: '22px', flexShrink: 0 }}>{docIcon(doc.mimeType)}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {doc.name}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            borderRadius: '4px',
+                            padding: '1px 6px',
+                            fontSize: '11px',
+                            fontWeight: 500,
+                            marginRight: '8px',
+                          }}>
+                            {doc.docType}
+                          </span>
+                          {formatFileSize(doc.size)}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeDocument(i)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #fecaca',
+                        background: '#fff',
+                        color: '#ef4444',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        marginLeft: '12px',
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </SectionBlock>
         </>
       )}
