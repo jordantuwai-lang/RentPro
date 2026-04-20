@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { LogisticsService } from './logistics.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -75,5 +75,11 @@ export class LogisticsController {
   @Roles(...ALL_STAFF)
   getPhotos(@Param('id') id: string) {
     return this.logisticsService.getDeliveryPhotos(id);
+  }
+
+  @Delete(':id/photos/:photoId')
+  @Roles(...OPS_ROLES)
+  deletePhoto(@Param('photoId') photoId: string) {
+    return this.logisticsService.deleteDeliveryPhoto(photoId);
   }
 }

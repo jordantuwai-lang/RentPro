@@ -92,6 +92,103 @@ function SignatureCanvas({ onSave, onCancel }: { onSave: (data: string) => void;
   );
 }
 
+function DeliveryPhotos({ deliveryId }: { deliveryId: string }) {
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+
+  const { data: photos = [] } = useQuery({
+    queryKey: ['delivery-photos', deliveryId],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get(`/logistics/${deliveryId}/photos`, { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = (reader.result as string).split(',')[1];
+          const token = await getToken();
+          await api.post(`/logistics/${deliveryId}/photos`, {
+            fileData: base64,
+            mimeType: file.type,
+            caption: '',
+          }, { headers: { Authorization: `Bearer ${token}` } });
+          queryClient.invalidateQueries({ queryKey: ['delivery-photos', deliveryId] });
+        } finally {
+          setUploadingPhoto(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setUploadingPhoto(false);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+  };
+
+  const handleDelete = async (photoId: string) => {
+    if (!confirm('Delete this photo?')) return;
+    setDeletingPhotoId(photoId);
+    try {
+      const token = await getToken();
+      await api.delete(`/logistics/${deliveryId}/photos/${photoId}`, { headers: { Authorization: `Bearer ${token}` } });
+      queryClient.invalidateQueries({ queryKey: ['delivery-photos', deliveryId] });
+    } finally {
+      setDeletingPhotoId(null);
+    }
+  };
+
+  return (
+    <div style={section}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 style={{ ...heading, margin: 0 }}>Delivery photos ({photos.length}/10)</h2>
+        {photos.length < 10 && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleUpload} style={{ display: 'none' }} />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} style={{ display: 'none' }} />
+            <button onClick={() => cameraInputRef.current?.click()} disabled={uploadingPhoto}
+              style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+              📷 Take photo
+            </button>
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}
+              style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+              {uploadingPhoto ? 'Uploading...' : '+ Upload'}
+            </button>
+          </div>
+        )}
+      </div>
+      {photos.length === 0 ? (
+        <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No delivery photos yet.</p>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+          {photos.map((photo: any) => (
+            <div key={photo.id} style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', position: 'relative' }}>
+              <img src={photo.url} alt="Delivery photo" style={{ width: '100%', height: '140px', objectFit: 'cover', display: 'block' }} />
+              <button
+                onClick={() => handleDelete(photo.id)}
+                disabled={deletingPhotoId === photo.id}
+                style={{ position: 'absolute', top: '6px', right: '6px', width: '26px', height: '26px', borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                {deletingPhotoId === photo.id ? '…' : '×'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SchedulePage() {
   const { getToken, isLoaded } = useAuth();
   const queryClient = useQueryClient();
@@ -181,7 +278,6 @@ export default function SchedulePage() {
     },
   });
 
-  // Build table rows — merges job rows with pair separator rows in one pass
   const tableRows = useMemo(() => {
     if (!filteredJobs.length) return [];
     return filteredJobs.reduce((acc: React.ReactNode[], job: any, idx: number) => {
@@ -280,7 +376,6 @@ export default function SchedulePage() {
         </tr>
       );
 
-      // Insert pair separator row if this job and the next are paired together
       if (nextJob && pairs[job.id] === nextJob.id) {
         acc.push(
           <tr key={`pair-${job.id}`} style={{ background: '#faf5ff' }}>
@@ -422,8 +517,16 @@ export default function SchedulePage() {
                 <Field label="Job Type" value={selectedJob.jobType} />
                 <Field label="Customer" value={`${r?.customer?.firstName} ${r?.customer?.lastName}`} />
                 <Field label="Location" value={`${selectedJob.address}, ${selectedJob.suburb}`} />
+                <Field label="Driver" value={selectedJob.driver ? `${selectedJob.driver.firstName} ${selectedJob.driver.lastName}` : 'Unassigned'} />
+                <Field label="Status" value={selectedJob.status} />
               </div>
+              {selectedJob.notes && (
+                <div style={{ marginTop: '16px', padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '13px', color: '#64748b' }}>
+                  {selectedJob.notes}
+                </div>
+              )}
             </div>
+            <DeliveryPhotos deliveryId={selectedJob.id} />
           </div>
         </div>
       )}

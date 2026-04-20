@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class LogisticsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storage: StorageService,
+  ) {}
 
   findAll(branchId?: string) {
     return this.prisma.delivery.findMany({
@@ -34,8 +38,8 @@ export class LogisticsService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.delivery.findUnique({
+  async findOne(id: string) {
+    const delivery = await this.prisma.delivery.findUnique({
       where: { id },
       include: {
         reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
@@ -43,6 +47,14 @@ export class LogisticsService {
         photos: true,
       },
     });
+    if (!delivery) return null;
+    const photos = await Promise.all(
+      delivery.photos.map(async (p) => ({
+        ...p,
+        url: p.key ? await this.storage.getPresignedUrl(p.key) : p.url,
+      }))
+    );
+    return { ...delivery, photos };
   }
 
   create(data: any) {
@@ -112,20 +124,40 @@ export class LogisticsService {
   async addDeliveryPhoto(deliveryId: string, data: any) {
     const count = await this.prisma.deliveryPhoto.count({ where: { deliveryId } });
     if (count >= 10) throw new Error('Maximum of 10 photos allowed per delivery');
+
+    const buffer = Buffer.from(data.fileData, 'base64');
+    const ext = (data.mimeType || 'image/jpeg').split('/')[1] || 'jpg';
+    const key = `delivery-photos/${deliveryId}/${Date.now()}.${ext}`;
+    await this.storage.upload(key, buffer, data.mimeType || 'image/jpeg');
+
     return this.prisma.deliveryPhoto.create({
       data: {
         delivery: { connect: { id: deliveryId } },
-        url: data.url,
-        key: data.key,
+        url: '',
+        key,
         caption: data.caption || null,
       },
     });
   }
 
-  getDeliveryPhotos(deliveryId: string) {
-    return this.prisma.deliveryPhoto.findMany({
+  async deleteDeliveryPhoto(id: string) {
+    const photo = await this.prisma.deliveryPhoto.findUnique({ where: { id } });
+    if (photo?.key) {
+      try { await this.storage.delete(photo.key); } catch (_) {}
+    }
+    return this.prisma.deliveryPhoto.delete({ where: { id } });
+  }
+
+  async getDeliveryPhotos(deliveryId: string) {
+    const photos = await this.prisma.deliveryPhoto.findMany({
       where: { deliveryId },
       orderBy: { createdAt: 'asc' },
     });
+    return Promise.all(
+      photos.map(async (p) => ({
+        ...p,
+        url: p.key ? await this.storage.getPresignedUrl(p.key) : p.url,
+      }))
+    );
   }
 }

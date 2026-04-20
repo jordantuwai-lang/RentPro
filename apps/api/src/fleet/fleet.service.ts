@@ -1,20 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class FleetService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storage: StorageService,
+  ) {}
 
   findAll(branchId?: string) {
     return this.prisma.vehicle.findMany({
-      where: (branchId && branchId !== "null" && branchId !== "all") ? { branchId } : undefined,
+      where: (branchId && branchId !== 'null' && branchId !== 'all') ? { branchId } : undefined,
       include: { branch: true, photos: true },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.vehicle.findUnique({
+  async findOne(id: string) {
+    const vehicle = await this.prisma.vehicle.findUnique({
       where: { id },
       include: {
         branch: true,
@@ -26,6 +30,14 @@ export class FleetService {
         },
       },
     });
+    if (!vehicle) return null;
+    const photos = await Promise.all(
+      vehicle.photos.map(async (p) => ({
+        ...p,
+        url: p.key ? await this.storage.getPresignedUrl(p.key) : p.url,
+      }))
+    );
+    return { ...vehicle, photos };
   }
 
   create(data: any) {
@@ -57,7 +69,7 @@ export class FleetService {
 
   async getFleetSummary(branchId?: string) {
     const vehicles = await this.prisma.vehicle.findMany({
-      where: (branchId && branchId !== "null" && branchId !== "all") ? { branchId } : undefined,
+      where: (branchId && branchId !== 'null' && branchId !== 'all') ? { branchId } : undefined,
     });
     return {
       total: vehicles.length,
@@ -76,24 +88,39 @@ export class FleetService {
     const photoCount = await this.prisma.vehiclePhoto.count({ where: { vehicleId } });
     if (photoCount >= 10) throw new Error('Maximum of 10 photos allowed per vehicle');
 
+    const buffer = Buffer.from(data.fileData, 'base64');
+    const ext = (data.mimeType || 'image/jpeg').split('/')[1] || 'jpg';
+    const key = `vehicle-photos/${vehicleId}/${Date.now()}.${ext}`;
+    await this.storage.upload(key, buffer, data.mimeType || 'image/jpeg');
+
     return this.prisma.vehiclePhoto.create({
       data: {
         vehicle: { connect: { id: vehicleId } },
-        url: data.url,
-        key: data.key,
+        url: '',
+        key,
         caption: data.caption || null,
       },
     });
   }
 
-  deletePhoto(id: string) {
+  async deletePhoto(id: string) {
+    const photo = await this.prisma.vehiclePhoto.findUnique({ where: { id } });
+    if (photo?.key) {
+      try { await this.storage.delete(photo.key); } catch (_) {}
+    }
     return this.prisma.vehiclePhoto.delete({ where: { id } });
   }
 
-  getPhotos(vehicleId: string) {
-    return this.prisma.vehiclePhoto.findMany({
+  async getPhotos(vehicleId: string) {
+    const photos = await this.prisma.vehiclePhoto.findMany({
       where: { vehicleId },
       orderBy: { createdAt: 'asc' },
     });
+    return Promise.all(
+      photos.map(async (p) => ({
+        ...p,
+        url: p.key ? await this.storage.getPresignedUrl(p.key) : p.url,
+      }))
+    );
   }
 }

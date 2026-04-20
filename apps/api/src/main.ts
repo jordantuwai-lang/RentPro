@@ -4,8 +4,13 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: true,
+  });
+
+  app.use(require('express').json({ limit: '20mb' }));
+  app.use(require('express').urlencoded({ limit: '20mb', extended: true }));
+
   app.enableCors({
     origin: [
       'http://localhost:3000',
@@ -18,7 +23,7 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe());
-  
+
   await app.listen(3001);
 }
 bootstrap();
