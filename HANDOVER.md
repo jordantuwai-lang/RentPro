@@ -94,6 +94,8 @@ A `StorageService` (`apps/api/src/storage/storage.service.ts`) wraps the AWS S3 
   - **✓ Scheduled** button: clickable, opens edit modal pre-filled with current delivery details, PATCHes `/logistics/:deliveryId`
   - **Notes** button: opens notes modal directly from action bar, shows count badge
 - **Edit page** (`/dashboard/reservations/[id]/edit`) — separate edit form (older, simpler)
+- Vehicle check-in photos: upload/view/delete via Cloudflare R2 (presigned URLs, 20mb body limit)
+- Delivery photos: upload/view/delete via Cloudflare R2 on logistics job detail overlay
 
 ### Fleet
 - Vehicle list, add vehicle, vehicle detail with hire history
@@ -142,7 +144,6 @@ A `StorageService` (`apps/api/src/storage/storage.service.ts`) wraps the AWS S3 
 ---
 
 ## Known Issues / In Progress
-- Photo storage for vehicle check-in and delivery photos still uses base64 in PostgreSQL — migration to R2 planned
 - Twilio SMS integration is preview-only (no real sending)
 - Expo React Native mobile app scaffolded but not built
 - Vercel deployment not yet configured
