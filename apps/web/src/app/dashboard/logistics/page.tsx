@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 
 // --- Constants & Styles ---
@@ -19,78 +20,7 @@ const jobTypeColors: Record<string, { bg: string; color: string }> = {
 
 const section: React.CSSProperties = { background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', marginBottom: '16px' };
 const heading: React.CSSProperties = { fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: 0, marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' };
-const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', boxSizing: 'border-box' };
-
-function Field({ label, value }: { label: string; value?: string }) {
-  return (
-    <div>
-      <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>{label}</div>
-      <div style={{ fontSize: '14px', color: value ? '#0f172a' : '#cbd5e1' }}>{value || '—'}</div>
-    </div>
-  );
-}
-
-function SignatureCanvas({ onSave, onCancel }: { onSave: (data: string) => void; onCancel: () => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isDrawing = useRef(false);
-
-  useEffect(() => {
-    const resize = () => {
-      const canvas = canvasRef.current;
-      const container = containerRef.current;
-      if (!canvas || !container) return;
-      canvas.width = container.clientWidth;
-      canvas.height = 180;
-      const ctx = canvas.getContext('2d');
-      if (ctx) { ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.lineCap = 'round'; }
-    };
-    resize();
-    window.addEventListener('resize', resize);
-    return () => window.removeEventListener('resize', resize);
-  }, []);
-
-  const getPos = (e: any) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    const touch = e.touches?.[0] || e;
-    return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-  };
-
-  const start = (e: any) => {
-    e.preventDefault();
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
-    isDrawing.current = true;
-    const pos = getPos(e);
-    ctx.beginPath(); ctx.moveTo(pos.x, pos.y);
-  };
-
-  const move = (e: any) => {
-    e.preventDefault();
-    if (!isDrawing.current) return;
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
-    const pos = getPos(e);
-    ctx.lineTo(pos.x, pos.y); ctx.stroke();
-  };
-
-  return (
-    <div>
-      <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px' }}>Please sign below to authorize this agreement.</p>
-      <div ref={containerRef} style={{ border: '2px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', marginBottom: '12px' }}>
-        <canvas ref={canvasRef} style={{ display: 'block', touchAction: 'none', cursor: 'crosshair' }}
-          onMouseDown={start} onMouseMove={move} onMouseUp={() => { isDrawing.current = false; }}
-          onTouchStart={start} onTouchMove={move} onTouchEnd={() => { isDrawing.current = false; }} />
-      </div>
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button onClick={onCancel} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff' }}>Cancel</button>
-        <button onClick={() => onSave(canvasRef.current?.toDataURL() || '')} style={{ flex: 1, padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontWeight: 600 }}>Confirm</button>
-      </div>
-    </div>
-  );
-}
 
 function DeliveryPhotos({ deliveryId }: { deliveryId: string }) {
   const { getToken } = useAuth();
@@ -192,9 +122,7 @@ function DeliveryPhotos({ deliveryId }: { deliveryId: string }) {
 export default function SchedulePage() {
   const { getToken, isLoaded } = useAuth();
   const queryClient = useQueryClient();
-
-  const [selectedJob, setSelectedJob] = useState<any>(null);
-  const [showOnHireModal, setShowOnHireModal] = useState(false);
+  const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [filterDriver, setFilterDriver] = useState('');
@@ -265,19 +193,6 @@ export default function SchedulePage() {
     });
   }, [logistics, selectedDate, filterStatus, filterDriver]);
 
-  const markOnHire = useMutation({
-    mutationFn: async ({ id, sig }: { id: string; sig: string }) => {
-      const token = await getToken();
-      await api.post(`/documents/signatures/${id}`, { signatureData: sig, signingMethod: 'screen' }, { headers: { Authorization: `Bearer ${token}` } });
-      return api.post(`/reservations/${id}/on-hire`, {}, { headers: { Authorization: `Bearer ${token}` } });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['logistics'] });
-      setShowOnHireModal(false);
-      setSelectedJob(null);
-    },
-  });
-
   const tableRows = useMemo(() => {
     if (!filteredJobs.length) return [];
     return filteredJobs.reduce((acc: React.ReactNode[], job: any, idx: number) => {
@@ -286,7 +201,7 @@ export default function SchedulePage() {
       acc.push(
         <tr
           key={job.id}
-          onClick={() => setSelectedJob(job)}
+          onClick={() => router.push(`/dashboard/reservations/${job.reservation?.id}`)}
           style={{
             borderBottom: '1px solid #f1f5f9',
             cursor: 'pointer',
@@ -389,8 +304,6 @@ export default function SchedulePage() {
       return acc;
     }, []);
   }, [filteredJobs, completedIds, pairs, editingTimeId]);
-
-  const r = selectedJob?.reservation;
 
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'sans-serif' }}>
@@ -498,48 +411,6 @@ export default function SchedulePage() {
             {filteredJobs.filter((j: any) => j.id !== pairingJobId && !pairs[j.id]).length === 0 && (
               <p style={{ color: '#94a3b8', fontSize: '14px', textAlign: 'center' }}>No other jobs available to pair with.</p>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Detail Overlay */}
-      {selectedJob && (
-        <div style={{ position: 'fixed', inset: 0, background: '#fff', zIndex: 100, padding: '40px', overflowY: 'auto' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '32px' }}>
-              <button onClick={() => setSelectedJob(null)} style={{ background: 'none', border: 'none', color: '#01ae42', cursor: 'pointer', fontWeight: 600 }}>← Back to List</button>
-              <button onClick={() => setShowOnHireModal(true)} style={{ padding: '12px 24px', background: '#01ae42', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700 }}>Process On Hire</button>
-            </div>
-            <div style={section}>
-              <h2 style={heading}>Job Overview</h2>
-              <div style={grid2}>
-                <Field label="Reservation" value={r?.reservationNumber} />
-                <Field label="Job Type" value={selectedJob.jobType} />
-                <Field label="Customer" value={`${r?.customer?.firstName} ${r?.customer?.lastName}`} />
-                <Field label="Location" value={`${selectedJob.address}, ${selectedJob.suburb}`} />
-                <Field label="Driver" value={selectedJob.driver ? `${selectedJob.driver.firstName} ${selectedJob.driver.lastName}` : 'Unassigned'} />
-                <Field label="Status" value={selectedJob.status} />
-              </div>
-              {selectedJob.notes && (
-                <div style={{ marginTop: '16px', padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '13px', color: '#64748b' }}>
-                  {selectedJob.notes}
-                </div>
-              )}
-            </div>
-            <DeliveryPhotos deliveryId={selectedJob.id} />
-          </div>
-        </div>
-      )}
-
-      {/* Signature Modal */}
-      {showOnHireModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-          <div style={{ background: '#fff', padding: '32px', borderRadius: '16px', width: '90%', maxWidth: '500px' }}>
-            <h2 style={{ marginTop: 0 }}>Digital Signature</h2>
-            <SignatureCanvas
-              onSave={(sig) => markOnHire.mutate({ id: r.id, sig })}
-              onCancel={() => setShowOnHireModal(false)}
-            />
           </div>
         </div>
       )}
