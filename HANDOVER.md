@@ -115,6 +115,7 @@ A `StorageService` (`apps/api/src/storage/storage.service.ts`) wraps the AWS S3 
 - Add Job modal
 - Job detail overlay with Process On Hire button (requires driver licence photo + payment card check)
 - Digital signature capture for on-hire
+- Clicking a job row navigates to the full reservation detail page
 
 ### Claims
 - Claims list with status, insurer, repairer
