@@ -166,3 +166,14 @@ npx prisma generate
 ## Architecture Notes
 - TSD competitor system analysis informed the decision to separate accident/claims fields into dedicated tabs rather than embedding in the core reservation form
 - The `HANDOVER.md` is the persistent project reference — update it at the end of every session
+
+## Session update — Rates page
+
+**What was built:**
+- `VehicleClass` and `HireRate` Prisma models added to schema + migrated
+- `RatesModule` (controller, service, module) at `apps/api/src/rates/`
+- 5 endpoints: `GET /rates/classes`, `POST /rates/classes`, `PATCH /rates/classes/:id`, `GET /rates?branchId=`, `GET /rates/history?branchId=&vehicleClassId=`, `POST /rates`
+- Rate history pattern: each save creates a new `HireRate` row with `effectiveFrom`; current rate = latest row ≤ today
+- 14 vehicle classes seeded (A–N) via `seed_classes.js` in api root
+- Frontend: `apps/web/src/app/dashboard/admin/rates/page.tsx` — branch-specific, loads live from API, inline editing, history modal
+- Sidebar: Rates (💲) added to adminNav between Documents and Settings
