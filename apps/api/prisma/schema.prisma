@@ -133,6 +133,7 @@ model Branch {
   users     User[]
   vehicles  Vehicle[]
   repairers Repairer[]
+  rates     HireRate[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -616,4 +617,30 @@ model FileNumberCounter {
 model ReservationCounter {
   id      Int @id @default(1)
   current Int @default(1000)
+}
+
+model VehicleClass {
+  id          String     @id @default(cuid())
+  code        String     @unique  // "A", "B", "C" etc.
+  description String               // "Small Hatchback"
+  example     String?              // "Toyota Yaris / Mazda 2"
+  sortOrder   Int        @default(0)
+  active      Boolean    @default(true)
+  rates       HireRate[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model HireRate {
+  id             String       @id @default(cuid())
+  vehicleClass   VehicleClass @relation(fields: [vehicleClassId], references: [id])
+  vehicleClassId String
+  branch         Branch       @relation(fields: [branchId], references: [id])
+  branchId       String
+  daily          Decimal?
+  weekly         Decimal?
+  monthly        Decimal?
+  effectiveFrom  DateTime     @default(now())
+  createdBy      String?      // clerkId of user who set the rate
+  createdAt      DateTime     @default(now())
 }

@@ -27,6 +27,7 @@ const adminNav = [
   { label: 'Users', href: '/dashboard/admin/users', icon: '👥' },
   { label: 'Branches', href: '/dashboard/admin/branches', icon: '🏢' },
   { label: 'Documents', href: '/dashboard/admin/documents', icon: '📄' },
+  { label: 'Rates', href: '/dashboard/admin/rates', icon: '💲' },
   { label: 'Settings', href: '/dashboard/admin/settings', icon: '🎨' },
 ];
 
