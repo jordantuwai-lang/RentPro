@@ -177,3 +177,20 @@ npx prisma generate
 - 14 vehicle classes seeded (A–N) via `seed_classes.js` in api root
 - Frontend: `apps/web/src/app/dashboard/admin/rates/page.tsx` — branch-specific, loads live from API, inline editing, history modal
 - Sidebar: Rates (💲) added to adminNav between Documents and Settings
+
+## Session update — Claims page rebuild
+
+**What was built:**
+- `apps/web/src/app/dashboard/claims/page.tsx` — rebuilt list page: status pill filters (Open/In Progress/Closed with counts), search by customer/file/claim/ref, sort by days on hire, clickable rows navigate to detail
+- `apps/web/src/app/dashboard/claims/[id]/page.tsx` — full detail page with 5 tabs:
+  - **Overview** — claim #, reference, status, source, insurer, repairer, handler (inline edit), linked reservation summary with "Open reservation →" button
+  - **At-Fault Party** — personal details + vehicle/insurance fields (inline edit via PATCH /claims/:id/at-fault-party)
+  - **Repair Timeline** — dates (repair start/end, estimate, assessment), invoice #/amount, total loss, settlement + hire vs repair overlap visual (inline edit via PATCH /claims/:id/repair-details)
+  - **Recovery** — third party recovery status, witness details, police details (inline edit)
+  - **Notes** — add note with author name, chronological list newest-first
+- Quick info bar at top (customer, vehicle, insurer, handler)
+- Days-on-hire badge with ⚠ warning if >30 days
+
+**Known follow-up items:**
+- At-fault party fields (atFaultFirstName, atFaultVehicleRego etc.) may need schema migration if not already on Reservation model
+- Recovery tab currently saves via PATCH /claims/:id — should route witness/police fields to PATCH /reservations/:id instead
