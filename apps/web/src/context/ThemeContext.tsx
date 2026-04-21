@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
 
-export type Theme = 'green' | 'blue' | 'amber' | 'purple';
+export type Theme = 'green' | 'blue' | 'amber' | 'purple' | 'r2d';
 
 export interface ThemeConfig {
   name: string;
@@ -13,6 +13,7 @@ export interface ThemeConfig {
   accentText: string;
   navText: string;
   logo: string;
+  light?: boolean;
 }
 
 export const themes: Record<Theme, ThemeConfig> = {
@@ -59,6 +60,18 @@ export const themes: Record<Theme, ThemeConfig> = {
     accentText: '#fff',
     navText: '#d8b4fe',
     logo: '#a855f7',
+  },
+  r2d: {
+    name: 'Right2Drive Light',
+    sidebar: '#ffffff',
+    sidebarBorder: '#e2e8f0',
+    sidebarBottom: '#f8fafc',
+    accent: '#16a34a',
+    accentHover: 'rgba(22,163,74,0.08)',
+    accentText: '#fff',
+    navText: '#475569',
+    logo: '#16a34a',
+    light: true,
   },
 };
 

@@ -16,6 +16,8 @@ export default function SettingsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           {(Object.entries(themes) as [Theme, typeof themes[Theme]][]).map(([key, t]) => {
             const active = theme === key;
+            const isLight = t.light === true;
+            const logoBaseColor = isLight ? '#0f172a' : '#fff';
             return (
               <button
                 key={key}
@@ -32,11 +34,27 @@ export default function SettingsPage() {
                   boxShadow: active ? `0 0 0 3px ${t.accent}22` : 'none',
                 }}
               >
+                {/* Preview mini-sidebar */}
                 <div style={{ display: 'flex', height: '80px' }}>
-                  <div style={{ width: '56px', background: t.sidebar, padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <div style={{ fontSize: '8px', fontWeight: 800, color: '#fff' }}>R<span style={{ color: t.logo }}>P</span></div>
-                    {[1,2,3].map(i => (
-                      <div key={i} style={{ height: '6px', borderRadius: '3px', background: i === 1 ? t.accent : t.navText + '44', width: i === 1 ? '80%' : '60%' }} />
+                  <div style={{
+                    width: '56px',
+                    background: t.sidebar,
+                    border: isLight ? `1px solid ${t.sidebarBorder}` : 'none',
+                    padding: '10px 8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '5px',
+                  }}>
+                    <div style={{ fontSize: '8px', fontWeight: 800, color: logoBaseColor }}>
+                      R<span style={{ color: t.logo }}>P</span>
+                    </div>
+                    {[1, 2, 3].map(i => (
+                      <div key={i} style={{
+                        height: '6px',
+                        borderRadius: '3px',
+                        background: i === 1 ? t.accent : (isLight ? '#cbd5e1' : t.navText + '44'),
+                        width: i === 1 ? '80%' : '60%',
+                      }} />
                     ))}
                   </div>
                   <div style={{ flex: 1, background: '#f8fafc', padding: '10px' }}>
@@ -47,6 +65,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+                {/* Label row */}
                 <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{t.name}</div>
                   {active && (

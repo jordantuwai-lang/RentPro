@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { UserButton, useClerk, useUser } from '@clerk/nextjs';
+import { UserButton, useUser } from '@clerk/nextjs';
 import { useBranch } from '@/context/BranchContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
@@ -62,6 +62,10 @@ export default function Sidebar() {
   const [financeOpen, setFinanceOpen] = useState(pathname.includes('/payments') || pathname.includes('/invoicing'));
 
   const isAdmin = user?.publicMetadata?.role === 'ADMIN';
+  const isLight = config.light === true;
+
+  // In light mode: logo text is dark, "Pro" is accent green
+  const logoBaseColor = isLight ? '#0f172a' : '#fff';
 
   const linkStyle = (href: string, isSubItem = false): React.CSSProperties => {
     const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'));
@@ -83,14 +87,18 @@ export default function Sidebar() {
     <div style={{
       width: '240px', height: '100vh', background: config.sidebar,
       display: 'flex', flexDirection: 'column', flexShrink: 0,
-      position: 'sticky', top: 0, borderRight: `1px solid ${config.sidebarBorder}`
+      position: 'sticky', top: 0,
+      borderRight: `1px solid ${config.sidebarBorder}`,
+      boxShadow: isLight ? '2px 0 8px rgba(0,0,0,0.06)' : 'none',
     }}>
+      {/* Logo */}
       <div style={{ padding: '24px 20px', borderBottom: `1px solid ${config.sidebarBorder}` }}>
-        <div style={{ fontSize: '24px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px' }}>
+        <div style={{ fontSize: '24px', fontWeight: '800', color: logoBaseColor, letterSpacing: '-0.5px' }}>
           Rent<span style={{ color: config.logo }}>Pro</span>
         </div>
       </div>
 
+      {/* Nav */}
       <nav style={{ flex: 1, padding: '16px 12px', overflowY: 'auto' }}>
         {nav.map((item) => (
           <Link key={item.href} href={item.href} style={linkStyle(item.href)}
@@ -131,6 +139,7 @@ export default function Sidebar() {
         )}
       </nav>
 
+      {/* Active Branch */}
       {selectedBranch && (
         <div
           onClick={() => {
@@ -138,21 +147,31 @@ export default function Sidebar() {
             sessionStorage.removeItem('selectedBranch');
             router.push('/select-branch');
           }}
-          style={{ padding: '16px 20px', background: 'rgba(0,0,0,0.2)', cursor: 'pointer', borderTop: `1px solid ${config.sidebarBorder}` }}
+          style={{
+            padding: '16px 20px',
+            background: isLight ? '#f0fdf4' : 'rgba(0,0,0,0.2)',
+            cursor: 'pointer',
+            borderTop: `1px solid ${config.sidebarBorder}`,
+          }}
         >
-          <div style={{ fontSize: '10px', color: config.logo, textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Active Branch</div>
+          <div style={{ fontSize: '10px', color: config.accent, textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Active Branch</div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '14px', color: '#fff', fontWeight: 600 }}>{selectedBranch.name}</span>
+            <span style={{ fontSize: '14px', color: isLight ? '#0f172a' : '#fff', fontWeight: 600 }}>{selectedBranch.name}</span>
             <span>🔄</span>
           </div>
         </div>
       )}
 
-      <div style={{ padding: '16px 20px', borderTop: `1px solid ${config.sidebarBorder}`, background: config.sidebarBottom }}>
+      {/* User footer */}
+      <div style={{
+        padding: '16px 20px',
+        borderTop: `1px solid ${config.sidebarBorder}`,
+        background: isLight ? config.sidebarBottom : config.sidebarBottom,
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <UserButton afterSignOutUrl="/sign-in" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '12px', color: '#fff', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: '12px', color: isLight ? '#0f172a' : '#fff', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {user?.firstName || 'User'}
             </div>
             <div style={{ fontSize: '10px', color: config.navText }}>{user?.publicMetadata?.role as string || 'Staff'}</div>
