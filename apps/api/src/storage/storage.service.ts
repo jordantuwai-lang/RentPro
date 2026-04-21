@@ -50,6 +50,21 @@ export class StorageService {
     return getSignedUrl(this.client, command, { expiresIn: 3600 });
   }
 
+  // Download a file from R2 and return its contents as a Buffer.
+  async getBuffer(key: string): Promise<Buffer> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+    const response = await this.client.send(command);
+    const stream = response.Body as any;
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  }
+
   // Delete a file from R2 by key.
   async delete(key: string): Promise<void> {
     await this.client.send(

@@ -66,4 +66,19 @@ export class DocumentsController {
   getSignature(@Param('reservationId') reservationId: string) {
     return this.documentsService.getSignature(reservationId);
   }
+
+  @Post('generate/:reservationId')
+  @Roles(...ALL_STAFF)
+  generateHireDocs(@Param('reservationId') reservationId: string) {
+    return this.documentsService.generateHireDocs(reservationId);
+  }
+
+  @Post('save-signed/:reservationId')
+  @Roles(...ALL_STAFF)
+  saveSignedDoc(
+    @Param('reservationId') reservationId: string,
+    @Body() body: { docType: string; base64: string },
+  ) {
+    return this.documentsService.saveSignedDoc(reservationId, body.docType, body.base64);
+  }
 }
