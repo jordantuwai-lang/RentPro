@@ -163,7 +163,20 @@ export default function EditReservationPage({ params }: { params: Promise<{ id: 
       await api.patch(`/reservations/${id}`, {
         status, vehicleId: vehicleId || undefined,
         startDate: startDate || undefined,
-        customer: { firstName: driver.firstName, lastName: driver.lastName, phone: driver.phone, email: driver.email || undefined, licenceNumber: driver.licenceNumber || undefined },
+        customer: {
+            firstName: driver.firstName,
+            lastName: driver.lastName,
+            phone: driver.phone,
+            email: driver.email || undefined,
+            address: driver.address || undefined,
+            suburb: driver.suburb || undefined,
+            postcode: driver.postcode || undefined,
+            state: driver.state || undefined,
+            licenceNumber: driver.licenceNumber || undefined,
+            licenceState: driver.licenceState || undefined,
+            licenceExpiry: driver.licenceExpiry || undefined,
+            dob: driver.dob || undefined,
+          },
       }, { headers: { Authorization: `Bearer ${token}` } });
 
       for (const card of savedCards) {

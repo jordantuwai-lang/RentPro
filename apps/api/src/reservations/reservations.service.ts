@@ -49,14 +49,40 @@ export class ReservationsService {
   async create(data: any) {
     const reservationNumber = await this.generateReservationNumber();
 
+    // Support both data.customer (old edit form) and data.driver (new intake form)
+    const customerData = data.driver || data.customer;
+
+    const reservationFields = {
+      sourceOfBusiness: data.sourceOfBusiness || undefined,
+      partnerName: data.partnerName || undefined,
+      typeOfCover: data.typeOfCover || undefined,
+      hireType: data.hireType || undefined,
+      towIn: data.towIn || undefined,
+      totalLoss: data.totalLoss || undefined,
+      settlementReceived: data.settlementReceived || undefined,
+      repairStartDate: data.repairStartDate ? new Date(data.repairStartDate) : undefined,
+      repairEndDate: data.repairEndDate ? new Date(data.repairEndDate) : undefined,
+      estimateDate: data.estimateDate ? new Date(data.estimateDate) : undefined,
+      assessmentDate: data.assessmentDate ? new Date(data.assessmentDate) : undefined,
+      repairerInvoiceNo: data.repairerInvoiceNo || undefined,
+      repairerInvoiceAmt: data.repairerInvoiceAmt || undefined,
+      thirdPartyRecovery: data.thirdPartyRecovery || undefined,
+      witnessName: data.witnessName || undefined,
+      witnessPhone: data.witnessPhone || undefined,
+      policeContactName: data.policeContactName || undefined,
+      policePhone: data.policePhone || undefined,
+      policeEventNo: data.policeEventNo || undefined,
+    };
+
     if (data.status === 'DRAFT') {
       return this.prisma.reservation.create({
         data: {
           reservationNumber,
-          customer: { create: data.customer },
+          customer: { create: customerData },
           vehicle: data.vehicleId ? { connect: { id: data.vehicleId } } : undefined,
           startDate: data.startDate ? new Date(data.startDate) : new Date(),
           status: 'DRAFT',
+          ...reservationFields,
         },
         include: { customer: true, vehicle: true },
       });
@@ -74,11 +100,12 @@ export class ReservationsService {
     const reservation = await this.prisma.reservation.create({
       data: {
         reservationNumber,
-        customer: { create: data.customer },
+        customer: { create: customerData },
         vehicle: { connect: { id: data.vehicleId } },
         startDate: new Date(data.startDate),
         endDate: data.endDate ? new Date(data.endDate) : null,
         status: 'PENDING',
+        ...reservationFields,
       },
       include: { customer: true, vehicle: true },
     });
@@ -126,15 +153,24 @@ export class ReservationsService {
       }
     }
 
-    if (data.customer && reservation.customerId) {
+    // Support both data.customer (edit form) and data.driver (new intake form)
+    const customerUpdate = data.driver || data.customer;
+    if (customerUpdate && reservation.customerId) {
       await this.prisma.customer.update({
         where: { id: reservation.customerId },
         data: {
-          firstName: data.customer.firstName,
-          lastName: data.customer.lastName,
-          phone: data.customer.phone,
-          email: data.customer.email || undefined,
-          licenceNumber: data.customer.licenceNumber || undefined,
+          firstName: customerUpdate.firstName,
+          lastName: customerUpdate.lastName,
+          phone: customerUpdate.phone,
+          email: customerUpdate.email || undefined,
+          address: customerUpdate.address || undefined,
+          suburb: customerUpdate.suburb || undefined,
+          postcode: customerUpdate.postcode || undefined,
+          state: customerUpdate.state || undefined,
+          licenceNumber: customerUpdate.licenceNumber || undefined,
+          licenceState: customerUpdate.licenceState || undefined,
+          licenceExpiry: customerUpdate.licenceExpiry || undefined,
+          dob: customerUpdate.dob || undefined,
         },
       });
     }
