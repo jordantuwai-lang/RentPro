@@ -59,6 +59,9 @@ export default function RatesPage() {
   const [showHistory, setShowHistory] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
 
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newRow, setNewRow] = useState({ code: '', description: '', example: '', daily: '', weekly: '', monthly: '' });
+
   const branchId = selectedBranch?.id;
 
   const { data: rates = [], isLoading } = useQuery<RateEntry[]>({
@@ -83,6 +86,30 @@ export default function RatesPage() {
       setEditingId(null);
       setSavedId(vars.vehicleClassId);
       setTimeout(() => setSavedId(null), 2000);
+    },
+  });
+
+  const createClass = useMutation({
+    mutationFn: async (data: any) => {
+      const token = await getToken();
+      return api.post('/rates/classes', data, { headers: { Authorization: `Bearer ${token}` } });
+    },
+    onSuccess: (res) => {
+      // If rates were provided, also set them for this branch
+      const vc = res.data;
+      if (newRow.daily || newRow.weekly || newRow.monthly) {
+        setRate.mutate({
+          vehicleClassId: vc.id,
+          branchId,
+          daily: newRow.daily ? parseFloat(newRow.daily) : null,
+          weekly: newRow.weekly ? parseFloat(newRow.weekly) : null,
+          monthly: newRow.monthly ? parseFloat(newRow.monthly) : null,
+        });
+      } else {
+        qc.invalidateQueries({ queryKey: ['rates', branchId] });
+      }
+      setShowAddModal(false);
+      setNewRow({ code: '', description: '', example: '', daily: '', weekly: '', monthly: '' });
     },
   });
 
@@ -133,6 +160,12 @@ export default function RatesPage() {
             Branch-specific rates for <strong>{selectedBranch?.name}</strong>. Click a row to edit.
           </p>
         </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          style={{ background: '#01ae42', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+        >
+          + Add class
+        </button>
       </div>
 
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
@@ -294,6 +327,84 @@ export default function RatesPage() {
           </div>
         </div>
       )}
+
+      {/* Add Class Modal */}
+      {showAddModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', width: '480px', maxWidth: '95vw' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#0f172a' }}>Add vehicle class</h2>
+              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+            </div>
+            <div style={{ display: 'grid', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 500, color: '#374151', display: 'block', marginBottom: '6px' }}>Code *</label>
+                  <input
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', boxSizing: 'border-box', textAlign: 'center', fontWeight: 700 }}
+                    placeholder="O"
+                    value={newRow.code}
+                    onChange={e => setNewRow(v => ({ ...v, code: e.target.value.toUpperCase() }))}
+                    maxLength={2}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 500, color: '#374151', display: 'block', marginBottom: '6px' }}>Description *</label>
+                  <input
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', boxSizing: 'border-box' }}
+                    placeholder="e.g. Electric Vehicle"
+                    value={newRow.description}
+                    onChange={e => setNewRow(v => ({ ...v, description: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 500, color: '#374151', display: 'block', marginBottom: '6px' }}>Example vehicles</label>
+                <input
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', boxSizing: 'border-box' }}
+                  placeholder="e.g. Tesla Model 3 / BYD Atto 3"
+                  value={newRow.example}
+                  onChange={e => setNewRow(v => ({ ...v, example: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 500, color: '#374151', display: 'block', marginBottom: '6px' }}>Starting rates for {selectedBranch?.name} (optional)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                  {(['daily', 'weekly', 'monthly'] as const).map(period => (
+                    <div key={period}>
+                      <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px', textTransform: 'capitalize' }}>{period} ($)</label>
+                      <input
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', boxSizing: 'border-box', textAlign: 'right' }}
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={newRow[period]}
+                        onChange={e => setNewRow(v => ({ ...v, [period]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowAddModal(false)}
+                style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => createClass.mutate({ code: newRow.code, description: newRow.description, example: newRow.example || undefined })}
+                disabled={!newRow.code || !newRow.description || createClass.isPending}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: !newRow.code || !newRow.description ? '#d1fae5' : '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 500, cursor: !newRow.code || !newRow.description ? 'not-allowed' : 'pointer' }}
+              >
+                {createClass.isPending ? 'Adding...' : 'Add class'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
