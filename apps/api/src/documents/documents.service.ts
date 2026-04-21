@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { PDFDocument } from 'pdf-lib';
-import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class DocumentsService {

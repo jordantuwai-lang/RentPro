@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
@@ -206,6 +207,178 @@ function YNUEdit({ label, value, onChange, options }: {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+
+// ─── Signature Pad ────────────────────────────────────────────────────────────
+function SignaturePad({ onSave, onClear, existingSig }: { onSave: (s: string) => void; onClear: () => void; existingSig: string | null }) {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const drawing = React.useRef(false);
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!ctx || !canvas) return;
+    canvas.width = containerRef.current?.offsetWidth || 480;
+    canvas.height = 150;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    if (existingSig) {
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0);
+      img.src = existingSig;
+    }
+  }, [existingSig]);
+
+  const pos = (e: any) => {
+    const r = canvasRef.current!.getBoundingClientRect();
+    const t = e.touches?.[0] || e;
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  };
+
+  const start = (e: any) => {
+    e.preventDefault();
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    drawing.current = true;
+    const p = pos(e);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y);
+  };
+
+  const move = (e: any) => {
+    e.preventDefault();
+    if (!drawing.current) return;
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    const p = pos(e);
+    ctx.lineTo(p.x, p.y); ctx.stroke();
+  };
+
+  const stop = () => {
+    drawing.current = false;
+    const sig = canvasRef.current?.toDataURL() || '';
+    onSave(sig);
+  };
+
+  const clear = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    onClear();
+  };
+
+  return (
+    <div ref={containerRef}>
+      <div style={{ border: '2px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', position: 'relative' }}>
+        <canvas ref={canvasRef} style={{ display: 'block', touchAction: 'none', cursor: 'crosshair', width: '100%' }}
+          onMouseDown={start} onMouseMove={move} onMouseUp={stop} onMouseLeave={stop}
+          onTouchStart={start} onTouchMove={move} onTouchEnd={stop} />
+        {!existingSig && (
+          <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', fontSize: '12px', color: '#cbd5e1', pointerEvents: 'none' }}>Sign here</div>
+        )}
+      </div>
+      <button onClick={clear} style={{ marginTop: 8, padding: '4px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>Clear</button>
+    </div>
+  );
+}
+
+// ─── On Hire Docs Modal ───────────────────────────────────────────────────────
+function OnHireModal({ docs, loading, activeTab, setActiveTab, authoritySig, setAuthoritySig, rentalSig, setRentalSig, onConfirm, onClose, saving }: any) {
+  const bothSigned = !!authoritySig && !!rentalSig;
+
+  const tab = (t: 'authority' | 'rental', label: string, signed: boolean) => (
+    <button onClick={() => setActiveTab(t)} style={{
+      flex: 1, padding: '12px', border: 'none', borderBottom: activeTab === t ? '2px solid #016631' : '2px solid transparent',
+      background: 'transparent', color: activeTab === t ? '#016631' : '#64748b',
+      fontWeight: activeTab === t ? 600 : 400, fontSize: '14px', cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    }}>
+      {signed ? '✅' : '📋'} {label}
+    </button>
+  );
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+
+        {/* Header */}
+        <div style={{ padding: '20px 24px 0', borderBottom: '1px solid #f1f5f9' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: 0 }}>Sign Documents</h2>
+              <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>Both documents must be signed to proceed</p>
+            </div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+          </div>
+          {/* Progress */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            {[['authority', 'Authority to Act', !!authoritySig], ['rental', 'Rental Agreement', !!rentalSig]].map(([, label, signed]) => (
+              <div key={label as string} style={{ flex: 1, padding: '7px 12px', borderRadius: 8, background: signed ? '#f0fdf4' : '#f8fafc', border: `1px solid ${signed ? '#bbf7d0' : '#e2e8f0'}`, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>{signed ? '✅' : '⬜'}</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: signed ? '#16a34a' : '#64748b' }}>{label as string}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex' }}>
+            {tab('authority', 'Authority to Act', !!authoritySig)}
+            {tab('rental', 'Rental Agreement', !!rentalSig)}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+              Filling documents from reservation data...
+            </div>
+          )}
+
+          {!loading && docs && (
+            <>
+              {/* PDF Preview */}
+              <div style={{ marginBottom: 16, borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                <iframe
+                  src={`data:application/pdf;base64,${activeTab === 'authority' ? docs.authorityBase64 : docs.rentalBase64}`}
+                  style={{ width: '100%', height: 280, border: 'none' }}
+                  title={activeTab === 'authority' ? 'Authority to Act' : 'Rental Agreement'}
+                />
+              </div>
+
+              {/* Signature */}
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>Customer signature</p>
+              <SignaturePad
+                existingSig={activeTab === 'authority' ? authoritySig : rentalSig}
+                onSave={activeTab === 'authority' ? setAuthoritySig : setRentalSig}
+                onClear={activeTab === 'authority' ? () => setAuthoritySig(null) : () => setRentalSig(null)}
+              />
+              {((activeTab === 'authority' && authoritySig) || (activeTab === 'rental' && rentalSig)) && (
+                <div style={{ marginTop: 8, color: '#16a34a', fontSize: 13, fontWeight: 500 }}>
+                  ✅ Signed — {activeTab === 'authority' && !rentalSig ? 'now sign the Rental Agreement' : 'ready to confirm'}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={!bothSigned || saving || loading}
+            style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', background: bothSigned ? '#016631' : '#e2e8f0', color: bothSigned ? '#fff' : '#94a3b8', fontSize: 14, fontWeight: 600, cursor: bothSigned ? 'pointer' : 'not-allowed' }}
+          >
+            {saving ? 'Processing...' : bothSigned ? '✅ Confirm On Hire' : 'Sign both documents to continue'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ReservationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { getToken } = useAuth();
@@ -214,6 +387,13 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
 
   const [activeTab, setActiveTab] = useState(0);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showOnHireModal, setShowOnHireModal] = useState(false);
+  const [onHireDocs, setOnHireDocs] = useState<{ authorityBase64: string; rentalBase64: string } | null>(null);
+  const [onHireLoading, setOnHireLoading] = useState(false);
+  const [activeDocTab, setActiveDocTab] = useState<'authority' | 'rental'>('authority');
+  const [authoritySig, setAuthoritySig] = useState<string | null>(null);
+  const [rentalSig, setRentalSig] = useState<string | null>(null);
+  const [savingDocs, setSavingDocs] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -307,6 +487,28 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
   const isEditing = (section: string) => !!editing[section];
   const isSaving = (section: string) => !!saving[section];
 
+  const handleOnHireConfirm = async () => {
+    if (!onHireDocs || !authoritySig || !rentalSig) return;
+    setSavingDocs(true);
+    try {
+      const token = await getToken();
+      // Save both signed docs to R2
+      await Promise.all([
+        api.post(`/documents/save-signed/${r.id}`, { docType: 'authority-to-act', base64: onHireDocs.authorityBase64 }, { headers: { Authorization: `Bearer ${token}` } }),
+        api.post(`/documents/save-signed/${r.id}`, { docType: 'rental-agreement', base64: onHireDocs.rentalBase64 }, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      // Mark as on hire
+      await api.post(`/reservations/${r.id}/on-hire`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      queryClient.invalidateQueries({ queryKey: ['reservation', id] });
+      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      setShowOnHireModal(false);
+    } catch (e) {
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setSavingDocs(false);
+    }
+  };
+
   if (isLoading) return <div style={{ padding: '40px', color: '#94a3b8' }}>Loading...</div>;
   if (!r) return <div style={{ padding: '40px', color: '#ef4444' }}>Reservation not found.</div>;
 
@@ -338,9 +540,49 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
 
       {/* ── Action buttons ── */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        {showOnHireModal && (
+          <OnHireModal
+            docs={onHireDocs}
+            loading={onHireLoading}
+            activeTab={activeDocTab}
+            setActiveTab={setActiveDocTab}
+            authoritySig={authoritySig}
+            setAuthoritySig={setAuthoritySig}
+            rentalSig={rentalSig}
+            setRentalSig={setRentalSig}
+            onConfirm={handleOnHireConfirm}
+            onClose={() => setShowOnHireModal(false)}
+            saving={savingDocs}
+          />
+        )}
         <button onClick={() => router.push('/dashboard/reservations')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>← Back</button>
         {r.status === 'DRAFT' && <button onClick={() => updateStatus.mutate('PENDING')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>Mark pending</button>}
         {r.status === 'PENDING' && <button onClick={() => updateStatus.mutate('ACTIVE')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>Mark active</button>}
+        {r.status === 'PENDING' && r.vehicle && (
+          <button
+            onClick={async () => {
+              setShowOnHireModal(true);
+              setActiveDocTab('authority');
+              setAuthoritySig(null);
+              setRentalSig(null);
+              setOnHireDocs(null);
+              setOnHireLoading(true);
+              try {
+                const token = await getToken();
+                const res = await api.post(`/documents/generate/${r.id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                setOnHireDocs(res.data);
+              } catch (e) {
+                alert('Failed to load documents. Please try again.');
+                setShowOnHireModal(false);
+              } finally {
+                setOnHireLoading(false);
+              }
+            }}
+            style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#016631', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            🔑 On Hire
+          </button>
+        )}
         {(r.status === 'ACTIVE' || r.status === 'PENDING') && <button onClick={() => updateStatus.mutate('COMPLETED')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>Complete</button>}
         {r.status !== 'CANCELLED' && r.status !== 'COMPLETED' && <button onClick={() => setShowCancelModal(true)} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>Cancel</button>}
         {!r.delivery && r.status !== 'CANCELLED' && r.status !== 'COMPLETED' && (
