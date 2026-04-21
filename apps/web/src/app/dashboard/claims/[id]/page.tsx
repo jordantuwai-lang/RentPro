@@ -1,195 +1,84 @@
 'use client';
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import api from '@/lib/api';
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+const statusColors: Record<string, string> = { OPEN: '#f59e0b', IN_PROGRESS: '#3b82f6', CLOSED: '#64748b' };
+const statusLabels: Record<string, string> = { OPEN: 'Open', IN_PROGRESS: 'In Progress', CLOSED: 'Closed' };
 
-const inp: React.CSSProperties = {
-  width: '100%',
-  padding: '8px 10px',
-  borderRadius: '8px',
-  border: '1px solid #e2e8f0',
-  fontSize: '13px',
-  color: '#0f172a',
-  background: '#fff',
-  outline: 'none',
-  boxSizing: 'border-box',
-};
-const section: React.CSSProperties = {
-  background: '#fff',
-  borderRadius: '12px',
-  border: '1px solid #e2e8f0',
-  padding: '20px 24px',
-  marginBottom: '16px',
-};
-const heading: React.CSSProperties = {
-  fontSize: '11px',
-  fontWeight: 600,
-  color: '#64748b',
-  textTransform: 'uppercase',
-  letterSpacing: '0.08em',
-  margin: '0 0 16px 0',
-};
-const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' };
-const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' };
-const full: React.CSSProperties = { gridColumn: '1 / -1' };
+const section: React.CSSProperties = { background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', marginBottom: '16px' };
+const heading: React.CSSProperties = { fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: 0, marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.1em' };
+const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
+const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' };
+const labelStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 500, color: '#374151', display: 'block', marginBottom: '6px' };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function F({ label, children, span }: { label: string; children: React.ReactNode; span?: boolean }) {
+function Field({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div style={span ? full : {}}>
-      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '5px', fontWeight: 500 }}>{label}</div>
-      {children}
+    <div>
+      <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>{label}</div>
+      <div style={{ fontSize: '14px', color: value ? '#0f172a' : '#cbd5e1' }}>{value || '—'}</div>
     </div>
   );
 }
 
-function Badge({ label, color }: { label: string; color: string }) {
-  return (
-    <span style={{ background: color + '20', color, padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500 }}>
-      {label}
-    </span>
+function SectionEditButtons({ editing, onEdit, onSave, onCancel, saving }: any) {
+  return editing ? (
+    <div style={{ display: 'flex', gap: '8px' }}>
+      <button onClick={onSave} disabled={saving} style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+        {saving ? 'Saving...' : 'Save'}
+      </button>
+      <button onClick={onCancel} style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+    </div>
+  ) : (
+    <button onClick={onEdit} style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>Edit</button>
   );
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  OPEN: '#f59e0b',
-  IN_PROGRESS: '#3b82f6',
-  CLOSED: '#64748b',
-};
-const STATUS_LABELS: Record<string, string> = {
-  OPEN: 'Open',
-  IN_PROGRESS: 'In Progress',
-  CLOSED: 'Closed',
-};
-const LIABILITY_COLORS: Record<string, string> = {
-  PENDING: '#f59e0b',
-  ACCEPTED: '#01ae42',
-  DISPUTED: '#ef4444',
-  DENIED: '#64748b',
-};
-
-const daysOnHire = (claim: any) => {
+function daysOnHire(claim: any) {
   if (!claim?.reservation?.startDate) return 0;
   const start = new Date(claim.reservation.startDate);
   const end = claim.reservation.endDate ? new Date(claim.reservation.endDate) : new Date();
-  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-};
+  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / 86400000));
+}
 
-const fmt = (d?: string | null) => d ? new Date(d).toISOString().split('T')[0] : '';
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+const TABS = ['Overview', 'At-Fault Party', 'Repair Timeline', 'Recovery', 'Notes'];
 
 export default function ClaimDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { getToken } = useAuth();
+  const { getToken, isLoaded } = useAuth();
   const { user } = useUser();
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
 
-  const [detailTab, setDetailTab] = useState<'overview' | 'accident' | 'atfault' | 'repair' | 'notes' | 'documents'>('overview');
-  const [overviewForm, setOverviewForm] = useState<any>(null);
-  const [accidentForm, setAccidentForm] = useState<any>(null);
-  const [atFaultForm, setAtFaultForm] = useState<any>(null);
-  const [repairForm, setRepairForm] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState(0);
   const [noteText, setNoteText] = useState('');
 
-  // ─── Fetch claim ──────────────────────────────────────────────────────────
+  // Edit states per section
+  const [editingOverview, setEditingOverview] = useState(false);
+  const [editingAtFault, setEditingAtFault] = useState(false);
+  const [editingRepair, setEditingRepair] = useState(false);
+  const [editingRecovery, setEditingRecovery] = useState(false);
+
+  const [overviewForm, setOverviewForm] = useState<any>({});
+  const [atFaultForm, setAtFaultForm] = useState<any>({});
+  const [repairForm, setRepairForm] = useState<any>({});
+  const [recoveryForm, setRecoveryForm] = useState<any>({});
 
   const { data: claim, isLoading } = useQuery({
     queryKey: ['claim', id],
+    enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
       const res = await api.get(`/claims/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-      const c = res.data;
-
-      // Initialise all forms from fetched data
-      setOverviewForm({
-        status: c.status,
-        claimReference: c.claimReference || '',
-        claimHandlerName: c.claimHandlerName || '',
-        claimHandlerPhone: c.claimHandlerPhone || '',
-        claimHandlerEmail: c.claimHandlerEmail || '',
-        sourceOfBusiness: c.sourceOfBusiness || '',
-        hireType: c.hireType || '',
-        typeOfCover: c.typeOfCover || '',
-        policyNumber: c.policyNumber || '',
-        excessAmount: c.excessAmount || '',
-        liabilityStatus: c.liabilityStatus || 'PENDING',
-        liabilityNotes: c.liabilityNotes || '',
-        totalLoss: c.totalLoss ?? false,
-        towIn: c.towIn ?? false,
-        settlementReceived: c.settlementReceived ?? false,
-        isDriverOwner: c.isDriverOwner ?? true,
-        insurerId: c.insurerId || '',
-        repairerId: c.repairerId || '',
-      });
-
-      setAccidentForm({
-        accidentDate: fmt(c.accidentDetails?.accidentDate),
-        accidentTime: c.accidentDetails?.accidentTime || '',
-        accidentLocation: c.accidentDetails?.accidentLocation || '',
-        accidentDescription: c.accidentDetails?.accidentDescription || '',
-        policeAttended: c.accidentDetails?.policeAttended ?? false,
-        policeEventNo: c.accidentDetails?.policeEventNo || '',
-        policeStation: c.accidentDetails?.policeStation || '',
-        policeContactName: c.accidentDetails?.policeContactName || '',
-        policePhone: c.accidentDetails?.policePhone || '',
-        witnessName: c.accidentDetails?.witnessName || '',
-        witnessPhone: c.accidentDetails?.witnessPhone || '',
-        witnessStatement: c.accidentDetails?.witnessStatement || '',
-      });
-
-      setAtFaultForm({
-        firstName: c.atFaultParty?.firstName || '',
-        lastName: c.atFaultParty?.lastName || '',
-        phone: c.atFaultParty?.phone || '',
-        email: c.atFaultParty?.email || '',
-        dateOfBirth: c.atFaultParty?.dateOfBirth || '',
-        streetAddress: c.atFaultParty?.streetAddress || '',
-        suburb: c.atFaultParty?.suburb || '',
-        state: c.atFaultParty?.state || '',
-        postcode: c.atFaultParty?.postcode || '',
-        licenceNumber: c.atFaultParty?.licenceNumber || '',
-        licenceState: c.atFaultParty?.licenceState || '',
-        licenceExpiry: c.atFaultParty?.licenceExpiry || '',
-        vehicleRego: c.atFaultParty?.vehicleRego || '',
-        vehicleMake: c.atFaultParty?.vehicleMake || '',
-        vehicleModel: c.atFaultParty?.vehicleModel || '',
-        vehicleYear: c.atFaultParty?.vehicleYear || '',
-        vehicleColour: c.atFaultParty?.vehicleColour || '',
-        theirInsurer: c.atFaultParty?.theirInsurer || '',
-        theirPolicyNo: c.atFaultParty?.theirPolicyNo || '',
-        theirClaimNo: c.atFaultParty?.theirClaimNo || '',
-        companyName: c.atFaultParty?.companyName || '',
-        companyABN: c.atFaultParty?.companyABN || '',
-        companyPhone: c.atFaultParty?.companyPhone || '',
-      });
-
-      setRepairForm({
-        estimateDate: fmt(c.repairDetails?.estimateDate),
-        assessmentDate: fmt(c.repairDetails?.assessmentDate),
-        repairStartDate: fmt(c.repairDetails?.repairStartDate),
-        repairEndDate: fmt(c.repairDetails?.repairEndDate),
-        invoiceNumber: c.repairDetails?.invoiceNumber || '',
-        invoiceAmount: c.repairDetails?.invoiceAmount || '',
-        authorisedAmount: c.repairDetails?.authorisedAmount || '',
-        thirdPartyRecovery: c.repairDetails?.thirdPartyRecovery ?? false,
-        recoveryAmount: c.repairDetails?.recoveryAmount || '',
-        repairNotes: c.repairDetails?.repairNotes || '',
-      });
-
-      return c;
+      return res.data;
     },
   });
 
-  const { data: insurers } = useQuery({
+  const { data: insurers = [] } = useQuery({
     queryKey: ['insurers'],
+    enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
       const res = await api.get('/claims/insurers', { headers: { Authorization: `Bearer ${token}` } });
@@ -197,8 +86,9 @@ export default function ClaimDetailPage({ params }: { params: Promise<{ id: stri
     },
   });
 
-  const { data: repairers } = useQuery({
+  const { data: repairers = [] } = useQuery({
     queryKey: ['repairers'],
+    enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
       const res = await api.get('/claims/repairers', { headers: { Authorization: `Bearer ${token}` } });
@@ -206,42 +96,45 @@ export default function ClaimDetailPage({ params }: { params: Promise<{ id: stri
     },
   });
 
-  // ─── Mutations ────────────────────────────────────────────────────────────
-
-  const updateOverview = useMutation({
-    mutationFn: async () => {
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    enabled: isLoaded,
+    queryFn: async () => {
       const token = await getToken();
-      const res = await api.patch(`/claims/${id}`, overviewForm, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get('/users', { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['claim', id] }),
   });
 
-  const saveAccident = useMutation({
-    mutationFn: async () => {
+  const claimsStaff = users.filter((u: any) =>
+    ['CLAIMS_TEAM_IN', 'CLAIMS_TEAM_OUT', 'CLAIMS_TEAM_LIABILITY', 'CLAIMS_MANAGER', 'OPS_MANAGER', 'ADMIN'].includes(u.role)
+  );
+
+  const updateClaim = useMutation({
+    mutationFn: async (data: any) => {
       const token = await getToken();
-      const res = await api.patch(`/claims/${id}/accident-details`, accidentForm, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.patch(`/claims/${id}`, data, { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['claim', id] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['claim', id] }),
   });
 
-  const saveAtFault = useMutation({
-    mutationFn: async () => {
+  const updateAtFault = useMutation({
+    mutationFn: async (data: any) => {
       const token = await getToken();
-      const res = await api.patch(`/claims/${id}/at-fault-party`, atFaultForm, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.patch(`/claims/${id}/at-fault-party`, data, { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['claim', id] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['claim', id] }),
   });
 
-  const saveRepair = useMutation({
-    mutationFn: async () => {
+  const updateRepair = useMutation({
+    mutationFn: async (data: any) => {
       const token = await getToken();
-      const res = await api.patch(`/claims/${id}/repair-details`, repairForm, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.patch(`/claims/${id}/repair-details`, data, { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['claim', id] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['claim', id] }),
   });
 
   const addNote = useMutation({
@@ -253,413 +146,479 @@ export default function ClaimDetailPage({ params }: { params: Promise<{ id: stri
     },
     onSuccess: () => {
       setNoteText('');
-      queryClient.invalidateQueries({ queryKey: ['claim', id] });
+      qc.invalidateQueries({ queryKey: ['claim', id] });
     },
   });
 
-  // ─── Tab style ────────────────────────────────────────────────────────────
+  function startEditOverview() {
+    setOverviewForm({
+      claimNumber: claim.claimNumber || '',
+      claimReference: claim.claimReference || '',
+      insurerId: claim.insurerId || '',
+      repairerId: claim.repairerId || '',
+      sourceOfBusiness: claim.sourceOfBusiness || '',
+      claimHandlerId: claim.claimHandlerId || '',
+      status: claim.status || 'OPEN',
+    });
+    setEditingOverview(true);
+  }
 
-  const detailTabBtn = (active: boolean): React.CSSProperties => ({
-    padding: '8px 16px',
-    borderRadius: '0',
-    border: 'none',
-    borderBottom: active ? '2px solid #01ae42' : '2px solid transparent',
-    fontSize: '13px',
-    fontWeight: active ? 600 : 400,
-    cursor: 'pointer',
-    background: 'transparent',
-    color: active ? '#0a2e14' : '#64748b',
-    marginBottom: '-1px',
-  });
+  function startEditAtFault() {
+    const r = claim.reservation || {};
+    setAtFaultForm({
+      atFaultFirstName: r.atFaultFirstName || '',
+      atFaultLastName: r.atFaultLastName || '',
+      atFaultPhone: r.atFaultPhone || '',
+      atFaultEmail: r.atFaultEmail || '',
+      atFaultVehicleRego: r.atFaultVehicleRego || '',
+      atFaultVehicleMake: r.atFaultVehicleMake || '',
+      atFaultVehicleModel: r.atFaultVehicleModel || '',
+      atFaultInsurer: r.atFaultInsurer || '',
+      atFaultClaimNumber: r.atFaultClaimNumber || '',
+      atFaultLicence: r.atFaultLicence || '',
+    });
+    setEditingAtFault(true);
+  }
 
-  const saveBtn = (pending: boolean): React.CSSProperties => ({
-    background: '#01ae42',
-    color: '#fff',
-    padding: '10px 24px',
-    borderRadius: '8px',
-    border: 'none',
-    fontSize: '14px',
-    fontWeight: 500,
-    cursor: pending ? 'not-allowed' : 'pointer',
-    opacity: pending ? 0.7 : 1,
-  });
+  function startEditRepair() {
+    const r = claim.reservation || {};
+    setRepairForm({
+      repairStartDate: r.repairStartDate ? r.repairStartDate.split('T')[0] : '',
+      repairEndDate: r.repairEndDate ? r.repairEndDate.split('T')[0] : '',
+      estimateDate: r.estimateDate ? r.estimateDate.split('T')[0] : '',
+      assessmentDate: r.assessmentDate ? r.assessmentDate.split('T')[0] : '',
+      repairerInvoiceNo: r.repairerInvoiceNo || '',
+      repairerInvoiceAmt: r.repairerInvoiceAmt || '',
+      totalLoss: r.totalLoss || '',
+      settlementReceived: r.settlementReceived || '',
+    });
+    setEditingRepair(true);
+  }
 
-  // ─── Loading ──────────────────────────────────────────────────────────────
+  function startEditRecovery() {
+    const r = claim.reservation || {};
+    setRecoveryForm({
+      thirdPartyRecovery: r.thirdPartyRecovery || '',
+      witnessName: r.witnessName || '',
+      witnessPhone: r.witnessPhone || '',
+      policeContactName: r.policeContactName || '',
+      policePhone: r.policePhone || '',
+      policeEventNo: r.policeEventNo || '',
+    });
+    setEditingRecovery(true);
+  }
 
-  if (isLoading || !claim || !overviewForm) {
-    return (
-      <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
-        Loading claim...
-      </div>
-    );
+  if (isLoading || !claim) {
+    return <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading...</div>;
   }
 
   const days = daysOnHire(claim);
-  const isOverdue = days >= 60;
+  const r = claim.reservation || {};
+  const customer = r.customer || {};
+  const vehicle = r.vehicle || {};
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    padding: '10px 20px', borderRadius: '8px', border: 'none', fontSize: '14px',
+    fontWeight: 500, cursor: 'pointer',
+    background: active ? '#0f172a' : 'transparent',
+    color: active ? '#fff' : '#64748b',
+  });
 
   return (
     <div>
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
         <div>
-          <button
-            onClick={() => router.push('/dashboard/claims')}
-            style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '13px', cursor: 'pointer', padding: 0, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}
-          >
-            ← Back to claims
+          <button onClick={() => router.push('/dashboard/claims')} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginBottom: '12px' }}>
+            ← Back to Claims
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h1 style={{ fontSize: '22px', fontWeight: 600, color: '#0a2e14', margin: 0 }}>{claim.claimNumber}</h1>
-            <Badge label={STATUS_LABELS[claim.status] || claim.status} color={STATUS_COLORS[claim.status] || '#64748b'} />
-            <Badge label={claim.liabilityStatus || 'PENDING'} color={LIABILITY_COLORS[claim.liabilityStatus] || '#f59e0b'} />
-            {isOverdue && <Badge label={`${days}d — Overdue`} color="#ef4444" />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+              {claim.claimNumber || 'Unnamed Claim'}
+            </h1>
+            <span style={{ background: statusColors[claim.status] + '20', color: statusColors[claim.status], padding: '5px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 600 }}>
+              {statusLabels[claim.status]}
+            </span>
+            <span style={{ padding: '5px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 600, background: days > 30 ? '#fee2e2' : '#f1f5f9', color: days > 30 ? '#ef4444' : '#64748b' }}>
+              {days > 30 && '⚠ '}{days} days on hire
+            </span>
           </div>
-          <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
-            {claim.reservation?.customer?.firstName} {claim.reservation?.customer?.lastName}
-            {claim.reservation?.fileNumber && <span> · File {claim.reservation.fileNumber}</span>}
-            {claim.insurer && <span> · {claim.insurer.name}</span>}
-            <span> · {days} days on hire</span>
-          </div>
+          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '6px' }}>
+            {r.fileNumber || '—'} · Opened {new Date(claim.createdAt).toLocaleDateString('en-AU')}
+            {claim.claimReference && <> · Ref: <strong>{claim.claimReference}</strong></>}
+          </p>
         </div>
       </div>
 
-      {/* ── Tabs ── */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '20px', background: '#fff', borderRadius: '12px 12px 0 0', padding: '0 8px' }}>
-        {([
-          ['overview', 'Overview'],
-          ['accident', 'Accident Details'],
-          ['atfault', 'At Fault Party'],
-          ['repair', 'Repair Details'],
-          ['notes', `Notes (${claim.notes?.length || 0})`],
-          ['documents', `Documents (${claim.documents?.length || 0})`],
-        ] as [string, string][]).map(([key, label]) => (
-          <button key={key} style={detailTabBtn(detailTab === key)} onClick={() => setDetailTab(key as any)}>
-            {label}
-          </button>
+      {/* Quick info bar */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
+        {[
+          { label: 'Customer', value: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || '—' },
+          { label: 'Vehicle', value: vehicle.make ? `${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : '—' },
+          { label: 'Insurer', value: claim.insurer?.name || '—' },
+          { label: 'Handler', value: claimsStaff.find((u: any) => u.id === claim.claimHandlerId) ? `${claimsStaff.find((u: any) => u.id === claim.claimHandlerId).firstName} ${claimsStaff.find((u: any) => u.id === claim.claimHandlerId).lastName}` : '—' },
+        ].map(({ label, value }) => (
+          <div key={label} style={{ background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '14px 16px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '4px' }}>{label}</div>
+            <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a' }}>{value}</div>
+          </div>
         ))}
       </div>
 
-      {/* ══════════════ OVERVIEW ══════════════ */}
-      {detailTab === 'overview' && (
-        <div>
-          <div style={section}>
-            <h2 style={heading}>Claim details</h2>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
+        {TABS.map((tab, i) => (
+          <button key={tab} onClick={() => setActiveTab(i)} style={tabStyle(activeTab === i)}>{tab}</button>
+        ))}
+      </div>
+
+      {/* TAB 0: Overview */}
+      {activeTab === 0 && (
+        <div style={section}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ ...heading, margin: 0 }}>Claim Details</h2>
+            <SectionEditButtons
+              editing={editingOverview}
+              onEdit={startEditOverview}
+              onSave={() => { updateClaim.mutate(overviewForm); setEditingOverview(false); }}
+              onCancel={() => setEditingOverview(false)}
+              saving={updateClaim.isPending}
+            />
+          </div>
+          {editingOverview ? (
             <div style={grid2}>
-              <F label="Insurer claim reference">
-                <input style={inp} value={overviewForm.claimReference} onChange={e => setOverviewForm({ ...overviewForm, claimReference: e.target.value })} placeholder="e.g. AAMI-2026-48821" />
-              </F>
-              <F label="Status">
-                <select style={inp} value={overviewForm.status} onChange={e => setOverviewForm({ ...overviewForm, status: e.target.value })}>
+              {[['claimNumber', 'Claim number'], ['claimReference', 'Claim reference']].map(([key, label]) => (
+                <div key={key}>
+                  <label style={labelStyle}>{label}</label>
+                  <input style={inputStyle} value={overviewForm[key]} onChange={e => setOverviewForm((f: any) => ({ ...f, [key]: e.target.value }))} />
+                </div>
+              ))}
+              <div>
+                <label style={labelStyle}>Status</label>
+                <select style={inputStyle} value={overviewForm.status} onChange={e => setOverviewForm((f: any) => ({ ...f, status: e.target.value }))}>
                   <option value="OPEN">Open</option>
                   <option value="IN_PROGRESS">In Progress</option>
                   <option value="CLOSED">Closed</option>
                 </select>
-              </F>
-              <F label="Insurer">
-                <select style={inp} value={overviewForm.insurerId} onChange={e => setOverviewForm({ ...overviewForm, insurerId: e.target.value })}>
-                  <option value="">Select insurer</option>
-                  {(insurers || []).map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
-                </select>
-              </F>
-              <F label="Repairer">
-                <select style={inp} value={overviewForm.repairerId} onChange={e => setOverviewForm({ ...overviewForm, repairerId: e.target.value })}>
-                  <option value="">Select repairer</option>
-                  {(repairers || []).map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </select>
-              </F>
-              <F label="Hire type">
-                <select style={inp} value={overviewForm.hireType} onChange={e => setOverviewForm({ ...overviewForm, hireType: e.target.value })}>
-                  <option value="">Select...</option>
-                  <option value="CREDIT_HIRE">Credit Hire</option>
-                  <option value="DIRECT_HIRE">Direct Hire</option>
-                </select>
-              </F>
-              <F label="Type of cover">
-                <select style={inp} value={overviewForm.typeOfCover} onChange={e => setOverviewForm({ ...overviewForm, typeOfCover: e.target.value })}>
-                  <option value="">Select...</option>
-                  <option value="CTP">CTP</option>
-                  <option value="TPP">TPP</option>
-                  <option value="COMP">Comprehensive</option>
-                </select>
-              </F>
-              <F label="Policy number">
-                <input style={inp} value={overviewForm.policyNumber} onChange={e => setOverviewForm({ ...overviewForm, policyNumber: e.target.value })} />
-              </F>
-              <F label="Excess amount ($)">
-                <input style={inp} type="number" value={overviewForm.excessAmount} onChange={e => setOverviewForm({ ...overviewForm, excessAmount: e.target.value })} placeholder="0.00" />
-              </F>
-              <F label="Source of business">
-                <select style={inp} value={overviewForm.sourceOfBusiness} onChange={e => setOverviewForm({ ...overviewForm, sourceOfBusiness: e.target.value })}>
+              </div>
+              <div>
+                <label style={labelStyle}>Source of business</label>
+                <select style={inputStyle} value={overviewForm.sourceOfBusiness} onChange={e => setOverviewForm((f: any) => ({ ...f, sourceOfBusiness: e.target.value }))}>
                   <option value="">Select...</option>
                   <option value="Repairer">Repairer</option>
                   <option value="Tow Operator">Tow Operator</option>
                   <option value="Marketing">Marketing</option>
                   <option value="Corporate Partnerships">Corporate Partnerships</option>
                 </select>
-              </F>
-              <F label="Liability status">
-                <select style={inp} value={overviewForm.liabilityStatus} onChange={e => setOverviewForm({ ...overviewForm, liabilityStatus: e.target.value })}>
-                  <option value="PENDING">Pending</option>
-                  <option value="ACCEPTED">Accepted</option>
-                  <option value="DISPUTED">Disputed</option>
-                  <option value="DENIED">Denied</option>
-                </select>
-              </F>
-              <F label="Liability notes" span>
-                <textarea style={{ ...inp, height: '60px', resize: 'none', fontFamily: 'inherit' }} value={overviewForm.liabilityNotes} onChange={e => setOverviewForm({ ...overviewForm, liabilityNotes: e.target.value })} />
-              </F>
-            </div>
-          </div>
-
-          <div style={section}>
-            <h2 style={heading}>Claim handler (insurer)</h2>
-            <div style={grid3}>
-              <F label="Handler name">
-                <input style={inp} value={overviewForm.claimHandlerName} onChange={e => setOverviewForm({ ...overviewForm, claimHandlerName: e.target.value })} placeholder="Jane Smith" />
-              </F>
-              <F label="Handler phone">
-                <input style={inp} value={overviewForm.claimHandlerPhone} onChange={e => setOverviewForm({ ...overviewForm, claimHandlerPhone: e.target.value })} />
-              </F>
-              <F label="Handler email">
-                <input style={inp} value={overviewForm.claimHandlerEmail} onChange={e => setOverviewForm({ ...overviewForm, claimHandlerEmail: e.target.value })} />
-              </F>
-            </div>
-          </div>
-
-          <div style={section}>
-            <h2 style={heading}>Flags</h2>
-            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-              {([
-                ['totalLoss', 'Total loss'],
-                ['towIn', 'Tow in'],
-                ['settlementReceived', 'Settlement received'],
-                ['isDriverOwner', 'Driver is vehicle owner'],
-              ] as [string, string][]).map(([key, label]) => (
-                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={overviewForm[key] ?? false} onChange={e => setOverviewForm({ ...overviewForm, [key]: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#01ae42' }} />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => updateOverview.mutate()} disabled={updateOverview.isPending} style={saveBtn(updateOverview.isPending)}>
-              {updateOverview.isPending ? 'Saving...' : 'Save overview'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════ ACCIDENT DETAILS ══════════════ */}
-      {detailTab === 'accident' && accidentForm && (
-        <div>
-          <div style={section}>
-            <h2 style={heading}>Accident details</h2>
-            <div style={grid2}>
-              <F label="Accident date"><input style={inp} type="date" value={accidentForm.accidentDate} onChange={e => setAccidentForm({ ...accidentForm, accidentDate: e.target.value })} /></F>
-              <F label="Accident time"><input style={inp} type="time" value={accidentForm.accidentTime} onChange={e => setAccidentForm({ ...accidentForm, accidentTime: e.target.value })} /></F>
-              <F label="Accident location" span><input style={inp} value={accidentForm.accidentLocation} onChange={e => setAccidentForm({ ...accidentForm, accidentLocation: e.target.value })} placeholder="Street, suburb, state" /></F>
-              <F label="Accident description" span>
-                <textarea style={{ ...inp, height: '80px', resize: 'none', fontFamily: 'inherit' }} value={accidentForm.accidentDescription} onChange={e => setAccidentForm({ ...accidentForm, accidentDescription: e.target.value })} />
-              </F>
-            </div>
-          </div>
-
-          <div style={section}>
-            <h2 style={heading}>Police details</h2>
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={accidentForm.policeAttended ?? false} onChange={e => setAccidentForm({ ...accidentForm, policeAttended: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#01ae42' }} />
-                Police attended the scene
-              </label>
-            </div>
-            <div style={grid2}>
-              <F label="Event number"><input style={inp} value={accidentForm.policeEventNo} onChange={e => setAccidentForm({ ...accidentForm, policeEventNo: e.target.value })} /></F>
-              <F label="Police station"><input style={inp} value={accidentForm.policeStation} onChange={e => setAccidentForm({ ...accidentForm, policeStation: e.target.value })} /></F>
-              <F label="Contact name"><input style={inp} value={accidentForm.policeContactName} onChange={e => setAccidentForm({ ...accidentForm, policeContactName: e.target.value })} /></F>
-              <F label="Contact phone"><input style={inp} value={accidentForm.policePhone} onChange={e => setAccidentForm({ ...accidentForm, policePhone: e.target.value })} /></F>
-            </div>
-          </div>
-
-          <div style={section}>
-            <h2 style={heading}>Witness details</h2>
-            <div style={grid2}>
-              <F label="Witness name"><input style={inp} value={accidentForm.witnessName} onChange={e => setAccidentForm({ ...accidentForm, witnessName: e.target.value })} /></F>
-              <F label="Witness phone"><input style={inp} value={accidentForm.witnessPhone} onChange={e => setAccidentForm({ ...accidentForm, witnessPhone: e.target.value })} /></F>
-              <F label="Witness statement" span>
-                <textarea style={{ ...inp, height: '70px', resize: 'none', fontFamily: 'inherit' }} value={accidentForm.witnessStatement} onChange={e => setAccidentForm({ ...accidentForm, witnessStatement: e.target.value })} />
-              </F>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => saveAccident.mutate()} disabled={saveAccident.isPending} style={saveBtn(saveAccident.isPending)}>
-              {saveAccident.isPending ? 'Saving...' : 'Save accident details'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════ AT FAULT PARTY ══════════════ */}
-      {detailTab === 'atfault' && atFaultForm && (
-        <div>
-          <div style={section}>
-            <h2 style={heading}>At fault driver</h2>
-            <div style={grid3}>
-              <F label="First name"><input style={inp} value={atFaultForm.firstName} onChange={e => setAtFaultForm({ ...atFaultForm, firstName: e.target.value })} /></F>
-              <F label="Last name"><input style={inp} value={atFaultForm.lastName} onChange={e => setAtFaultForm({ ...atFaultForm, lastName: e.target.value })} /></F>
-              <F label="Date of birth"><input style={inp} value={atFaultForm.dateOfBirth} onChange={e => setAtFaultForm({ ...atFaultForm, dateOfBirth: e.target.value })} placeholder="DD/MM/YYYY" /></F>
-              <F label="Phone"><input style={inp} value={atFaultForm.phone} onChange={e => setAtFaultForm({ ...atFaultForm, phone: e.target.value })} /></F>
-              <F label="Email"><input style={inp} value={atFaultForm.email} onChange={e => setAtFaultForm({ ...atFaultForm, email: e.target.value })} /></F>
-              <div />
-              <F label="Street address" span><input style={inp} value={atFaultForm.streetAddress} onChange={e => setAtFaultForm({ ...atFaultForm, streetAddress: e.target.value })} /></F>
-              <F label="Suburb"><input style={inp} value={atFaultForm.suburb} onChange={e => setAtFaultForm({ ...atFaultForm, suburb: e.target.value })} /></F>
-              <F label="State"><input style={inp} value={atFaultForm.state} onChange={e => setAtFaultForm({ ...atFaultForm, state: e.target.value })} placeholder="VIC" /></F>
-              <F label="Postcode"><input style={inp} value={atFaultForm.postcode} onChange={e => setAtFaultForm({ ...atFaultForm, postcode: e.target.value })} /></F>
-            </div>
-          </div>
-
-          <div style={section}>
-            <h2 style={heading}>Licence</h2>
-            <div style={grid3}>
-              <F label="Licence number"><input style={inp} value={atFaultForm.licenceNumber} onChange={e => setAtFaultForm({ ...atFaultForm, licenceNumber: e.target.value })} /></F>
-              <F label="Licence state"><input style={inp} value={atFaultForm.licenceState} onChange={e => setAtFaultForm({ ...atFaultForm, licenceState: e.target.value })} placeholder="VIC" /></F>
-              <F label="Licence expiry"><input style={inp} value={atFaultForm.licenceExpiry} onChange={e => setAtFaultForm({ ...atFaultForm, licenceExpiry: e.target.value })} placeholder="DD/MM/YYYY" /></F>
-            </div>
-          </div>
-
-          <div style={section}>
-            <h2 style={heading}>Their vehicle</h2>
-            <div style={grid3}>
-              <F label="Registration"><input style={inp} value={atFaultForm.vehicleRego} onChange={e => setAtFaultForm({ ...atFaultForm, vehicleRego: e.target.value })} /></F>
-              <F label="Make"><input style={inp} value={atFaultForm.vehicleMake} onChange={e => setAtFaultForm({ ...atFaultForm, vehicleMake: e.target.value })} /></F>
-              <F label="Model"><input style={inp} value={atFaultForm.vehicleModel} onChange={e => setAtFaultForm({ ...atFaultForm, vehicleModel: e.target.value })} /></F>
-              <F label="Year"><input style={inp} type="number" value={atFaultForm.vehicleYear} onChange={e => setAtFaultForm({ ...atFaultForm, vehicleYear: e.target.value })} /></F>
-              <F label="Colour"><input style={inp} value={atFaultForm.vehicleColour} onChange={e => setAtFaultForm({ ...atFaultForm, vehicleColour: e.target.value })} /></F>
-            </div>
-          </div>
-
-          <div style={section}>
-            <h2 style={heading}>Their insurance</h2>
-            <div style={grid3}>
-              <F label="Their insurer"><input style={inp} value={atFaultForm.theirInsurer} onChange={e => setAtFaultForm({ ...atFaultForm, theirInsurer: e.target.value })} /></F>
-              <F label="Their policy #"><input style={inp} value={atFaultForm.theirPolicyNo} onChange={e => setAtFaultForm({ ...atFaultForm, theirPolicyNo: e.target.value })} /></F>
-              <F label="Their claim #"><input style={inp} value={atFaultForm.theirClaimNo} onChange={e => setAtFaultForm({ ...atFaultForm, theirClaimNo: e.target.value })} /></F>
-            </div>
-          </div>
-
-          <div style={section}>
-            <h2 style={heading}>Company (if business vehicle)</h2>
-            <div style={grid3}>
-              <F label="Company name"><input style={inp} value={atFaultForm.companyName} onChange={e => setAtFaultForm({ ...atFaultForm, companyName: e.target.value })} /></F>
-              <F label="ABN"><input style={inp} value={atFaultForm.companyABN} onChange={e => setAtFaultForm({ ...atFaultForm, companyABN: e.target.value })} /></F>
-              <F label="Company phone"><input style={inp} value={atFaultForm.companyPhone} onChange={e => setAtFaultForm({ ...atFaultForm, companyPhone: e.target.value })} /></F>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => saveAtFault.mutate()} disabled={saveAtFault.isPending} style={saveBtn(saveAtFault.isPending)}>
-              {saveAtFault.isPending ? 'Saving...' : 'Save at fault party'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════ REPAIR DETAILS ══════════════ */}
-      {detailTab === 'repair' && repairForm && (
-        <div>
-          <div style={section}>
-            <h2 style={heading}>Repair timeline</h2>
-            <div style={grid2}>
-              <F label="Estimate date"><input style={inp} type="date" value={repairForm.estimateDate} onChange={e => setRepairForm({ ...repairForm, estimateDate: e.target.value })} /></F>
-              <F label="Assessment date"><input style={inp} type="date" value={repairForm.assessmentDate} onChange={e => setRepairForm({ ...repairForm, assessmentDate: e.target.value })} /></F>
-              <F label="Repair start date"><input style={inp} type="date" value={repairForm.repairStartDate} onChange={e => setRepairForm({ ...repairForm, repairStartDate: e.target.value })} /></F>
-              <F label="Repair end date"><input style={inp} type="date" value={repairForm.repairEndDate} onChange={e => setRepairForm({ ...repairForm, repairEndDate: e.target.value })} /></F>
-            </div>
-          </div>
-
-          <div style={section}>
-            <h2 style={heading}>Invoice & financials</h2>
-            <div style={grid2}>
-              <F label="Invoice number"><input style={inp} value={repairForm.invoiceNumber} onChange={e => setRepairForm({ ...repairForm, invoiceNumber: e.target.value })} /></F>
-              <F label="Invoice amount ($)"><input style={inp} type="number" value={repairForm.invoiceAmount} onChange={e => setRepairForm({ ...repairForm, invoiceAmount: e.target.value })} placeholder="0.00" /></F>
-              <F label="Authorised amount ($)"><input style={inp} type="number" value={repairForm.authorisedAmount} onChange={e => setRepairForm({ ...repairForm, authorisedAmount: e.target.value })} placeholder="0.00" /></F>
-              <F label="Recovery amount ($)"><input style={inp} type="number" value={repairForm.recoveryAmount} onChange={e => setRepairForm({ ...repairForm, recoveryAmount: e.target.value })} placeholder="0.00" /></F>
+              </div>
               <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', marginTop: '24px' }}>
-                  <input type="checkbox" checked={repairForm.thirdPartyRecovery ?? false} onChange={e => setRepairForm({ ...repairForm, thirdPartyRecovery: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#01ae42' }} />
-                  Third party recovery
-                </label>
+                <label style={labelStyle}>Insurer</label>
+                <select style={inputStyle} value={overviewForm.insurerId} onChange={e => setOverviewForm((f: any) => ({ ...f, insurerId: e.target.value }))}>
+                  <option value="">Select insurer...</option>
+                  {insurers.map((ins: any) => <option key={ins.id} value={ins.id}>{ins.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Repairer</label>
+                <select style={inputStyle} value={overviewForm.repairerId} onChange={e => setOverviewForm((f: any) => ({ ...f, repairerId: e.target.value }))}>
+                  <option value="">Select repairer...</option>
+                  {repairers.map((rep: any) => <option key={rep.id} value={rep.id}>{rep.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Claims handler</label>
+                <select style={inputStyle} value={overviewForm.claimHandlerId} onChange={e => setOverviewForm((f: any) => ({ ...f, claimHandlerId: e.target.value }))}>
+                  <option value="">Unassigned</option>
+                  {claimsStaff.map((u: any) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
+                </select>
               </div>
             </div>
-            <div style={{ marginTop: '14px' }}>
-              <F label="Repair notes">
-                <textarea style={{ ...inp, height: '70px', resize: 'none', fontFamily: 'inherit' }} value={repairForm.repairNotes} onChange={e => setRepairForm({ ...repairForm, repairNotes: e.target.value })} />
-              </F>
+          ) : (
+            <div style={grid2}>
+              <Field label="Claim number" value={claim.claimNumber} />
+              <Field label="Claim reference" value={claim.claimReference} />
+              <Field label="Status" value={statusLabels[claim.status]} />
+              <Field label="Source of business" value={claim.sourceOfBusiness} />
+              <Field label="Insurer" value={claim.insurer?.name} />
+              <Field label="Repairer" value={claim.repairer?.name} />
+              <Field label="Claims handler" value={claimsStaff.find((u: any) => u.id === claim.claimHandlerId) ? `${claimsStaff.find((u: any) => u.id === claim.claimHandlerId).firstName} ${claimsStaff.find((u: any) => u.id === claim.claimHandlerId).lastName}` : undefined} />
+              <Field label="File number" value={r.fileNumber} />
             </div>
-          </div>
+          )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => saveRepair.mutate()} disabled={saveRepair.isPending} style={saveBtn(saveRepair.isPending)}>
-              {saveRepair.isPending ? 'Saving...' : 'Save repair details'}
-            </button>
+          <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #f1f5f9' }}>
+            <h3 style={heading}>Linked reservation</h3>
+            <div style={grid2}>
+              <Field label="Customer" value={`${customer.firstName || ''} ${customer.lastName || ''}`.trim() || undefined} />
+              <Field label="Phone" value={customer.phone} />
+              <Field label="Vehicle" value={vehicle.make ? `${vehicle.make} ${vehicle.model}` : undefined} />
+              <Field label="Registration" value={vehicle.registration} />
+              <Field label="Start date" value={r.startDate ? new Date(r.startDate).toLocaleDateString('en-AU') : undefined} />
+              <Field label="End date" value={r.endDate ? new Date(r.endDate).toLocaleDateString('en-AU') : undefined} />
+              <Field label="Hire type" value={r.hireType} />
+              <Field label="Type of cover" value={r.typeOfCover} />
+            </div>
+            <div style={{ marginTop: '12px' }}>
+              <button
+                onClick={() => router.push(`/dashboard/reservations/${r.id}`)}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+              >
+                Open reservation →
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ══════════════ NOTES ══════════════ */}
-      {detailTab === 'notes' && (
+      {/* TAB 1: At-Fault Party */}
+      {activeTab === 1 && (
         <div style={section}>
-          <h2 style={heading}>Notes</h2>
-          <div style={{ marginBottom: '16px' }}>
-            {(!claim.notes || claim.notes.length === 0) && (
-              <p style={{ color: '#94a3b8', fontSize: '13px' }}>No notes yet.</p>
-            )}
-            {(claim.notes || []).map((n: any) => (
-              <div key={n.id} style={{ background: '#f8fafc', borderRadius: '8px', padding: '12px 14px', marginBottom: '10px', borderLeft: '3px solid #01ae42' }}>
-                <div style={{ fontSize: '13px', color: '#0f172a', lineHeight: 1.6 }}>{n.note}</div>
-                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
-                  {n.authorName} · {new Date(n.createdAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ ...heading, margin: 0 }}>At-Fault Party</h2>
+            <SectionEditButtons
+              editing={editingAtFault}
+              onEdit={startEditAtFault}
+              onSave={() => { updateAtFault.mutate(atFaultForm); setEditingAtFault(false); }}
+              onCancel={() => setEditingAtFault(false)}
+              saving={updateAtFault.isPending}
+            />
+          </div>
+          {editingAtFault ? (
+            <div>
+              <p style={{ ...heading, marginBottom: '12px' }}>Personal details</p>
+              <div style={{ ...grid2, marginBottom: '20px' }}>
+                {[
+                  ['atFaultFirstName', 'First name'],
+                  ['atFaultLastName', 'Last name'],
+                  ['atFaultPhone', 'Phone'],
+                  ['atFaultEmail', 'Email'],
+                  ['atFaultLicence', 'Licence number'],
+                ].map(([key, label]) => (
+                  <div key={key}>
+                    <label style={labelStyle}>{label}</label>
+                    <input style={inputStyle} value={atFaultForm[key]} onChange={e => setAtFaultForm((f: any) => ({ ...f, [key]: e.target.value }))} />
+                  </div>
+                ))}
+              </div>
+              <p style={{ ...heading, marginBottom: '12px' }}>Vehicle & insurance</p>
+              <div style={grid2}>
+                {[
+                  ['atFaultVehicleRego', 'Vehicle registration'],
+                  ['atFaultVehicleMake', 'Make'],
+                  ['atFaultVehicleModel', 'Model'],
+                  ['atFaultInsurer', 'Insurance provider'],
+                  ['atFaultClaimNumber', 'Their claim number'],
+                ].map(([key, label]) => (
+                  <div key={key}>
+                    <label style={labelStyle}>{label}</label>
+                    <input style={inputStyle} value={atFaultForm[key]} onChange={e => setAtFaultForm((f: any) => ({ ...f, [key]: e.target.value }))} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p style={{ ...heading, marginBottom: '12px' }}>Personal details</p>
+              <div style={{ ...grid2, marginBottom: '20px' }}>
+                <Field label="First name" value={r.atFaultFirstName} />
+                <Field label="Last name" value={r.atFaultLastName} />
+                <Field label="Phone" value={r.atFaultPhone} />
+                <Field label="Email" value={r.atFaultEmail} />
+                <Field label="Licence number" value={r.atFaultLicence} />
+              </div>
+              <p style={{ ...heading, marginBottom: '12px' }}>Vehicle & insurance</p>
+              <div style={grid2}>
+                <Field label="Vehicle registration" value={r.atFaultVehicleRego} />
+                <Field label="Make" value={r.atFaultVehicleMake} />
+                <Field label="Model" value={r.atFaultVehicleModel} />
+                <Field label="Insurance provider" value={r.atFaultInsurer} />
+                <Field label="Their claim number" value={r.atFaultClaimNumber} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: Repair Timeline */}
+      {activeTab === 2 && (
+        <div style={section}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ ...heading, margin: 0 }}>Repair Timeline</h2>
+            <SectionEditButtons
+              editing={editingRepair}
+              onEdit={startEditRepair}
+              onSave={() => { updateRepair.mutate(repairForm); setEditingRepair(false); }}
+              onCancel={() => setEditingRepair(false)}
+              saving={updateRepair.isPending}
+            />
+          </div>
+          {editingRepair ? (
+            <div style={grid2}>
+              {[
+                ['repairStartDate', 'Repair start date', 'date'],
+                ['repairEndDate', 'Repair end date', 'date'],
+                ['estimateDate', 'Estimate date', 'date'],
+                ['assessmentDate', 'Assessment date', 'date'],
+                ['repairerInvoiceNo', 'Repairer invoice #', 'text'],
+                ['repairerInvoiceAmt', 'Invoice amount ($)', 'number'],
+              ].map(([key, label, type]) => (
+                <div key={key}>
+                  <label style={labelStyle}>{label}</label>
+                  <input type={type} style={inputStyle} value={repairForm[key]} onChange={e => setRepairForm((f: any) => ({ ...f, [key]: e.target.value }))} />
+                </div>
+              ))}
+              <div>
+                <label style={labelStyle}>Total loss</label>
+                <select style={inputStyle} value={repairForm.totalLoss} onChange={e => setRepairForm((f: any) => ({ ...f, totalLoss: e.target.value }))}>
+                  <option value="">Unknown</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Settlement received</label>
+                <select style={inputStyle} value={repairForm.settlementReceived} onChange={e => setRepairForm((f: any) => ({ ...f, settlementReceived: e.target.value }))}>
+                  <option value="">Unknown</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={grid2}>
+                <Field label="Repair start date" value={r.repairStartDate ? new Date(r.repairStartDate).toLocaleDateString('en-AU') : undefined} />
+                <Field label="Repair end date" value={r.repairEndDate ? new Date(r.repairEndDate).toLocaleDateString('en-AU') : undefined} />
+                <Field label="Estimate date" value={r.estimateDate ? new Date(r.estimateDate).toLocaleDateString('en-AU') : undefined} />
+                <Field label="Assessment date" value={r.assessmentDate ? new Date(r.assessmentDate).toLocaleDateString('en-AU') : undefined} />
+                <Field label="Repairer invoice #" value={r.repairerInvoiceNo} />
+                <Field label="Invoice amount" value={r.repairerInvoiceAmt ? `$${parseFloat(r.repairerInvoiceAmt).toFixed(2)}` : undefined} />
+                <Field label="Total loss" value={r.totalLoss} />
+                <Field label="Settlement received" value={r.settlementReceived} />
+              </div>
+              {/* Timeline visual */}
+              {(r.repairStartDate || r.repairEndDate) && (
+                <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #f1f5f9' }}>
+                  <p style={heading}>Hire vs repair overlap</p>
+                  <div style={{ display: 'flex', gap: '24px', fontSize: '13px', color: '#64748b' }}>
+                    <div>�� Hire started: <strong style={{ color: '#0f172a' }}>{new Date(r.startDate).toLocaleDateString('en-AU')}</strong></div>
+                    {r.repairStartDate && <div>🔧 Repair started: <strong style={{ color: '#0f172a' }}>{new Date(r.repairStartDate).toLocaleDateString('en-AU')}</strong></div>}
+                    {r.repairEndDate && <div>✅ Repair ended: <strong style={{ color: '#0f172a' }}>{new Date(r.repairEndDate).toLocaleDateString('en-AU')}</strong></div>}
+                    {r.endDate && <div>🔑 Hire ended: <strong style={{ color: '#0f172a' }}>{new Date(r.endDate).toLocaleDateString('en-AU')}</strong></div>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: Recovery */}
+      {activeTab === 3 && (
+        <div style={section}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ ...heading, margin: 0 }}>Recovery & Witnesses</h2>
+            <SectionEditButtons
+              editing={editingRecovery}
+              onEdit={startEditRecovery}
+              onSave={() => { updateClaim.mutate(recoveryForm); setEditingRecovery(false); }}
+              onCancel={() => setEditingRecovery(false)}
+              saving={updateClaim.isPending}
+            />
+          </div>
+          {editingRecovery ? (
+            <div>
+              <p style={{ ...heading, marginBottom: '12px' }}>Third party recovery</p>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={labelStyle}>Recovery status</label>
+                <select style={{ ...inputStyle, maxWidth: '300px' }} value={recoveryForm.thirdPartyRecovery} onChange={e => setRecoveryForm((f: any) => ({ ...f, thirdPartyRecovery: e.target.value }))}>
+                  <option value="">Unknown</option>
+                  <option value="Not Required">Not Required</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Recovered">Recovered</option>
+                  <option value="Failed">Failed</option>
+                </select>
+              </div>
+              <p style={{ ...heading, marginBottom: '12px' }}>Witness details</p>
+              <div style={{ ...grid2, marginBottom: '20px' }}>
+                <div>
+                  <label style={labelStyle}>Witness name</label>
+                  <input style={inputStyle} value={recoveryForm.witnessName} onChange={e => setRecoveryForm((f: any) => ({ ...f, witnessName: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Witness phone</label>
+                  <input style={inputStyle} value={recoveryForm.witnessPhone} onChange={e => setRecoveryForm((f: any) => ({ ...f, witnessPhone: e.target.value }))} />
                 </div>
               </div>
-            ))}
-          </div>
-          <textarea
-            style={{ ...inp, height: '80px', resize: 'none', fontFamily: 'inherit', marginBottom: '10px' }}
-            placeholder="Add a note..."
-            value={noteText}
-            onChange={e => setNoteText(e.target.value)}
-          />
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              onClick={() => { if (noteText.trim()) addNote.mutate(); }}
-              disabled={!noteText.trim() || addNote.isPending}
-              style={{ background: noteText.trim() ? '#01ae42' : '#e2e8f0', color: noteText.trim() ? '#fff' : '#94a3b8', padding: '8px 20px', borderRadius: '8px', border: 'none', fontSize: '13px', fontWeight: 500, cursor: noteText.trim() ? 'pointer' : 'not-allowed' }}
-            >
-              {addNote.isPending ? 'Saving...' : 'Add note'}
-            </button>
-          </div>
+              <p style={{ ...heading, marginBottom: '12px' }}>Police details</p>
+              <div style={grid2}>
+                <div>
+                  <label style={labelStyle}>Officer name</label>
+                  <input style={inputStyle} value={recoveryForm.policeContactName} onChange={e => setRecoveryForm((f: any) => ({ ...f, policeContactName: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Police phone</label>
+                  <input style={inputStyle} value={recoveryForm.policePhone} onChange={e => setRecoveryForm((f: any) => ({ ...f, policePhone: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Event number</label>
+                  <input style={inputStyle} value={recoveryForm.policeEventNo} onChange={e => setRecoveryForm((f: any) => ({ ...f, policeEventNo: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p style={{ ...heading, marginBottom: '12px' }}>Third party recovery</p>
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '14px', color: '#0f172a', fontWeight: 500 }}>{r.thirdPartyRecovery || '—'}</span>
+                </div>
+              </div>
+              <p style={{ ...heading, marginBottom: '12px' }}>Witness details</p>
+              <div style={{ ...grid2, marginBottom: '20px' }}>
+                <Field label="Witness name" value={r.witnessName} />
+                <Field label="Witness phone" value={r.witnessPhone} />
+              </div>
+              <p style={{ ...heading, marginBottom: '12px' }}>Police details</p>
+              <div style={grid2}>
+                <Field label="Officer name" value={r.policeContactName} />
+                <Field label="Police phone" value={r.policePhone} />
+                <Field label="Event number" value={r.policeEventNo} />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* ══════════════ DOCUMENTS ══════════════ */}
-      {detailTab === 'documents' && (
+      {/* TAB 4: Notes */}
+      {activeTab === 4 && (
         <div style={section}>
-          <h2 style={heading}>Documents</h2>
-          {(!claim.documents || claim.documents.length === 0) ? (
-            <p style={{ color: '#94a3b8', fontSize: '13px' }}>No documents attached yet.</p>
+          <h2 style={heading}>Notes</h2>
+          <div style={{ marginBottom: '20px' }}>
+            <textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              placeholder="Add a note..."
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', resize: 'vertical', minHeight: '80px', boxSizing: 'border-box' }}
+            />
+            <button
+              onClick={() => addNote.mutate()}
+              disabled={!noteText.trim() || addNote.isPending}
+              style={{ marginTop: '8px', padding: '9px 20px', borderRadius: '8px', border: 'none', background: !noteText.trim() ? '#e2e8f0' : '#01ae42', color: !noteText.trim() ? '#94a3b8' : '#fff', fontSize: '14px', fontWeight: 500, cursor: noteText.trim() ? 'pointer' : 'not-allowed' }}
+            >
+              {addNote.isPending ? 'Adding...' : 'Add note'}
+            </button>
+          </div>
+          {(claim.notes || []).length === 0 ? (
+            <p style={{ color: '#94a3b8', fontSize: '14px' }}>No notes yet.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {(claim.documents || []).map((doc: any) => (
-                <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: '#0f172a' }}>{doc.name}</div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>{doc.type}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[...(claim.notes || [])].reverse().map((n: any) => (
+                <div key={n.id} style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px 16px', borderLeft: '3px solid #01ae42' }}>
+                  <div style={{ fontSize: '14px', color: '#0f172a', marginBottom: '8px', lineHeight: '1.5' }}>{n.note}</div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    {n.authorName} · {new Date(n.createdAt).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <a href={doc.url} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: '#01ae42', fontWeight: 500, textDecoration: 'none' }}>View</a>
                 </div>
               ))}
             </div>
