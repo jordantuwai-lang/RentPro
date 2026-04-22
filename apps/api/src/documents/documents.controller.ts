@@ -11,6 +11,7 @@ import { DocumentsService } from './documents.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { SaveSignatureDto } from './documents.dto';
 
 const ALL_STAFF = [
   'ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_MANAGER',
@@ -44,7 +45,10 @@ export class DocumentsController {
 
   @Post('templates/:type')
   @Roles('ADMIN','LEADERSHIP','OPS_MANAGER')
-  async upsertTemplate(@Param('type') type: string, @Body() body: any) {
+  async upsertTemplate(
+    @Param('type') type: string,
+    @Body() body: { fileData: string; name: string; mimeType: string },
+  ) {
     if (!body.fileData || !body.name || !body.mimeType) {
       throw new BadRequestException('name, fileData, and mimeType are required');
     }
@@ -56,7 +60,7 @@ export class DocumentsController {
   @Roles(...ALL_STAFF)
   saveSignature(
     @Param('reservationId') reservationId: string,
-    @Body() body: any,
+    @Body() body: SaveSignatureDto,
   ) {
     return this.documentsService.saveSignature(reservationId, body);
   }
@@ -82,3 +86,4 @@ export class DocumentsController {
     return this.documentsService.saveSignedDoc(reservationId, body.docType, body.base64);
   }
 }
+

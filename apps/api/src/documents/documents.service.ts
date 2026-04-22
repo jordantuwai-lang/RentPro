@@ -1,62 +1,64 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { PDFDocument } from 'pdf-lib';
+import { DocumentTemplate, SignatureRecord } from '@prisma/client';
+import { SaveSignatureDto } from './documents.dto';
+
+type TemplateWithoutUrl = Omit<DocumentTemplate, 'url'>;
 
 @Injectable()
 export class DocumentsService {
+  private readonly logger = new Logger(DocumentsService.name);
+
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
   ) {}
 
-  async getTemplates() {
+  async getTemplates(): Promise<TemplateWithoutUrl[]> {
     const templates = await this.prisma.documentTemplate.findMany({
       orderBy: { uploadedAt: 'desc' },
     });
-    // Strip the raw url field - frontend should request a presigned url separately
+    // Strip the raw url field — frontend must request a presigned URL separately
     return templates.map(({ url, ...rest }) => rest);
   }
 
-  async getTemplate(type: string) {
-    const template = await this.prisma.documentTemplate.findUnique({
-      where: { type },
-    });
+  async getTemplate(type: string): Promise<TemplateWithoutUrl | null> {
+    const template = await this.prisma.documentTemplate.findUnique({ where: { type } });
     if (!template) return null;
     const { url, ...rest } = template;
     return rest;
   }
 
   async getTemplateUrl(type: string): Promise<{ url: string } | null> {
-    const template = await this.prisma.documentTemplate.findUnique({
-      where: { type },
-    });
-    if (!template || !template.key) return null;
+    const template = await this.prisma.documentTemplate.findUnique({ where: { type } });
+    if (!template?.key) return null;
     const url = await this.storage.getPresignedUrl(template.key);
     return { url };
   }
 
-  async upsertTemplate(type: string, name: string, buffer: Buffer, mimeType: string) {
-    // Build a clean R2 key: e.g. document-templates/rental-agreement-1714123456789.pdf
+  async upsertTemplate(
+    type: string,
+    name: string,
+    buffer: Buffer,
+    mimeType: string,
+  ): Promise<DocumentTemplate> {
     const ext = mimeType === 'application/pdf' ? 'pdf' : 'bin';
     const key = `document-templates/${type}-${Date.now()}.${ext}`;
 
-    // Upload to R2
     await this.storage.upload(key, buffer, mimeType);
 
-    // Check if there's an existing template with a key so we can clean up old file
-    const existing = await this.prisma.documentTemplate.findUnique({
-      where: { type },
-    });
+    // Clean up old R2 object if one exists
+    const existing = await this.prisma.documentTemplate.findUnique({ where: { type } });
     if (existing?.key && existing.key !== key) {
       try {
         await this.storage.delete(existing.key);
-      } catch {
-        // Old file deletion failure is non-fatal
+      } catch (err) {
+        this.logger.warn(`Failed to delete old template ${existing.key}: ${(err as Error).message}`);
       }
     }
 
-    // Save only the key to DB — never the file data
     return this.prisma.documentTemplate.upsert({
       where: { type },
       update: {
@@ -65,16 +67,11 @@ export class DocumentsService {
         url: key, // keep url col populated with key for backwards compat
         updatedAt: new Date(),
       },
-      create: {
-        type,
-        name,
-        key,
-        url: key,
-      },
+      create: { type, name, key, url: key },
     });
   }
 
-  async saveSignature(reservationId: string, data: any) {
+  async saveSignature(reservationId: string, data: SaveSignatureDto): Promise<SignatureRecord> {
     return this.prisma.signatureRecord.upsert({
       where: { reservationId },
       update: {
@@ -90,7 +87,7 @@ export class DocumentsService {
     });
   }
 
-  async getSignature(reservationId: string) {
+  async getSignature(reservationId: string): Promise<SignatureRecord | null> {
     return this.prisma.signatureRecord.findUnique({ where: { reservationId } });
   }
 
@@ -115,29 +112,37 @@ export class DocumentsService {
 
     const c = reservation.customer;
     const v = reservation.vehicle;
-    const today = new Date().toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const today = new Date().toLocaleDateString('en-AU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
     const startDate = reservation.startDate
-      ? new Date(reservation.startDate).toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      ? new Date(reservation.startDate).toLocaleDateString('en-AU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        })
       : today;
 
     const fieldValues: Record<string, string> = {
       customer_full_name:   `${c.firstName} ${c.lastName}`,
-      customer_address:     c.address || '',
-      customer_suburb:      c.suburb || '',
-      customer_state:       c.state || '',
-      customer_postcode:    c.postcode || '',
-      customer_phone:       c.phone || '',
-      customer_email:       c.email || '',
-      customer_licence:     c.licenceNumber || '',
-      customer_dob:         c.dob || '',
+      customer_address:     c.address ?? '',
+      customer_suburb:      c.suburb ?? '',
+      customer_state:       c.state ?? '',
+      customer_postcode:    c.postcode ?? '',
+      customer_phone:       c.phone ?? '',
+      customer_email:       c.email ?? '',
+      customer_licence:     c.licenceNumber ?? '',
+      customer_dob:         c.dob ?? '',
       vehicle_make_model:   v ? `${v.make} ${v.model}` : '',
-      vehicle_registration: v?.registration || '',
-      vehicle_colour:       v?.colour || '',
+      vehicle_registration: v?.registration ?? '',
+      vehicle_colour:       v?.colour ?? '',
       vehicle_year:         v?.year ? String(v.year) : '',
-      vehicle_category:     v?.category || '',
+      vehicle_category:     v?.category ?? '',
       hire_start_date:      startDate,
-      file_number:          reservation.fileNumber || reservation.reservationNumber || '',
-      reservation_number:   reservation.reservationNumber || '',
+      file_number:          reservation.fileNumber ?? reservation.reservationNumber ?? '',
+      reservation_number:   reservation.reservationNumber ?? '',
       sign_date:            today,
     };
 
@@ -149,7 +154,7 @@ export class DocumentsService {
           const field = form.getTextField(fieldName);
           if (field) field.setText(value);
         } catch {
-          // Field not in this template - skip
+          // Field not present in this template — skip silently
         }
       }
       const filledBytes = await pdfDoc.save();
@@ -164,10 +169,15 @@ export class DocumentsService {
     return { authorityBase64, rentalBase64 };
   }
 
-  async saveSignedDoc(reservationId: string, docType: string, base64: string): Promise<{ key: string }> {
+  async saveSignedDoc(
+    reservationId: string,
+    docType: string,
+    base64: string,
+  ): Promise<{ key: string }> {
     const buffer = Buffer.from(base64, 'base64');
     const key = `hire-documents/${reservationId}/${docType}-signed-${Date.now()}.pdf`;
     await this.storage.upload(key, buffer, 'application/pdf');
     return { key };
   }
 }
+

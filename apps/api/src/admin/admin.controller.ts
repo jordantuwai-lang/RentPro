@@ -3,6 +3,7 @@ import { AdminService } from './admin.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { CreateUserDto, UpdateUserDto } from './admin.dto';
 
 @Controller('admin')
 @UseGuards(ClerkAuthGuard, RolesGuard)
@@ -16,12 +17,12 @@ export class AdminController {
   }
 
   @Post('users')
-  createUser(@Body() body: any) {
+  createUser(@Body() body: CreateUserDto) {
     return this.adminService.createUser(body);
   }
 
   @Patch('users/:clerkId')
-  updateUser(@Param('clerkId') clerkId: string, @Body() body: any) {
+  updateUser(@Param('clerkId') clerkId: string, @Body() body: UpdateUserDto) {
     return this.adminService.updateUser(clerkId, body);
   }
 
@@ -30,3 +31,4 @@ export class AdminController {
     return this.adminService.deleteUser(clerkId);
   }
 }
+

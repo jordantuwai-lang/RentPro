@@ -3,6 +3,13 @@ import { ReservationsService } from './reservations.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import {
+  UpdateReservationDto,
+  MarkOnHireDto,
+  AddReservationNoteDto,
+  AddPaymentCardDto,
+  AddAdditionalDriverDto,
+} from './reservations.dto';
 
 const OPS_ROLES = [
   'ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_MANAGER',
@@ -60,7 +67,7 @@ export class ReservationsController {
 
   @Patch(':id')
   @Roles('ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_TEAM_IN','SALES_REP','FLEET_COORDINATOR')
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: UpdateReservationDto) {
     return this.reservationsService.update(id, body);
   }
 
@@ -72,7 +79,7 @@ export class ReservationsController {
 
   @Post(':id/on-hire')
   @Roles(...ALL_STAFF)
-  markOnHire(@Param('id') id: string, @Body() body: any) {
+  markOnHire(@Param('id') id: string, @Body() body: MarkOnHireDto) {
     return this.reservationsService.markOnHire(id, body);
   }
 
@@ -84,13 +91,13 @@ export class ReservationsController {
 
   @Post(':id/notes')
   @Roles(...OPS_ROLES)
-  addNote(@Param('id') id: string, @Body() body: any) {
+  addNote(@Param('id') id: string, @Body() body: AddReservationNoteDto) {
     return this.reservationsService.addNote(id, body);
   }
 
   @Post(':id/cards')
   @Roles('ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_TEAM_IN','FLEET_COORDINATOR')
-  addPaymentCard(@Param('id') id: string, @Body() body: any) {
+  addPaymentCard(@Param('id') id: string, @Body() body: AddPaymentCardDto) {
     return this.reservationsService.addPaymentCard(id, body);
   }
 
@@ -102,7 +109,7 @@ export class ReservationsController {
 
   @Post(':id/drivers')
   @Roles('ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_TEAM_IN','FLEET_COORDINATOR')
-  addAdditionalDriver(@Param('id') id: string, @Body() body: any) {
+  addAdditionalDriver(@Param('id') id: string, @Body() body: AddAdditionalDriverDto) {
     return this.reservationsService.addAdditionalDriver(id, body);
   }
 
@@ -124,3 +131,4 @@ export class ReservationsController {
     return this.reservationsService.getLicencePhoto(id);
   }
 }
+

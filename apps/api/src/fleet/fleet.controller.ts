@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { FleetService } from './fleet.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
+import { CreateVehicleDto, UpdateVehicleDto, UpdateVehicleStatusDto, AddPhotoDto } from './fleet.dto';
 
 @Controller('fleet')
 @UseGuards(ClerkAuthGuard)
@@ -23,18 +24,18 @@ export class FleetController {
   }
 
   @Post()
-  create(@Body() body: any) {
+  create(@Body() body: CreateVehicleDto) {
     return this.fleetService.create(body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: UpdateVehicleDto) {
     return this.fleetService.update(id, body);
   }
 
   @Patch(':id/status')
-  updateStatus(@Param('id') id: string, @Body('status') status: string) {
-    return this.fleetService.updateStatus(id, status);
+  updateStatus(@Param('id') id: string, @Body() body: UpdateVehicleStatusDto) {
+    return this.fleetService.updateStatus(id, body);
   }
 
   @Get(':id/photos')
@@ -43,7 +44,7 @@ export class FleetController {
   }
 
   @Post(':id/photos')
-  addPhoto(@Param('id') id: string, @Body() body: any) {
+  addPhoto(@Param('id') id: string, @Body() body: AddPhotoDto) {
     return this.fleetService.addPhoto(id, body);
   }
 
@@ -52,3 +53,4 @@ export class FleetController {
     return this.fleetService.deletePhoto(photoId);
   }
 }
+

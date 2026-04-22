@@ -14,6 +14,19 @@ import { ClaimsService } from './claims.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import {
+  CreateClaimDto,
+  UpdateClaimDto,
+  UpsertAccidentDetailsDto,
+  UpsertAtFaultPartyDto,
+  UpsertRepairDetailsDto,
+  AddNoteDto,
+  AddClaimDocumentDto,
+  CreateInvoiceDto,
+  CreateInsurerDto,
+  CreateRepairerDto,
+  UpdateRepairerDto,
+} from './claims.dto';
 
 const OPS_ROLES = [
   'ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_MANAGER',
@@ -42,7 +55,7 @@ export class ClaimsController {
 
   @Post('insurers')
   @Roles('ADMIN','LEADERSHIP','OPS_MANAGER','CLAIMS_MANAGER')
-  createInsurer(@Body() body: any) {
+  createInsurer(@Body() body: CreateInsurerDto) {
     return this.claimsService.createInsurer(body);
   }
 
@@ -56,13 +69,13 @@ export class ClaimsController {
 
   @Post('repairers')
   @Roles('ADMIN','LEADERSHIP','OPS_MANAGER','CLAIMS_MANAGER','SALES_MANAGER','SALES_REP')
-  createRepairer(@Body() body: any) {
+  createRepairer(@Body() body: CreateRepairerDto) {
     return this.claimsService.createRepairer(body);
   }
 
   @Patch('repairers/:id')
   @Roles('ADMIN','LEADERSHIP','OPS_MANAGER','CLAIMS_MANAGER','SALES_MANAGER','SALES_REP')
-  updateRepairer(@Param('id') id: string, @Body() body: any) {
+  updateRepairer(@Param('id') id: string, @Body() body: UpdateRepairerDto) {
     return this.claimsService.updateRepairer(id, body);
   }
 
@@ -74,7 +87,7 @@ export class ClaimsController {
 
   @Post('repairers/:id/documents')
   @Roles(...OPS_ROLES)
-  async addRepairerDocument(@Param('id') id: string, @Body() body: any) {
+  async addRepairerDocument(@Param('id') id: string, @Body() body: { fileData: string; name: string; mimeType: string }) {
     if (!body.fileData || !body.name || !body.mimeType) {
       throw new BadRequestException('name, fileData, and mimeType are required');
     }
@@ -104,7 +117,7 @@ export class ClaimsController {
 
   @Post()
   @Roles(...CLAIMS_ROLES)
-  create(@Body() body: any) {
+  create(@Body() body: CreateClaimDto) {
     return this.claimsService.create(body);
   }
 
@@ -118,7 +131,7 @@ export class ClaimsController {
 
   @Patch(':id')
   @Roles(...CLAIMS_ROLES)
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: UpdateClaimDto) {
     return this.claimsService.update(id, body);
   }
 
@@ -126,19 +139,19 @@ export class ClaimsController {
 
   @Patch(':id/accident-details')
   @Roles(...CLAIMS_ROLES)
-  upsertAccidentDetails(@Param('id') id: string, @Body() body: any) {
+  upsertAccidentDetails(@Param('id') id: string, @Body() body: UpsertAccidentDetailsDto) {
     return this.claimsService.upsertAccidentDetails(id, body);
   }
 
   @Patch(':id/at-fault-party')
   @Roles(...CLAIMS_ROLES)
-  upsertAtFaultParty(@Param('id') id: string, @Body() body: any) {
+  upsertAtFaultParty(@Param('id') id: string, @Body() body: UpsertAtFaultPartyDto) {
     return this.claimsService.upsertAtFaultParty(id, body);
   }
 
   @Patch(':id/repair-details')
   @Roles(...CLAIMS_ROLES)
-  upsertRepairDetails(@Param('id') id: string, @Body() body: any) {
+  upsertRepairDetails(@Param('id') id: string, @Body() body: UpsertRepairDetailsDto) {
     return this.claimsService.upsertRepairDetails(id, body);
   }
 
@@ -146,7 +159,7 @@ export class ClaimsController {
 
   @Post(':id/notes')
   @Roles(...CLAIMS_ROLES)
-  addNote(@Param('id') id: string, @Body() body: any) {
+  addNote(@Param('id') id: string, @Body() body: AddNoteDto) {
     return this.claimsService.addNote(id, body);
   }
 
@@ -154,7 +167,7 @@ export class ClaimsController {
 
   @Post(':id/documents')
   @Roles(...CLAIMS_ROLES)
-  addDocument(@Param('id') id: string, @Body() body: any) {
+  addDocument(@Param('id') id: string, @Body() body: AddClaimDocumentDto) {
     return this.claimsService.addDocument(id, body);
   }
 
@@ -168,7 +181,8 @@ export class ClaimsController {
 
   @Post(':id/invoices')
   @Roles('ADMIN','LEADERSHIP','OPS_MANAGER','FINANCE_MANAGER','CLAIMS_MANAGER')
-  createInvoice(@Param('id') id: string, @Body() body: any) {
+  createInvoice(@Param('id') id: string, @Body() body: CreateInvoiceDto) {
     return this.claimsService.createInvoice(id, body);
   }
 }
+

@@ -3,6 +3,7 @@ import { PaymentsService } from './payments.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { CreateChargeTypeDto, UpdateChargeTypeDto, CreatePaymentDto, ProcessPaymentDto } from './payments.dto';
 
 const FINANCE_ROLES = ['ADMIN','LEADERSHIP','FINANCE_MANAGER','OPS_MANAGER','BRANCH_MANAGER'];
 
@@ -26,13 +27,13 @@ export class PaymentsController {
 
   @Post('charge-types')
   @Roles(...FINANCE_ROLES)
-  createChargeType(@Body() body: any) {
+  createChargeType(@Body() body: CreateChargeTypeDto) {
     return this.paymentsService.createChargeType(body);
   }
 
   @Patch('charge-types/:id')
   @Roles(...FINANCE_ROLES)
-  updateChargeType(@Param('id') id: string, @Body() body: any) {
+  updateChargeType(@Param('id') id: string, @Body() body: UpdateChargeTypeDto) {
     return this.paymentsService.updateChargeType(id, body);
   }
 
@@ -50,13 +51,13 @@ export class PaymentsController {
 
   @Post()
   @Roles(...OPS_ROLES)
-  create(@Body() body: any) {
+  create(@Body() body: CreatePaymentDto) {
     return this.paymentsService.createPayment(body);
   }
 
   @Patch(':id/process')
   @Roles(...FINANCE_ROLES)
-  processPayment(@Param('id') id: string, @Body() body: any) {
+  processPayment(@Param('id') id: string, @Body() body: ProcessPaymentDto) {
     return this.paymentsService.processPayment(id, body);
   }
 
@@ -66,3 +67,4 @@ export class PaymentsController {
     return this.paymentsService.deletePayment(id);
   }
 }
+

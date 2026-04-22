@@ -1,26 +1,51 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { $Enums, Delivery, DeliveryPhoto } from '@prisma/client';
+import {
+  CreateDeliveryDto,
+  UpdateDeliveryDto,
+  UpdateDeliveryStatusDto,
+  AddDeliveryPhotoDto,
+} from './logistics.dto';
+
+const DELIVERY_INCLUDE = {
+  reservation: {
+    include: {
+      customer: true,
+      vehicle: { include: { branch: true } },
+      paymentCards: true,
+      additionalDrivers: true,
+    },
+  },
+  driver: true,
+} as const;
+
+function branchFilter(branchId?: string) {
+  if (branchId && branchId !== 'null' && branchId !== 'all') {
+    return { reservation: { vehicle: { branchId } } };
+  }
+  return undefined;
+}
 
 @Injectable()
 export class LogisticsService {
+  private readonly logger = new Logger(LogisticsService.name);
+
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
   ) {}
 
-  findAll(branchId?: string) {
+  findAll(branchId?: string): Promise<Delivery[]> {
     return this.prisma.delivery.findMany({
-      where: (branchId && branchId !== 'null' && branchId !== 'all') ? { reservation: { vehicle: { branchId } } } : undefined,
-      include: {
-        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
-        driver: true,
-      },
+      where: branchFilter(branchId),
+      include: DELIVERY_INCLUDE,
       orderBy: { scheduledAt: 'asc' },
     });
   }
 
-  findToday(branchId?: string) {
+  findToday(branchId?: string): Promise<Delivery[]> {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const end = new Date();
@@ -28,74 +53,62 @@ export class LogisticsService {
     return this.prisma.delivery.findMany({
       where: {
         scheduledAt: { gte: start, lte: end },
-        ...((branchId && branchId !== 'null' && branchId !== 'all') ? { reservation: { vehicle: { branchId } } } : {}),
+        ...branchFilter(branchId),
       },
-      include: {
-        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
-        driver: true,
-      },
+      include: DELIVERY_INCLUDE,
       orderBy: { scheduledAt: 'asc' },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<(Delivery & { photos: (DeliveryPhoto & { url: string })[] }) | null> {
     const delivery = await this.prisma.delivery.findUnique({
       where: { id },
-      include: {
-        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
-        driver: true,
-        photos: true,
-      },
+      include: { ...DELIVERY_INCLUDE, photos: true },
     });
     if (!delivery) return null;
     const photos = await Promise.all(
       delivery.photos.map(async (p) => ({
         ...p,
         url: p.key ? await this.storage.getPresignedUrl(p.key) : p.url,
-      }))
+      })),
     );
     return { ...delivery, photos };
   }
 
-  create(data: any) {
-    const deliveryData: any = {
-      reservation: { connect: { id: data.reservationId } },
-      address: data.address,
-      suburb: data.suburb,
-      scheduledAt: new Date(data.scheduledAt),
-      notes: data.notes || null,
-      status: 'SCHEDULED',
-      jobType: data.jobType || 'DELIVERY',
-    };
-    if (data.driverId) {
-      deliveryData.driver = { connect: { id: data.driverId } };
-    }
+  create(data: CreateDeliveryDto): Promise<Delivery> {
     return this.prisma.delivery.create({
-      data: deliveryData,
-      include: {
-        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
-        driver: true,
+      data: {
+        reservation: { connect: { id: data.reservationId } },
+        address: data.address,
+        suburb: data.suburb,
+        scheduledAt: new Date(data.scheduledAt),
+        notes: data.notes ?? null,
+        // Use Prisma enum value directly — avoids the local enum vs $Enums clash
+        status: $Enums.DeliveryStatus.SCHEDULED,
+        jobType: data.jobType ?? $Enums.JobType.DELIVERY,
+        ...(data.driverId ? { driver: { connect: { id: data.driverId } } } : {}),
       },
+      include: DELIVERY_INCLUDE,
     });
   }
 
-  async updateStatus(id: string, status: string) {
+  async updateStatus(id: string, data: UpdateDeliveryStatusDto): Promise<Delivery> {
     const delivery = await this.prisma.delivery.findUnique({ where: { id } });
     if (!delivery) throw new NotFoundException('Delivery not found');
     return this.prisma.delivery.update({
       where: { id },
       data: {
-        status: status as any,
-        deliveredAt: status === 'DELIVERED' ? new Date() : undefined,
+        // Cast to any here only because Prisma's update input wraps enums in
+        // EnumXFieldUpdateOperationsInput — the value is still correctly typed
+        // at runtime since data.status comes from the validated DTO enum.
+        status: data.status as unknown as $Enums.DeliveryStatus,
+        deliveredAt: data.status === $Enums.DeliveryStatus.DELIVERED ? new Date() : undefined,
       },
-      include: {
-        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
-        driver: true,
-      },
+      include: DELIVERY_INCLUDE,
     });
   }
 
-  update(id: string, data: any) {
+  update(id: string, data: UpdateDeliveryDto): Promise<Delivery> {
     return this.prisma.delivery.update({
       where: { id },
       data: {
@@ -104,16 +117,16 @@ export class LogisticsService {
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,
         driverId: data.driverId !== undefined ? data.driverId : undefined,
         notes: data.notes,
-        jobType: data.jobType ? data.jobType : undefined,
+        // Same cast pattern as updateStatus above
+        jobType: data.jobType !== undefined
+          ? (data.jobType as unknown as $Enums.JobType)
+          : undefined,
       },
-      include: {
-        reservation: { include: { customer: true, vehicle: { include: { branch: true } }, paymentCards: true, additionalDrivers: true } },
-        driver: true,
-      },
+      include: DELIVERY_INCLUDE,
     });
   }
 
-  async bulkAssignDriver(jobIds: string[], driverId: string) {
+  async bulkAssignDriver(jobIds: string[], driverId: string): Promise<{ updated: number }> {
     await this.prisma.delivery.updateMany({
       where: { id: { in: jobIds } },
       data: { driverId },
@@ -121,34 +134,37 @@ export class LogisticsService {
     return { updated: jobIds.length };
   }
 
-  async addDeliveryPhoto(deliveryId: string, data: any) {
+  async addDeliveryPhoto(deliveryId: string, data: AddDeliveryPhotoDto): Promise<DeliveryPhoto> {
     const count = await this.prisma.deliveryPhoto.count({ where: { deliveryId } });
     if (count >= 10) throw new Error('Maximum of 10 photos allowed per delivery');
-
+    const mimeType = data.mimeType ?? 'image/jpeg';
     const buffer = Buffer.from(data.fileData, 'base64');
-    const ext = (data.mimeType || 'image/jpeg').split('/')[1] || 'jpg';
+    const ext = mimeType.split('/')[1] || 'jpg';
     const key = `delivery-photos/${deliveryId}/${Date.now()}.${ext}`;
-    await this.storage.upload(key, buffer, data.mimeType || 'image/jpeg');
-
+    await this.storage.upload(key, buffer, mimeType);
     return this.prisma.deliveryPhoto.create({
       data: {
         delivery: { connect: { id: deliveryId } },
         url: '',
         key,
-        caption: data.caption || null,
+        caption: data.caption ?? null,
       },
     });
   }
 
-  async deleteDeliveryPhoto(id: string) {
+  async deleteDeliveryPhoto(id: string): Promise<DeliveryPhoto> {
     const photo = await this.prisma.deliveryPhoto.findUnique({ where: { id } });
     if (photo?.key) {
-      try { await this.storage.delete(photo.key); } catch (_) {}
+      try {
+        await this.storage.delete(photo.key);
+      } catch (err) {
+        this.logger.warn(`Failed to delete R2 object ${photo.key}: ${(err as Error).message}`);
+      }
     }
     return this.prisma.deliveryPhoto.delete({ where: { id } });
   }
 
-  async getDeliveryPhotos(deliveryId: string) {
+  async getDeliveryPhotos(deliveryId: string): Promise<(DeliveryPhoto & { url: string })[]> {
     const photos = await this.prisma.deliveryPhoto.findMany({
       where: { deliveryId },
       orderBy: { createdAt: 'asc' },
@@ -157,7 +173,8 @@ export class LogisticsService {
       photos.map(async (p) => ({
         ...p,
         url: p.key ? await this.storage.getPresignedUrl(p.key) : p.url,
-      }))
+      })),
     );
   }
 }
+
