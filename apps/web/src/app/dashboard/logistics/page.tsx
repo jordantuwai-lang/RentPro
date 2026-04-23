@@ -311,7 +311,12 @@ export default function SchedulePage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a' }}>Fleet Logistics</h1>
-        <button style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontWeight: 600 }}>+ Add Job</button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <a href="/dashboard/logistics/map" style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #0a2e14', background: '#fff', color: '#0a2e14', fontWeight: 600, fontSize: '14px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            🗺 Live Map
+          </a>
+          <button style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontWeight: 600 }}>+ Add Job</button>
+        </div>
       </div>
 
       {/* Date Toggle Ribbon */}
