@@ -28,4 +28,41 @@ export class UsersService {
       data,
     });
   }
+
+  // ─── Driver location ──────────────────────────────────────────────────────────
+
+  updateLocation(id: string, lat: number, lng: number) {
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        lat,
+        lng,
+        locationUpdatedAt: new Date(),
+      },
+      select: { id: true, lat: true, lng: true, locationUpdatedAt: true },
+    });
+  }
+
+  // Returns all CSE_DRIVER users with a location reported in the last 2 hours
+  getDriverLocations() {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    return this.prisma.user.findMany({
+      where: {
+        role: 'CSE_DRIVER',
+        lat: { not: null },
+        lng: { not: null },
+        locationUpdatedAt: { gte: twoHoursAgo },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        lat: true,
+        lng: true,
+        locationUpdatedAt: true,
+        branch: { select: { name: true } },
+      },
+    });
+  }
 }
+
