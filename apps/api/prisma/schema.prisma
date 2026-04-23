@@ -109,8 +109,9 @@ enum DeliveryStatus {
 
 model User {
   id         String     @id @default(cuid())
-  clerkId    String     @unique
+  clerkId    String?    @unique
   email      String     @unique
+  passwordHash String?
   firstName  String
   lastName   String
   role       Role       @default(CSE_DRIVER)

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DriverAuthModule } from './driver-auth/driver-auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -16,6 +17,7 @@ import { LicenceScanController } from './licence-scan/licence-scan.controller';
 
 @Module({
   imports: [
+    DriverAuthModule,
     PrismaModule,
     AuthModule,
     UsersModule,

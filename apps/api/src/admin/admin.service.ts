@@ -1,3 +1,4 @@
+import * as bcrypt from 'bcrypt';
 import { Injectable, Logger } from '@nestjs/common';
 import { createClerkClient } from '@clerk/clerk-sdk-node';
 import { $Enums } from '@prisma/client';
@@ -72,6 +73,7 @@ export class AdminService {
         lastName: data.lastName,
         // data.role is already $Enums.Role — Prisma accepts it directly
         role: data.role as $Enums.Role,
+        ...(data.password ? { passwordHash: await bcrypt.hash(data.password, 12) } : {}),
         branchId: data.branchId ?? null,
       },
     });
