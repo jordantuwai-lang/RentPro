@@ -22,7 +22,8 @@ function Field({ label, value }: { label: string; value?: string }) {
 }
 
 export default function OnHirePage() {
-  const { getToken, isLoaded, user } = useAuth();
+  const { getToken, isLoaded } = useAuth();
+  const { user } = useUser(); 
   const { selectedBranch, isAllBranches } = useBranch();
   const queryClient = useQueryClient();
 const router = useRouter();
