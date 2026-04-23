@@ -194,3 +194,52 @@ npx prisma generate
 **Known follow-up items:**
 - At-fault party fields (atFaultFirstName, atFaultVehicleRego etc.) may need schema migration if not already on Reservation model
 - Recovery tab currently saves via PATCH /claims/:id — should route witness/police fields to PATCH /reservations/:id instead
+
+---
+
+# HANDOVER UPDATE — April 23, 2026
+
+## What was done this session
+
+### Reservations page — 3-tab overhaul
+**File:** `apps/web/src/app/dashboard/reservations/page.tsx`
+
+- **All reservations tab** — shows Draft and Pending only. Active, Completed and Cancelled are excluded. Status filter dropdown only shows Draft/Pending.
+- **Active tab** — ACTIVE status only. Columns: File #, Rez #, Customer, Vehicle (with rego sub-line), Source, Start Date, End Date, Days on Hire. Badge colour: green <14 days, amber 14–30 days, red >30 days.
+- **Cancelled tab** — CANCELLED only. Columns include Reason (red pill from `cancellationReason`) and Notes (`cancellationComment`). Cancelled date uses `updatedAt`.
+
+### GPS driver tracking — polling architecture
+**Schema migration:** `20260423102052_add_user_location`
+Added to User model: `lat Float?`, `lng Float?`, `locationUpdatedAt DateTime?`
+
+**New backend endpoints in `apps/api/src/users/`:**
+- `PATCH /users/:id/location` — driver calls this every ~15s with `{ lat, lng }`
+- `GET /users/drivers/locations` — ops dashboard polls every 15s, returns CSE_DRIVER users with location updated in last 2 hours
+
+**New frontend map page:** `apps/web/src/app/dashboard/logistics/map/page.tsx`
+- Mapbox GL JS v3.3.0 loaded dynamically from CDN
+- Polls `/users/drivers/locations` every 15s
+- Driver pins with van emoji 🚐, colour-coded by freshness (green <30s, amber 30–90s, red >90s)
+- Driver sidebar with last-seen time
+- Flies to driver on sidebar click
+- Requires `NEXT_PUBLIC_MAPBOX_TOKEN` in `apps/web/.env.local` — token is set ✅
+- Live Map button added to logistics page header
+
+**Tested:** Confirmed working via browser DevTools console — pins appear within 15s of posting location.
+
+**Real user IDs for testing:**
+- Mohamed Nachabe (CSE_DRIVER): `cmnymduq10003ji2ubltgxt2e`
+- Regan Connor (CSE_DRIVER): `cmnymffxb0005ji2uytosetnm`
+- Jordan Tuwai-Lang (ADMIN): `cmo5lp6e40000googutp8ls02`
+
+## Current git state
+- Latest commit: `feat: add Live Map button to logistics page header`
+- Branch: master, up to date with origin
+
+## Pending items (updated)
+- **Expo mobile app** — background location task sending `PATCH /users/:id/location` every 15s using `expo-location`
+- **Claims page rebuild** — high priority, most incomplete module
+- **Invoicing page** — dead nav link, no page exists
+- **Database indexes** — still outstanding
+- **Vercel deployment** — still outstanding
+- **HANDOVER.md in repo** — kept in `~/rentpro/HANDOVER.md`, not in Google Drive
