@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import api from '@/lib/api';
 
 const section: React.CSSProperties = { background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', marginBottom: '16px' };
@@ -11,7 +11,8 @@ const labelStyle: React.CSSProperties = { fontSize: '13px', fontWeight: 500, col
 const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
 
 export default function PaymentsPage() {
-  const { getToken, isLoaded, user } = useAuth();
+const { getToken, isLoaded } = useAuth();
+const { user } = useUser();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
