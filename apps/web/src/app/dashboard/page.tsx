@@ -1,11 +1,14 @@
 'use client';
+
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs'; // Corrected: Both hooks imported
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 
 export default function DashboardPage() {
-  const { getToken, isLoaded, user } = useAuth();
+  // Corrected: useAuth for metadata/tokens, useUser for the user object
+  const { getToken, isLoaded } = useAuth();
+  const { user } = useUser(); 
   const router = useRouter();
 
   const { data: reservations } = useQuery({
