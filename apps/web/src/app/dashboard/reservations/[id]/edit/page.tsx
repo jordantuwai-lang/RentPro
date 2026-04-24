@@ -1,6 +1,7 @@
 'use client';
+
 import { use, useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs'; // Fixed Clerk Import
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
@@ -27,10 +28,12 @@ function PersonFields({ data, onChange }: { data: any; onChange: (f: string, v: 
       <F label="Last name *"><input style={input} value={data.lastName} onChange={e => onChange('lastName', e.target.value)} /></F>
       <F label="Address" full><input style={input} value={data.address} onChange={e => onChange('address', e.target.value)} /></F>
       <F label="Suburb"><input style={input} value={data.suburb} onChange={e => onChange('suburb', e.target.value)} /></F>
+      <F label="State"><input style={input} value={data.state} onChange={e => onChange('state', e.target.value)} /></F>
       <F label="Postcode"><input style={input} value={data.postcode} onChange={e => onChange('postcode', e.target.value)} /></F>
       <F label="Contact number *"><input style={input} value={data.phone} onChange={e => onChange('phone', e.target.value)} /></F>
       <F label="Email"><input style={input} value={data.email} onChange={e => onChange('email', e.target.value)} /></F>
       <F label="Licence number"><input style={input} value={data.licenceNumber} onChange={e => onChange('licenceNumber', e.target.value)} /></F>
+      <F label="Licence state"><input style={input} value={data.licenceState} onChange={e => onChange('licenceState', e.target.value)} /></F>
       <F label="Licence expiry"><input type="date" style={input} value={data.licenceExpiry} onChange={e => onChange('licenceExpiry', e.target.value)} /></F>
       <F label="Date of birth"><input type="date" style={input} value={data.dob} onChange={e => onChange('dob', e.target.value)} /></F>
     </div>
@@ -58,12 +61,13 @@ function ToggleButton({ show, onToggle, label }: { show: boolean; onToggle: () =
 }
 
 const emptyCard = { cardType: '', cardNumber: '', expiryDate: '', cardholderName: '' };
-const emptyDriver = { firstName: '', lastName: '', licenceNumber: '', licenceExpiry: '', dob: '', phone: '' };
-const emptyPerson = { firstName: '', lastName: '', address: '', suburb: '', postcode: '', phone: '', email: '', licenceNumber: '', licenceExpiry: '', dob: '' };
+const emptyDriver = { firstName: '', lastName: '', licenceNumber: '', licenceState: '', licenceExpiry: '', dob: '', phone: '' };
+const emptyPerson = { firstName: '', lastName: '', address: '', suburb: '', state: '', postcode: '', phone: '', email: '', licenceNumber: '', licenceState: '', licenceExpiry: '', dob: '' };
 
 export default function EditReservationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { getToken, isLoaded } = useAuth();
+  const { user } = useUser(); // Fixed Clerk Hook
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -100,7 +104,20 @@ export default function EditReservationPage({ params }: { params: Promise<{ id: 
 
   useEffect(() => {
     if (reservation && !loaded) {
-      setDriver({ firstName: reservation.customer?.firstName || '', lastName: reservation.customer?.lastName || '', address: '', suburb: '', postcode: '', phone: reservation.customer?.phone || '', email: reservation.customer?.email || '', licenceNumber: reservation.customer?.licenceNumber || '', licenceExpiry: '', dob: '' });
+      setDriver({ 
+        firstName: reservation.customer?.firstName || '', 
+        lastName: reservation.customer?.lastName || '', 
+        address: reservation.customer?.address || '', 
+        suburb: reservation.customer?.suburb || '', 
+        state: reservation.customer?.state || '', // Added state
+        postcode: reservation.customer?.postcode || '', 
+        phone: reservation.customer?.phone || '', 
+        email: reservation.customer?.email || '', 
+        licenceNumber: reservation.customer?.licenceNumber || '', 
+        licenceState: reservation.customer?.licenceState || '', // Added licenceState
+        licenceExpiry: reservation.customer?.licenceExpiry ? reservation.customer.licenceExpiry.split('T')[0] : '', 
+        dob: reservation.customer?.dob ? reservation.customer.dob.split('T')[0] : '' 
+      });
       setVehicleId(reservation.vehicleId || '');
       setBranchId(reservation.vehicle?.branchId || '');
       setStartDate(reservation.startDate ? reservation.startDate.split('T')[0] : '');
@@ -171,9 +188,9 @@ export default function EditReservationPage({ params }: { params: Promise<{ id: 
             address: driver.address || undefined,
             suburb: driver.suburb || undefined,
             postcode: driver.postcode || undefined,
-            state: driver.state || undefined,
+            state: driver.state || undefined, // Correctly using state
             licenceNumber: driver.licenceNumber || undefined,
-            licenceState: driver.licenceState || undefined,
+            licenceState: driver.licenceState || undefined, // Correctly using licenceState
             licenceExpiry: driver.licenceExpiry || undefined,
             dob: driver.dob || undefined,
           },
