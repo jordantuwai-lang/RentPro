@@ -20,7 +20,7 @@ export class ReservationsService {
 
   findAll(branchId?: string) {
     return this.prisma.reservation.findMany({
-      where: (branchId && branchId !== "null" && branchId !== "all") ? { vehicle: { branchId } } : undefined,
+      where: (branchId && branchId !== 'null' && branchId !== 'all') ? { vehicle: { branchId } } : undefined,
       include: {
         customer: true,
         vehicle: { include: { branch: true } },
@@ -37,7 +37,18 @@ export class ReservationsService {
       include: {
         customer: true,
         vehicle: { include: { branch: true } },
-        claim: { include: { insurer: true, repairer: true, documents: true, invoices: true } },
+        claim: {
+          include: {
+            insurer: true,
+            repairer: true,
+            documents: true,
+            invoices: true,
+            accidentDetails: true,
+            atFaultParty: true,
+            repairDetails: true,
+            notes: { orderBy: { createdAt: 'desc' } },
+          },
+        },
         delivery: true,
         paymentCards: true,
         additionalDrivers: true,
@@ -52,67 +63,80 @@ export class ReservationsService {
     // Support both data.customer (old edit form) and data.driver (new intake form)
     const customerData = data.driver || data.customer;
 
-    const reservationFields = {
-      sourceOfBusiness: data.sourceOfBusiness || undefined,
-      partnerName: data.partnerName || undefined,
-      typeOfCover: data.typeOfCover || undefined,
-      hireType: data.hireType || undefined,
-      towIn: data.towIn || undefined,
-      totalLoss: data.totalLoss || undefined,
-      settlementReceived: data.settlementReceived || undefined,
-      repairStartDate: data.repairStartDate ? new Date(data.repairStartDate) : undefined,
-      repairEndDate: data.repairEndDate ? new Date(data.repairEndDate) : undefined,
-      estimateDate: data.estimateDate ? new Date(data.estimateDate) : undefined,
-      assessmentDate: data.assessmentDate ? new Date(data.assessmentDate) : undefined,
-      repairerInvoiceNo: data.repairerInvoiceNo || undefined,
-      repairerInvoiceAmt: data.repairerInvoiceAmt || undefined,
-      thirdPartyRecovery: data.thirdPartyRecovery || undefined,
-      witnessName: data.witnessName || undefined,
-      witnessPhone: data.witnessPhone || undefined,
-      policeContactName: data.policeContactName || undefined,
-      policePhone: data.policePhone || undefined,
-      policeEventNo: data.policeEventNo || undefined,
-    };
-
-    if (data.status === 'DRAFT') {
-      return this.prisma.reservation.create({
-        data: {
-          reservationNumber,
-          customer: { create: customerData },
-          vehicle: data.vehicleId ? { connect: { id: data.vehicleId } } : undefined,
-          startDate: data.startDate ? new Date(data.startDate) : new Date(),
-          status: 'DRAFT',
-          ...reservationFields,
-        },
-        include: { customer: true, vehicle: true },
-      });
-    }
-
-    const vehicle = await this.prisma.vehicle.findUnique({
-      where: { id: data.vehicleId },
-    });
-
-    if (!vehicle) throw new NotFoundException('Vehicle not found');
-    if (vehicle.status !== 'AVAILABLE') {
-      throw new BadRequestException('Vehicle is not available');
-    }
-
+    // Create the reservation first
     const reservation = await this.prisma.reservation.create({
       data: {
         reservationNumber,
         customer: { create: customerData },
-        vehicle: { connect: { id: data.vehicleId } },
-        startDate: new Date(data.startDate),
+        vehicle: data.vehicleId ? { connect: { id: data.vehicleId } } : undefined,
+        startDate: data.startDate ? new Date(data.startDate) : new Date(),
         endDate: data.endDate ? new Date(data.endDate) : null,
-        status: 'PENDING',
-        ...reservationFields,
+        status: data.status === 'DRAFT' ? 'DRAFT' : 'PENDING',
+        sourceOfBusiness: data.sourceOfBusiness || undefined,
+        partnerName: data.partnerName || undefined,
       },
       include: { customer: true, vehicle: true },
     });
 
-    await this.prisma.vehicle.update({
-      where: { id: data.vehicleId },
-      data: { status: 'ON_HIRE' },
+    // If a vehicle is assigned and not a draft, mark it on hire
+    if (data.vehicleId && data.status !== 'DRAFT') {
+      const vehicle = await this.prisma.vehicle.findUnique({ where: { id: data.vehicleId } });
+      if (!vehicle) throw new NotFoundException('Vehicle not found');
+      if (vehicle.status !== 'AVAILABLE') throw new BadRequestException('Vehicle is not available');
+      await this.prisma.vehicle.update({
+        where: { id: data.vehicleId },
+        data: { status: 'ON_HIRE' },
+      });
+    }
+
+    // Build accident details from intake form
+    const accidentData = data.accident || {};
+    const atFaultData = data.atFault || {};
+    const additionalData = data.additional || {};
+    const nafVehicle = data.nafVehicle || {};
+
+    // Create linked Claim with child models
+    await this.prisma.claim.create({
+      data: {
+        reservation: { connect: { id: reservation.id } },
+        hireType: data.hireType === 'Credit Hire' ? 'CREDIT_HIRE' : data.hireType === 'Direct Hire' ? 'DIRECT_HIRE' : undefined,
+        sourceOfBusiness: data.sourceOfBusiness || undefined,
+
+        // Accident details child
+        accidentDetails: {
+          create: {
+            accidentDate: accidentData.date ? new Date(accidentData.date) : undefined,
+            accidentLocation: accidentData.location || undefined,
+            accidentDescription: accidentData.description || undefined,
+            policeEventNo: additionalData.policeReportNo || undefined,
+            policeStation: additionalData.policeStation || undefined,
+            policeContactName: additionalData.policeOfficerName || undefined,
+            policePhone: additionalData.policeOfficerPhone || undefined,
+            witnessName: additionalData.witnessName || undefined,
+            witnessPhone: additionalData.witnessPhone || undefined,
+          },
+        },
+
+        // At fault party child
+        atFaultParty: {
+          create: {
+            firstName: atFaultData.firstName || undefined,
+            lastName: atFaultData.lastName || undefined,
+            phone: atFaultData.phone || undefined,
+            email: atFaultData.email || undefined,
+            streetAddress: atFaultData.address || undefined,
+            suburb: atFaultData.suburb || undefined,
+            postcode: atFaultData.postcode || undefined,
+            state: atFaultData.state || undefined,
+            vehicleRego: atFaultData.vehicleRegistration || undefined,
+            vehicleMake: atFaultData.vehicleMake || undefined,
+            vehicleModel: atFaultData.vehicleModel || undefined,
+            vehicleYear: atFaultData.vehicleYear ? parseInt(atFaultData.vehicleYear) : undefined,
+            theirInsurer: atFaultData.insuranceProvider || undefined,
+            theirClaimNo: atFaultData.claimNumber || undefined,
+          },
+        },
+      },
     });
 
     return reservation;
@@ -121,9 +145,20 @@ export class ReservationsService {
   async update(id: string, data: any) {
     const reservation = await this.prisma.reservation.findUnique({
       where: { id },
-      include: { customer: true },
+      include: {
+        customer: true,
+        claim: {
+          include: {
+            accidentDetails: true,
+            atFaultParty: true,
+            repairDetails: true,
+          },
+        },
+      },
     });
     if (!reservation) throw new NotFoundException('Reservation not found');
+
+    // ── Vehicle status management ─────────────────────────────────────────────
 
     if (data.status === 'COMPLETED' && reservation.vehicleId) {
       await this.prisma.vehicle.update({
@@ -133,9 +168,7 @@ export class ReservationsService {
     }
 
     if (data.vehicleId && data.vehicleId !== reservation.vehicleId) {
-      const vehicle = await this.prisma.vehicle.findUnique({
-        where: { id: data.vehicleId },
-      });
+      const vehicle = await this.prisma.vehicle.findUnique({ where: { id: data.vehicleId } });
       if (!vehicle) throw new NotFoundException('Vehicle not found');
 
       if (reservation.vehicleId) {
@@ -153,15 +186,16 @@ export class ReservationsService {
       }
     }
 
-    // Support both data.customer (edit form) and data.driver (new intake form)
+    // ── Customer update ────────────────────────────────────────────────────────
+
     const customerUpdate = data.driver || data.customer;
     if (customerUpdate && reservation.customerId) {
       await this.prisma.customer.update({
         where: { id: reservation.customerId },
         data: {
-          firstName: customerUpdate.firstName,
-          lastName: customerUpdate.lastName,
-          phone: customerUpdate.phone,
+          firstName: customerUpdate.firstName || undefined,
+          lastName: customerUpdate.lastName || undefined,
+          phone: customerUpdate.phone || undefined,
           email: customerUpdate.email || undefined,
           address: customerUpdate.address || undefined,
           suburb: customerUpdate.suburb || undefined,
@@ -175,15 +209,142 @@ export class ReservationsService {
       });
     }
 
+    // ── Claim + child models update ────────────────────────────────────────────
+
+    const accidentData = data.accident || {};
+    const atFaultData = data.atFault || {};
+    const additionalData = data.additional || {};
+
+    if (reservation.claim) {
+      const claimId = reservation.claim.id;
+
+      // Update or create AccidentDetails
+      const accidentPayload = {
+        accidentDate: accidentData.date ? new Date(accidentData.date) : undefined,
+        accidentLocation: accidentData.location || undefined,
+        accidentDescription: accidentData.description || undefined,
+        policeEventNo: additionalData.policeReportNo || undefined,
+        policeStation: additionalData.policeStation || undefined,
+        policeContactName: additionalData.policeOfficerName || undefined,
+        policePhone: additionalData.policeOfficerPhone || undefined,
+        witnessName: additionalData.witnessName || undefined,
+        witnessPhone: additionalData.witnessPhone || undefined,
+      };
+
+      if (reservation.claim.accidentDetails) {
+        await this.prisma.accidentDetails.update({
+          where: { claimId },
+          data: accidentPayload,
+        });
+      } else {
+        await this.prisma.accidentDetails.create({
+          data: { claim: { connect: { id: claimId } }, ...accidentPayload },
+        });
+      }
+
+      // Update or create AtFaultParty
+      const atFaultPayload = {
+        firstName: atFaultData.firstName || undefined,
+        lastName: atFaultData.lastName || undefined,
+        phone: atFaultData.phone || undefined,
+        email: atFaultData.email || undefined,
+        streetAddress: atFaultData.address || undefined,
+        suburb: atFaultData.suburb || undefined,
+        postcode: atFaultData.postcode || undefined,
+        state: atFaultData.state || undefined,
+        vehicleRego: atFaultData.vehicleRegistration || undefined,
+        vehicleMake: atFaultData.vehicleMake || undefined,
+        vehicleModel: atFaultData.vehicleModel || undefined,
+        vehicleYear: atFaultData.vehicleYear ? parseInt(atFaultData.vehicleYear) : undefined,
+        theirInsurer: atFaultData.insuranceProvider || undefined,
+        theirClaimNo: atFaultData.claimNumber || undefined,
+      };
+
+      if (reservation.claim.atFaultParty) {
+        await this.prisma.atFaultParty.update({
+          where: { claimId },
+          data: atFaultPayload,
+        });
+      } else {
+        await this.prisma.atFaultParty.create({
+          data: { claim: { connect: { id: claimId } }, ...atFaultPayload },
+        });
+      }
+
+      // Update claim top-level fields if provided
+      if (data.hireType || data.sourceOfBusiness) {
+        await this.prisma.claim.update({
+          where: { id: claimId },
+          data: {
+            hireType: data.hireType === 'Credit Hire' ? 'CREDIT_HIRE' : data.hireType === 'Direct Hire' ? 'DIRECT_HIRE' : undefined,
+            sourceOfBusiness: data.sourceOfBusiness || undefined,
+          },
+        });
+      }
+    } else if (data.accident || data.atFault || data.additional) {
+      // No claim exists yet — create one with child models
+      const accidentPayload = {
+        accidentDate: accidentData.date ? new Date(accidentData.date) : undefined,
+        accidentLocation: accidentData.location || undefined,
+        accidentDescription: accidentData.description || undefined,
+        policeEventNo: additionalData.policeReportNo || undefined,
+        policeStation: additionalData.policeStation || undefined,
+        policeContactName: additionalData.policeOfficerName || undefined,
+        policePhone: additionalData.policeOfficerPhone || undefined,
+        witnessName: additionalData.witnessName || undefined,
+        witnessPhone: additionalData.witnessPhone || undefined,
+      };
+
+      const atFaultPayload = {
+        firstName: atFaultData.firstName || undefined,
+        lastName: atFaultData.lastName || undefined,
+        phone: atFaultData.phone || undefined,
+        email: atFaultData.email || undefined,
+        streetAddress: atFaultData.address || undefined,
+        suburb: atFaultData.suburb || undefined,
+        postcode: atFaultData.postcode || undefined,
+        state: atFaultData.state || undefined,
+        vehicleRego: atFaultData.vehicleRegistration || undefined,
+        vehicleMake: atFaultData.vehicleMake || undefined,
+        vehicleModel: atFaultData.vehicleModel || undefined,
+        vehicleYear: atFaultData.vehicleYear ? parseInt(atFaultData.vehicleYear) : undefined,
+        theirInsurer: atFaultData.insuranceProvider || undefined,
+        theirClaimNo: atFaultData.claimNumber || undefined,
+      };
+
+      await this.prisma.claim.create({
+        data: {
+          reservation: { connect: { id } },
+          hireType: data.hireType === 'Credit Hire' ? 'CREDIT_HIRE' : data.hireType === 'Direct Hire' ? 'DIRECT_HIRE' : undefined,
+          sourceOfBusiness: data.sourceOfBusiness || undefined,
+          accidentDetails: { create: accidentPayload },
+          atFaultParty: { create: atFaultPayload },
+        },
+      });
+    }
+
+    // ── Reservation top-level update ──────────────────────────────────────────
+
     return this.prisma.reservation.update({
       where: { id },
       data: {
-        status: data.status,
+        status: data.status || undefined,
         endDate: data.endDate ? new Date(data.endDate) : undefined,
         startDate: data.startDate ? new Date(data.startDate) : undefined,
+        sourceOfBusiness: data.sourceOfBusiness || undefined,
         vehicle: data.vehicleId ? { connect: { id: data.vehicleId } } : undefined,
       },
-      include: { customer: true, vehicle: { include: { branch: true } } },
+      include: {
+        customer: true,
+        vehicle: { include: { branch: true } },
+        claim: {
+          include: {
+            accidentDetails: true,
+            atFaultParty: true,
+            repairDetails: true,
+          },
+        },
+      },
     });
   }
 
@@ -218,7 +379,6 @@ export class ReservationsService {
     }
     return code;
   }
-
 
   async generateFileNumber(branchCode: string): Promise<string> {
     const result = await this.prisma.$transaction(async (tx) => {
@@ -323,9 +483,7 @@ export class ReservationsService {
   }
 
   async getCancellationReasons(from?: string, to?: string) {
-    const where: any = {
-      status: 'CANCELLED',
-    };
+    const where: any = { status: 'CANCELLED' };
     if (from && to) {
       where.updatedAt = {
         gte: new Date(from),

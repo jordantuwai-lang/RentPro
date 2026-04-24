@@ -1,10 +1,11 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const inp: React.CSSProperties = {
   width: '100%', padding: '8px 10px', borderRadius: '8px',
@@ -50,62 +51,6 @@ const STATES = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'];
 const LICENCE_STATES = ['International', ...STATES];
 const BODY_TYPES = ['Sedan', 'Hatchback', 'SUV', 'Ute', 'Van', 'Wagon', 'Coupe', 'Convertible', 'Truck', 'Other'];
 const PHOTO_CATEGORIES = ['General', 'Front', 'Rear', 'Driver Side', 'Passenger Side', 'Interior', 'Damage', 'Other'];
-
-// ─── Mandatory photo slot ─────────────────────────────────────────────────────
-
-function MandatoryPhotoSlot({ label, description, icon, value, onChange, onClear }: {
-  label: string; description: string; icon: string;
-  value: string | null; onChange: (dataUrl: string) => void; onClear: () => void;
-}) {
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => onChange(reader.result as string);
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-  return (
-    <div style={{ border: `2px solid ${value ? '#86efac' : '#e2e8f0'}`, borderRadius: '12px', overflow: 'hidden', background: value ? '#f0fdf4' : '#f8fafc' }}>
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
-      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
-      {value ? (
-        <div>
-          <div style={{ position: 'relative' }}>
-            <img src={value} alt={label} style={{ width: '100%', height: '160px', objectFit: 'cover', display: 'block' }} />
-            <button type="button" onClick={onClear} style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-            <div style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'linear-gradient(transparent, rgba(0,0,0,0.5))', padding: '20px 10px 8px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#fff' }}>{label}</div>
-            </div>
-          </div>
-          <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px' }}>✅</span>
-            <span style={{ fontSize: '12px', fontWeight: 500, color: '#16a34a' }}>Uploaded</span>
-            <button type="button" onClick={() => fileRef.current?.click()} style={{ marginLeft: 'auto', fontSize: '11px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Replace</button>
-          </div>
-        </div>
-      ) : (
-        <div style={{ padding: '20px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '24px' }}>{icon}</span>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginBottom: '2px' }}>
-                {label}
-                <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: 600, color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', padding: '1px 5px' }}>REQUIRED</span>
-              </div>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>{description}</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button type="button" onClick={() => cameraRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #01ae42', background: '#fff', color: '#01ae42', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>📷 Take photo</button>
-            <button type="button" onClick={() => fileRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#fff', color: '#64748b', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>📁 Upload</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Damage panels ────────────────────────────────────────────────────────────
 
@@ -437,186 +382,12 @@ function DamageSelector({ bodyType, damaged, onToggle, description, onDescriptio
   );
 }
 
-// ─── Vehicle types & accident map ─────────────────────────────────────────────
-
-const VEHICLE_TYPES = [
-  { id: 'naf',   label: 'NAF Vehicle',   color: '#01ae42', bg: '#f0fdf4', border: '#86efac' },
-  { id: 'fault', label: 'At Fault',      color: '#ef4444', bg: '#fef2f2', border: '#fca5a5' },
-  { id: 'tp1',   label: 'Third Party 1', color: '#f59e0b', bg: '#fffbeb', border: '#fcd34d' },
-  { id: 'tp2',   label: 'Third Party 2', color: '#3b82f6', bg: '#eff6ff', border: '#93c5fd' },
-  { id: 'tp3',   label: 'Third Party 3', color: '#8b5cf6', bg: '#f5f3ff', border: '#c4b5fd' },
-  { id: 'tp4',   label: 'Third Party 4', color: '#ec4899', bg: '#fdf2f8', border: '#f9a8d4' },
-];
-
-function CarSvg({ color, size = 32 }: { color: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 36 36" fill="none">
-      <rect width="36" height="36" rx="8" fill={color} fillOpacity="0.12" />
-      <g transform="translate(6,4)">
-        <rect x="2" y="10" width="20" height="12" rx="3" fill={color} />
-        <path d="M6 10 L8 4 L16 4 L18 10 Z" fill={color} fillOpacity="0.85" />
-        <rect x="8.5" y="5" width="3.5" height="4.5" rx="1" fill="white" fillOpacity="0.7" />
-        <rect x="12.5" y="5" width="3.5" height="4.5" rx="1" fill="white" fillOpacity="0.7" />
-        <circle cx="7" cy="22" r="3.5" fill="#1e293b" /><circle cx="7" cy="22" r="1.8" fill="#94a3b8" />
-        <circle cx="17" cy="22" r="3.5" fill="#1e293b" /><circle cx="17" cy="22" r="1.8" fill="#94a3b8" />
-      </g>
-    </svg>
-  );
-}
-
-function buildMarkerSvg(color: string, text: string): string {
-  const display = (text || '?').trim().toUpperCase().slice(0, 7);
-  const fontSize = display.length > 5 ? 8 : display.length > 3 ? 10 : 12;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52"><circle cx="26" cy="26" r="23" fill="${color}" stroke="white" stroke-width="3"/><text x="26" y="31" text-anchor="middle" font-family="sans-serif" font-size="${fontSize}" font-weight="700" fill="white">${display}</text></svg>`;
-  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
-}
-
-declare global {
-  interface Window { google: any; initGooglePlaces: () => void; _removeMarker: (id: string) => void; }
-}
-
-interface PlacedVehicle {
-  instanceId: string; typeId: string; label: string; color: string;
-  bg: string; border: string; lat: number; lng: number; address: string; displayText: string;
-}
-
-function AccidentMap({ onUpdate, nafRego, faultRego, tp1Rego, tp2Rego }: {
-  onUpdate: (v: PlacedVehicle[]) => void; nafRego?: string; faultRego?: string; tp1Rego?: string; tp2Rego?: string;
-}) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<Record<string, any>>({});
-  const dragTypeRef = useRef<string | null>(null);
-  const [mapsReady, setMapsReady] = useState(false);
-  const [placedVehicles, setPlacedVehicles] = useState<PlacedVehicle[]>([]);
-  const [visibleTypes, setVisibleTypes] = useState<string[]>(['naf', 'fault']);
-
-  useEffect(() => { onUpdate(placedVehicles); }, [placedVehicles]);
-
-  useEffect(() => {
-    if (window.google?.maps) { setMapsReady(true); return; }
-    const scriptId = 'google-places-script';
-    if (document.getElementById(scriptId)) {
-      const interval = setInterval(() => { if (window.google?.maps) { setMapsReady(true); clearInterval(interval); } }, 100);
-      return () => clearInterval(interval);
-    }
-    window.initGooglePlaces = () => setMapsReady(true);
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGooglePlaces`;
-    script.async = true; script.defer = true;
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    if (!mapsReady || !mapRef.current || mapInstanceRef.current) return;
-    const map = new window.google.maps.Map(mapRef.current, {
-      center: { lat: -37.8136, lng: 144.9631 }, zoom: 15,
-      mapTypeId: 'hybrid', mapTypeControl: true, streetViewControl: false, fullscreenControl: false,
-    });
-    mapInstanceRef.current = map;
-    if (searchRef.current) {
-      const ac = new window.google.maps.places.Autocomplete(searchRef.current, { componentRestrictions: { country: 'au' }, fields: ['geometry'] });
-      ac.addListener('place_changed', () => { const pl = ac.getPlace(); if (pl.geometry) { map.setCenter(pl.geometry.location); map.setZoom(17); } });
-    }
-    const mapDiv = mapRef.current;
-    mapDiv.addEventListener('dragover', e => e.preventDefault());
-    mapDiv.addEventListener('drop', e => {
-      e.preventDefault();
-      const typeId = dragTypeRef.current;
-      if (!typeId || !mapInstanceRef.current) return;
-      const rect = mapDiv.getBoundingClientRect();
-      const x = e.clientX - rect.left; const y = e.clientY - rect.top;
-      const bounds = mapInstanceRef.current.getBounds(); if (!bounds) return;
-      const ne = bounds.getNorthEast(); const sw = bounds.getSouthWest();
-      const lng = sw.lng() + (x / mapDiv.offsetWidth) * (ne.lng() - sw.lng());
-      const lat = ne.lat() - (y / mapDiv.offsetHeight) * (ne.lat() - sw.lat());
-      const vType = VEHICLE_TYPES.find(v => v.id === typeId); if (!vType) return;
-      addMarker(`${typeId}-${Date.now()}`, vType, new window.google.maps.LatLng(lat, lng), getDisplayText(typeId));
-      dragTypeRef.current = null;
-    });
-  }, [mapsReady]);
-
-  function getDisplayText(typeId: string) {
-    if (typeId === 'naf') return nafRego || 'NAF';
-    if (typeId === 'fault') return faultRego || 'AF';
-    if (typeId === 'tp1') return tp1Rego || 'TP1';
-    if (typeId === 'tp2') return tp2Rego || 'TP2';
-    if (typeId === 'tp3') return 'TP3';
-    if (typeId === 'tp4') return 'TP4';
-    return typeId.toUpperCase();
-  }
-
-  function addMarker(instanceId: string, vType: typeof VEHICLE_TYPES[0], latLng: any, displayText: string) {
-    const map = mapInstanceRef.current; if (!map) return;
-    const marker = new window.google.maps.Marker({
-      position: latLng, map, draggable: true,
-      icon: { url: buildMarkerSvg(vType.color, displayText), scaledSize: new window.google.maps.Size(52, 52), anchor: new window.google.maps.Point(26, 26) },
-    });
-    markersRef.current[instanceId] = marker;
-    const geocoder = new window.google.maps.Geocoder();
-    const resolve = (pos: any, cb: (a: string) => void) => geocoder.geocode({ location: pos }, (r: any[], s: string) => cb(s === 'OK' && r[0] ? r[0].formatted_address : `${pos.lat().toFixed(5)}, ${pos.lng().toFixed(5)}`));
-    resolve(latLng, address => setPlacedVehicles(prev => [...prev, { instanceId, typeId: vType.id, label: vType.label, color: vType.color, bg: vType.bg, border: vType.border, lat: latLng.lat(), lng: latLng.lng(), address, displayText }]));
-    marker.addListener('dragend', () => { const pos = marker.getPosition(); resolve(pos, address => setPlacedVehicles(prev => prev.map(v => v.instanceId === instanceId ? { ...v, lat: pos.lat(), lng: pos.lng(), address } : v))); });
-    const iw = new window.google.maps.InfoWindow({ content: `<div style="font-family:sans-serif;padding:4px 0;"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">${vType.label}</div><div style="font-size:12px;color:#64748b;margin-bottom:8px;">${displayText}</div><button onclick="window._removeMarker('${instanceId}')" style="padding:5px 14px;border-radius:6px;border:1px solid #fca5a5;background:#fff;color:#ef4444;font-size:12px;cursor:pointer;">Remove</button></div>` });
-    marker.addListener('click', () => iw.open(map, marker));
-    window._removeMarker = (id: string) => { const m = markersRef.current[id]; if (m) { m.setMap(null); delete markersRef.current[id]; } iw.close(); setPlacedVehicles(prev => prev.filter(v => v.instanceId !== id)); };
-  }
-
-  const paletteTypes = VEHICLE_TYPES.filter(v => visibleTypes.includes(v.id));
-
-  return (
-    <div>
-      <div style={{ marginBottom: '10px' }}><input ref={searchRef} placeholder="Search for accident location..." style={{ ...inp, width: '100%' }} /></div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px', padding: '10px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: '4px' }}>Drag onto map:</span>
-        {paletteTypes.map(vType => (
-          <div key={vType.id} draggable onDragStart={() => { dragTypeRef.current = vType.id; }}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px', borderRadius: '8px', border: `1.5px solid ${vType.border}`, background: vType.bg, cursor: 'grab', userSelect: 'none' }}>
-            <CarSvg color={vType.color} size={26} />
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: vType.color }}>{vType.label}</div>
-              {getDisplayText(vType.id) !== vType.label && <div style={{ fontSize: '10px', color: vType.color, opacity: 0.8 }}>{getDisplayText(vType.id)}</div>}
-            </div>
-          </div>
-        ))}
-        {visibleTypes.length < VEHICLE_TYPES.length && (
-          <button type="button" onClick={() => { const next = VEHICLE_TYPES.find(v => !visibleTypes.includes(v.id)); if (next) setVisibleTypes(p => [...p, next.id]); }}
-            style={{ padding: '5px 12px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#fff', color: '#64748b', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>
-            + Add vehicle
-          </button>
-        )}
-      </div>
-      <div ref={mapRef} style={{ width: '100%', height: '380px', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden', background: '#f1f5f9' }} />
-      <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px', marginBottom: placedVehicles.length > 0 ? '12px' : '0' }}>Drag a vehicle onto the map to place it. Drag markers to reposition. Click a marker to remove it.</p>
-      {placedVehicles.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {placedVehicles.map(v => (
-            <div key={v.instanceId} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 12px', background: v.bg, border: `1px solid ${v.border}`, borderRadius: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: v.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontSize: '9px', fontWeight: 700, color: '#fff' }}>{v.displayText.slice(0, 4)}</span>
-              </div>
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: v.color }}>{v.label} — {v.displayText}</div>
-                <div style={{ fontSize: '11px', color: '#475569', marginTop: '1px' }}>{v.address}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
 
-const TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Documents'];
-
-function TabBar({ active, onChange }: { active: number; onChange: (i: number) => void }) {
+function TabBar({ tabs, active, onChange }: { tabs: string[]; active: number; onChange: (i: number) => void }) {
   return (
     <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', overflowX: 'auto' }}>
-      {TABS.map((t, i) => (
+      {tabs.map((t, i) => (
         <button key={t} type="button" onClick={() => onChange(i)} style={{
           padding: '10px 16px', fontSize: '13px', fontWeight: active === i ? 600 : 500,
           color: active === i ? '#01ae42' : '#64748b', background: 'none', border: 'none',
@@ -628,57 +399,124 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
   );
 }
 
-// ─── Defaults ─────────────────────────────────────────────────────────────────
+// ─── Save indicator ───────────────────────────────────────────────────────────
 
-const emptyPerson = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', licenceNumber: '', licenceState: '', licenceExpiry: '', dob: '' };
-const emptyAtFault = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', vehicleRegistration: '', vehicleState: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' };
-const emptyOtherParty = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', vehicleRegistration: '', vehicleState: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' };
+function SaveIndicator({ state }: { state: 'idle' | 'saving' | 'saved' | 'error' }) {
+  if (state === 'idle') return null;
+  const config = {
+    saving: { color: '#64748b', text: 'Saving...' },
+    saved:  { color: '#01ae42', text: '✓ Saved' },
+    error:  { color: '#ef4444', text: '⚠ Save failed' },
+  }[state];
+  return (
+    <span style={{ fontSize: '12px', fontWeight: 500, color: config.color, transition: 'opacity 0.3s' }}>
+      {config.text}
+    </span>
+  );
+}
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Props ────────────────────────────────────────────────────────────────────
 
-export default function CreditHirePage() {
+export interface ReservationDetailProps {
+  reservationId: string;
+  reservation: any; // full reservation object from API
+  tabs?: string[];  // override default tabs
+  extraTabContent?: (tabIndex: number) => React.ReactNode; // render extra tabs
+  onSaveSuccess?: () => void;
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Documents'];
+
+export default function ReservationDetail({
+  reservationId,
+  reservation,
+  tabs = DEFAULT_TABS,
+  extraTabContent,
+  onSaveSuccess,
+}: ReservationDetailProps) {
   const { getToken } = useAuth();
-  const { user } = useUser();
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState(0);
-  const [rezNumber, setRezNumber] = useState('');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  // ── Flatten reservation data into local state ──────────────────────────────
+
+  const r = reservation;
+  const customer = r?.customer || {};
+  const claim = r?.claim || {};
+  const accidentDetails = claim?.accidentDetails || {};
+  const atFaultParty = claim?.atFaultParty || {};
 
   // Tab 0 — Main
-  const [sourceOfBusiness, setSourceOfBusiness] = useState('');
-  const [startDate, setStartDate] = useState('');
+  const [sourceOfBusiness, setSourceOfBusiness] = useState(r?.sourceOfBusiness || '');
+  const [startDate, setStartDate] = useState(r?.startDate ? r.startDate.split('T')[0] : '');
 
-  // Tab 1 — Customer
-  const [driver, setDriver] = useState({ ...emptyPerson });
+  // Tab 1 — Customer / NAF Vehicle
+  const [nafRego, setNafRego] = useState('');
+  const [nafMake, setNafMake] = useState('');
+  const [nafModel, setNafModel] = useState('');
+  const [nafYear, setNafYear] = useState('');
+  const [nafBodyType, setNafBodyType] = useState('');
+  const [driver, setDriver] = useState({
+    firstName: customer.firstName || '',
+    lastName: customer.lastName || '',
+    phone: customer.phone || '',
+    email: customer.email || '',
+    address: customer.address || '',
+    suburb: customer.suburb || '',
+    postcode: customer.postcode || '',
+    state: customer.state || '',
+    licenceNumber: customer.licenceNumber || '',
+    licenceState: customer.licenceState || '',
+    licenceExpiry: customer.licenceExpiry || '',
+    dob: customer.dob || '',
+  });
   const updDriver = (f: string, v: string) => setDriver(p => ({ ...p, [f]: v }));
-  const [nafVehicleRego, setNafVehicleRego] = useState('');
-  const [nafVehicleMake, setNafVehicleMake] = useState('');
-  const [nafVehicleModel, setNafVehicleModel] = useState('');
-  const [nafVehicleYear, setNafVehicleYear] = useState('');
-  const [nafVehicleBodyType, setNafVehicleBodyType] = useState('');
-  const [validating, setValidating] = useState(false);
-  const [owner, setOwner] = useState({ ...emptyPerson });
+
+  const [owner, setOwner] = useState({ firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', dob: '' });
   const [sameAsDriver, setSameAsDriver] = useState(false);
   const updOwner = (f: string, v: string) => setOwner(p => ({ ...p, [f]: v }));
-  const handleSameAsDriver = (checked: boolean) => { setSameAsDriver(checked); setOwner(checked ? { ...driver } : { ...emptyPerson }); };
 
   // Tab 2 — At Fault
-  const [atFault, setAtFault] = useState({ ...emptyAtFault });
+  const [atFault, setAtFault] = useState({
+    firstName: atFaultParty.firstName || '',
+    lastName: atFaultParty.lastName || '',
+    phone: atFaultParty.phone || '',
+    email: atFaultParty.email || '',
+    address: atFaultParty.streetAddress || '',
+    suburb: atFaultParty.suburb || '',
+    postcode: atFaultParty.postcode || '',
+    state: atFaultParty.state || '',
+    vehicleRegistration: atFaultParty.vehicleRego || '',
+    vehicleState: '',
+    vehicleYear: atFaultParty.vehicleYear?.toString() || '',
+    vehicleMake: atFaultParty.vehicleMake || '',
+    vehicleModel: atFaultParty.vehicleModel || '',
+    insuranceProvider: atFaultParty.theirInsurer || '',
+    claimNumber: atFaultParty.theirClaimNo || '',
+  });
   const updAtFault = (f: string, v: string) => setAtFault(p => ({ ...p, [f]: v }));
-  const [validatingAtFault, setValidatingAtFault] = useState(false);
 
   // Tab 3 — Other Party
-  const [tp1, setTp1] = useState({ ...emptyOtherParty });
+  const [tp1, setTp1] = useState({ firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', vehicleRegistration: '', vehicleState: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' });
   const updTp1 = (f: string, v: string) => setTp1(p => ({ ...p, [f]: v }));
-  const [tp2, setTp2] = useState({ ...emptyOtherParty });
+  const [tp2, setTp2] = useState({ firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', vehicleRegistration: '', vehicleState: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' });
   const updTp2 = (f: string, v: string) => setTp2(p => ({ ...p, [f]: v }));
   const [showTp2, setShowTp2] = useState(false);
 
   // Tab 4 — Accident
-  const [accident, setAccident] = useState({ date: '', location: '', suburb: '', description: '' });
+  const [accident, setAccident] = useState({
+    date: accidentDetails.accidentDate ? accidentDetails.accidentDate.split('T')[0] : '',
+    location: accidentDetails.accidentLocation || '',
+    suburb: '',
+    description: accidentDetails.accidentDescription || '',
+  });
   const updAccident = (f: string, v: string) => setAccident(p => ({ ...p, [f]: v }));
-  const [accidentVehicles, setAccidentVehicles] = useState<PlacedVehicle[]>([]);
 
   // Tab 5 — Damages
   const [damagedPanels, setDamagedPanels] = useState<Set<string>>(new Set());
@@ -708,67 +546,73 @@ export default function CreditHirePage() {
     setPhotos(photos.map((p, idx) => idx === i ? { ...p, [field]: value } : p));
 
   // Tab 7 — Additional
-  const [policeReportNo, setPoliceReportNo] = useState('');
-  const [policeStation, setPoliceStation] = useState('');
-  const [policeOfficerName, setPoliceOfficerName] = useState('');
-  const [policeOfficerPhone, setPoliceOfficerPhone] = useState('');
-  const [witnessName, setWitnessName] = useState('');
-  const [witnessPhone, setWitnessPhone] = useState('');
+  const [policeReportNo, setPoliceReportNo] = useState(accidentDetails.policeEventNo || '');
+  const [policeStation, setPoliceStation] = useState(accidentDetails.policeStation || '');
+  const [policeOfficerName, setPoliceOfficerName] = useState(accidentDetails.policeContactName || '');
+  const [policeOfficerPhone, setPoliceOfficerPhone] = useState(accidentDetails.policePhone || '');
+  const [witnessName, setWitnessName] = useState(accidentDetails.witnessName || '');
+  const [witnessPhone, setWitnessPhone] = useState(accidentDetails.witnessPhone || '');
   const [witnessEmail, setWitnessEmail] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
 
-  useEffect(() => {
-    getToken().then(token => {
-      api.get('/reservations/next-number', { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => setRezNumber(res.data.nextNumber))
-        .catch(() => setRezNumber('REZ—'));
-    });
-  }, []);
+  // ── Auto-save ──────────────────────────────────────────────────────────────
 
-  const mutation = useMutation({
-    mutationFn: async (status: string) => {
+  const buildPayload = useCallback(() => ({
+    sourceOfBusiness,
+    startDate,
+    customer: driver,
+    nafVehicle: { registration: nafRego, make: nafMake, model: nafModel, year: nafYear, bodyType: nafBodyType },
+    atFault,
+    accident,
+    additional: { policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes },
+    damages: { panels: Array.from(damagedPanels), description: damageDescription },
+  }), [sourceOfBusiness, startDate, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType, atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription]);
+
+  const doSave = useCallback(async () => {
+    setSaveState('saving');
+    try {
       const token = await getToken();
-      const authorName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Staff';
-      const res = await api.post('/reservations', {
-        status, authorName, hireType: 'Credit Hire', sourceOfBusiness, startDate,
-        customer: driver,
-        nafVehicle: { registration: nafVehicleRego, make: nafVehicleMake, model: nafVehicleModel, year: nafVehicleYear, bodyType: nafVehicleBodyType },
-        registeredOwner: owner, atFault,
-        otherParties: [{ ...tp1, role: 'Third Party 1' }, ...(showTp2 ? [{ ...tp2, role: 'Third Party 2' }] : [])],
-        accident: { ...accident, vehicles: accidentVehicles },
-        damages: { panels: Array.from(damagedPanels), description: damageDescription },
-        mandatoryPhotos: { licencePhoto, regoPhoto },
-        photos: photos.map(p => ({ dataUrl: p.dataUrl, caption: p.caption, category: p.category })),
-        additional: { policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes },
-      }, { headers: { Authorization: `Bearer ${token}` } });
-      return res.data;
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['reservations'] }); router.push('/dashboard/reservations'); },
-  });
+      await api.patch(`/reservations/${reservationId}`, buildPayload(), { headers: { Authorization: `Bearer ${token}` } });
+      setSaveState('saved');
+      queryClient.invalidateQueries({ queryKey: ['reservation', reservationId] });
+      onSaveSuccess?.();
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => setSaveState('idle'), 2500);
+    } catch {
+      setSaveState('error');
+    }
+  }, [buildPayload, getToken, reservationId, queryClient, onSaveSuccess]);
+
+  // Debounce auto-save — fires 800ms after last change
+  const scheduleAutoSave = useCallback(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(doSave, 800);
+  }, [doSave]);
+
+  // Watch all editable state and trigger auto-save
+  useEffect(() => { scheduleAutoSave(); }, [
+    sourceOfBusiness, startDate, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType,
+    atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone,
+    witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription,
+  ]);
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ maxWidth: '860px' }}>
+    <div style={{ maxWidth: '860px', paddingBottom: '80px' }}>
 
-      {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>New Reservation</h1>
-          {rezNumber && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '6px', padding: '3px 10px', fontSize: '13px', fontWeight: 600, color: '#01ae42', fontFamily: 'monospace' }}>
-              {rezNumber}
-            </span>
-          )}
-        </div>
-        <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>Credit hire intake form</p>
+      {/* Save indicator */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', minHeight: '20px' }}>
+        <SaveIndicator state={saveState} />
       </div>
 
-      <TabBar active={activeTab} onChange={setActiveTab} />
+      <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab} />
 
       {/* ── Tab 0: Main ── */}
       {activeTab === 0 && (
         <SectionBlock title="Booking Details">
           <div style={grid2}>
-            <F label="Source *">
+            <F label="Source">
               <select style={inp} value={sourceOfBusiness} onChange={e => setSourceOfBusiness(e.target.value)}>
                 <option value="">Select source...</option>
                 <option value="Repairer">Repairer</option>
@@ -789,35 +633,30 @@ export default function CreditHirePage() {
         <>
           <SectionBlock title="NAF Vehicle">
             <div style={grid3}>
-              <F label="Registration"><input style={inp} value={nafVehicleRego} onChange={e => setNafVehicleRego(e.target.value)} placeholder="e.g. ABC123" /></F>
-              <F label="Make"><input style={inp} value={nafVehicleMake} onChange={e => setNafVehicleMake(e.target.value)} placeholder="e.g. Toyota" /></F>
-              <F label="Model"><input style={inp} value={nafVehicleModel} onChange={e => setNafVehicleModel(e.target.value)} placeholder="e.g. Corolla" /></F>
-              <F label="Year"><input style={inp} value={nafVehicleYear} onChange={e => setNafVehicleYear(e.target.value)} placeholder="e.g. 2021" /></F>
+              <F label="Registration"><input style={inp} value={nafRego} onChange={e => setNafRego(e.target.value)} /></F>
+              <F label="Make"><input style={inp} value={nafMake} onChange={e => setNafMake(e.target.value)} /></F>
+              <F label="Model"><input style={inp} value={nafModel} onChange={e => setNafModel(e.target.value)} /></F>
+              <F label="Year"><input style={inp} value={nafYear} onChange={e => setNafYear(e.target.value)} /></F>
               <F label="Body type">
-                <select style={inp} value={nafVehicleBodyType} onChange={e => setNafVehicleBodyType(e.target.value)}>
+                <select style={inp} value={nafBodyType} onChange={e => setNafBodyType(e.target.value)}>
                   <option value="">Select...</option>
                   {BODY_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
-              </F>
-              <F label=" ">
-                <button type="button"
-                  onClick={() => { if (!nafVehicleRego || validating) return; setValidating(true); console.log('Validate rego:', nafVehicleRego); setTimeout(() => setValidating(false), 1000); }}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: `1.5px solid ${nafVehicleRego ? '#01ae42' : '#e2e8f0'}`, background: nafVehicleRego ? '#f0fdf4' : '#f8fafc', color: nafVehicleRego ? '#01ae42' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: nafVehicleRego ? 'pointer' : 'not-allowed' }}>
-                  {validating ? 'Checking...' : 'Validate'}
-                </button>
               </F>
             </div>
           </SectionBlock>
 
           <SectionBlock title="Customer Details">
             <div style={grid3}>
-              <F label="First name *"><input style={inp} value={driver.firstName} onChange={e => updDriver('firstName', e.target.value)} /></F>
-              <F label="Last name *"><input style={inp} value={driver.lastName} onChange={e => updDriver('lastName', e.target.value)} /></F>
-              <F label="Phone *"><input style={inp} value={driver.phone} onChange={e => updDriver('phone', e.target.value)} /></F>
+              <F label="First name"><input style={inp} value={driver.firstName} onChange={e => updDriver('firstName', e.target.value)} /></F>
+              <F label="Last name"><input style={inp} value={driver.lastName} onChange={e => updDriver('lastName', e.target.value)} /></F>
+              <F label="Phone"><input style={inp} value={driver.phone} onChange={e => updDriver('phone', e.target.value)} /></F>
               <F label="Email" span2><input style={inp} value={driver.email} onChange={e => updDriver('email', e.target.value)} /></F>
               <F label="Date of birth"><input type="date" style={inp} value={driver.dob} onChange={e => updDriver('dob', e.target.value)} /></F>
               <F label="Address" full>
-                <AddressAutocomplete value={driver.address} onChange={(v: string) => updDriver('address', v)} onSelect={(r: any) => { updDriver('address', r.address); updDriver('suburb', r.suburb); updDriver('postcode', r.postcode); if (r.state) updDriver('state', r.state); }} style={inp} placeholder="Start typing address..." />
+                <AddressAutocomplete value={driver.address} onChange={(v: string) => updDriver('address', v)}
+                  onSelect={(r: any) => { updDriver('address', r.address); updDriver('suburb', r.suburb); updDriver('postcode', r.postcode); if (r.state) updDriver('state', r.state); }}
+                  style={inp} placeholder="Start typing address..." />
               </F>
               <F label="Suburb"><input style={inp} value={driver.suburb} onChange={e => updDriver('suburb', e.target.value)} /></F>
               <F label="Postcode"><input style={inp} value={driver.postcode} onChange={e => updDriver('postcode', e.target.value)} /></F>
@@ -831,7 +670,7 @@ export default function CreditHirePage() {
           <SectionBlock title="Registered Owner">
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#64748b', cursor: 'pointer' }}>
-                <input type="checkbox" checked={sameAsDriver} onChange={e => handleSameAsDriver(e.target.checked)} />
+                <input type="checkbox" checked={sameAsDriver} onChange={e => { setSameAsDriver(e.target.checked); if (e.target.checked) setOwner({ firstName: driver.firstName, lastName: driver.lastName, phone: driver.phone, email: driver.email, address: driver.address, suburb: driver.suburb, postcode: driver.postcode, state: driver.state, dob: driver.dob }); }} />
                 Same as driver
               </label>
             </div>
@@ -842,7 +681,9 @@ export default function CreditHirePage() {
               <F label="Email" span2><input style={inp} value={owner.email} onChange={e => updOwner('email', e.target.value)} /></F>
               <F label="Date of birth"><input type="date" style={inp} value={owner.dob} onChange={e => updOwner('dob', e.target.value)} /></F>
               <F label="Address" full>
-                <AddressAutocomplete value={owner.address} onChange={(v: string) => updOwner('address', v)} onSelect={(r: any) => { updOwner('address', r.address); updOwner('suburb', r.suburb); updOwner('postcode', r.postcode); if (r.state) updOwner('state', r.state); }} style={inp} placeholder="Start typing address..." />
+                <AddressAutocomplete value={owner.address} onChange={(v: string) => updOwner('address', v)}
+                  onSelect={(r: any) => { updOwner('address', r.address); updOwner('suburb', r.suburb); updOwner('postcode', r.postcode); if (r.state) updOwner('state', r.state); }}
+                  style={inp} placeholder="Start typing address..." />
               </F>
               <F label="Suburb"><input style={inp} value={owner.suburb} onChange={e => updOwner('suburb', e.target.value)} /></F>
               <F label="Postcode"><input style={inp} value={owner.postcode} onChange={e => updOwner('postcode', e.target.value)} /></F>
@@ -859,16 +700,9 @@ export default function CreditHirePage() {
             <div style={grid3}>
               <F label="Registration"><input style={inp} value={atFault.vehicleRegistration} onChange={e => updAtFault('vehicleRegistration', e.target.value)} /></F>
               <F label="State"><select style={inp} value={atFault.vehicleState} onChange={e => updAtFault('vehicleState', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
-              <F label="Year"><input style={inp} value={atFault.vehicleYear} onChange={e => updAtFault('vehicleYear', e.target.value)} placeholder="e.g. 2021" /></F>
+              <F label="Year"><input style={inp} value={atFault.vehicleYear} onChange={e => updAtFault('vehicleYear', e.target.value)} /></F>
               <F label="Make"><input style={inp} value={atFault.vehicleMake} onChange={e => updAtFault('vehicleMake', e.target.value)} /></F>
               <F label="Model"><input style={inp} value={atFault.vehicleModel} onChange={e => updAtFault('vehicleModel', e.target.value)} /></F>
-              <F label=" ">
-                <button type="button"
-                  onClick={() => { if (!atFault.vehicleRegistration || validatingAtFault) return; setValidatingAtFault(true); console.log('Validate at fault rego:', atFault.vehicleRegistration); setTimeout(() => setValidatingAtFault(false), 1000); }}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: `1.5px solid ${atFault.vehicleRegistration ? '#01ae42' : '#e2e8f0'}`, background: atFault.vehicleRegistration ? '#f0fdf4' : '#f8fafc', color: atFault.vehicleRegistration ? '#01ae42' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: atFault.vehicleRegistration ? 'pointer' : 'not-allowed' }}>
-                  {validatingAtFault ? 'Checking...' : 'Validate'}
-                </button>
-              </F>
             </div>
           </SectionBlock>
           <SectionBlock title="At Fault Party">
@@ -880,7 +714,9 @@ export default function CreditHirePage() {
               <F label="Insurance provider"><input style={inp} value={atFault.insuranceProvider} onChange={e => updAtFault('insuranceProvider', e.target.value)} /></F>
               <F label="Claim number"><input style={inp} value={atFault.claimNumber} onChange={e => updAtFault('claimNumber', e.target.value)} /></F>
               <F label="Address" full>
-                <AddressAutocomplete value={atFault.address} onChange={(v: string) => updAtFault('address', v)} onSelect={(r: any) => { updAtFault('address', r.address); updAtFault('suburb', r.suburb); updAtFault('postcode', r.postcode); if (r.state) updAtFault('state', r.state); }} style={inp} placeholder="Start typing address..." />
+                <AddressAutocomplete value={atFault.address} onChange={(v: string) => updAtFault('address', v)}
+                  onSelect={(r: any) => { updAtFault('address', r.address); updAtFault('suburb', r.suburb); updAtFault('postcode', r.postcode); if (r.state) updAtFault('state', r.state); }}
+                  style={inp} placeholder="Start typing address..." />
               </F>
               <F label="Suburb"><input style={inp} value={atFault.suburb} onChange={e => updAtFault('suburb', e.target.value)} /></F>
               <F label="Postcode"><input style={inp} value={atFault.postcode} onChange={e => updAtFault('postcode', e.target.value)} /></F>
@@ -897,7 +733,7 @@ export default function CreditHirePage() {
             <div style={grid3}>
               <F label="Registration"><input style={inp} value={tp1.vehicleRegistration} onChange={e => updTp1('vehicleRegistration', e.target.value)} /></F>
               <F label="State"><select style={inp} value={tp1.vehicleState} onChange={e => updTp1('vehicleState', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
-              <F label="Year"><input style={inp} value={tp1.vehicleYear} onChange={e => updTp1('vehicleYear', e.target.value)} placeholder="e.g. 2021" /></F>
+              <F label="Year"><input style={inp} value={tp1.vehicleYear} onChange={e => updTp1('vehicleYear', e.target.value)} /></F>
               <F label="Make"><input style={inp} value={tp1.vehicleMake} onChange={e => updTp1('vehicleMake', e.target.value)} /></F>
               <F label="Model"><input style={inp} value={tp1.vehicleModel} onChange={e => updTp1('vehicleModel', e.target.value)} /></F>
               <F label="Claim number"><input style={inp} value={tp1.claimNumber} onChange={e => updTp1('claimNumber', e.target.value)} /></F>
@@ -911,7 +747,9 @@ export default function CreditHirePage() {
               <F label="Email"><input style={inp} value={tp1.email} onChange={e => updTp1('email', e.target.value)} /></F>
               <F label="Insurance provider"><input style={inp} value={tp1.insuranceProvider} onChange={e => updTp1('insuranceProvider', e.target.value)} /></F>
               <F label="Address" full>
-                <AddressAutocomplete value={tp1.address} onChange={(v: string) => updTp1('address', v)} onSelect={(r: any) => { updTp1('address', r.address); updTp1('suburb', r.suburb); updTp1('postcode', r.postcode); if (r.state) updTp1('state', r.state); }} style={inp} placeholder="Start typing address..." />
+                <AddressAutocomplete value={tp1.address} onChange={(v: string) => updTp1('address', v)}
+                  onSelect={(r: any) => { updTp1('address', r.address); updTp1('suburb', r.suburb); updTp1('postcode', r.postcode); if (r.state) updTp1('state', r.state); }}
+                  style={inp} placeholder="Start typing address..." />
               </F>
               <F label="Suburb"><input style={inp} value={tp1.suburb} onChange={e => updTp1('suburb', e.target.value)} /></F>
               <F label="Postcode"><input style={inp} value={tp1.postcode} onChange={e => updTp1('postcode', e.target.value)} /></F>
@@ -933,7 +771,7 @@ export default function CreditHirePage() {
                 <div style={grid3}>
                   <F label="Registration"><input style={inp} value={tp2.vehicleRegistration} onChange={e => updTp2('vehicleRegistration', e.target.value)} /></F>
                   <F label="State"><select style={inp} value={tp2.vehicleState} onChange={e => updTp2('vehicleState', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
-                  <F label="Year"><input style={inp} value={tp2.vehicleYear} onChange={e => updTp2('vehicleYear', e.target.value)} placeholder="e.g. 2021" /></F>
+                  <F label="Year"><input style={inp} value={tp2.vehicleYear} onChange={e => updTp2('vehicleYear', e.target.value)} /></F>
                   <F label="Make"><input style={inp} value={tp2.vehicleMake} onChange={e => updTp2('vehicleMake', e.target.value)} /></F>
                   <F label="Model"><input style={inp} value={tp2.vehicleModel} onChange={e => updTp2('vehicleModel', e.target.value)} /></F>
                   <F label="Claim number"><input style={inp} value={tp2.claimNumber} onChange={e => updTp2('claimNumber', e.target.value)} /></F>
@@ -947,7 +785,9 @@ export default function CreditHirePage() {
                   <F label="Email"><input style={inp} value={tp2.email} onChange={e => updTp2('email', e.target.value)} /></F>
                   <F label="Insurance provider"><input style={inp} value={tp2.insuranceProvider} onChange={e => updTp2('insuranceProvider', e.target.value)} /></F>
                   <F label="Address" full>
-                    <AddressAutocomplete value={tp2.address} onChange={(v: string) => updTp2('address', v)} onSelect={(r: any) => { updTp2('address', r.address); updTp2('suburb', r.suburb); updTp2('postcode', r.postcode); if (r.state) updTp2('state', r.state); }} style={inp} placeholder="Start typing address..." />
+                    <AddressAutocomplete value={tp2.address} onChange={(v: string) => updTp2('address', v)}
+                      onSelect={(r: any) => { updTp2('address', r.address); updTp2('suburb', r.suburb); updTp2('postcode', r.postcode); if (r.state) updTp2('state', r.state); }}
+                      style={inp} placeholder="Start typing address..." />
                   </F>
                   <F label="Suburb"><input style={inp} value={tp2.suburb} onChange={e => updTp2('suburb', e.target.value)} /></F>
                   <F label="Postcode"><input style={inp} value={tp2.postcode} onChange={e => updTp2('postcode', e.target.value)} /></F>
@@ -961,40 +801,33 @@ export default function CreditHirePage() {
 
       {/* ── Tab 4: Accident ── */}
       {activeTab === 4 && (
-        <>
-          <SectionBlock title="Accident Details">
-            <div style={grid3}>
-              <F label="Date of accident"><input type="date" style={inp} value={accident.date} onChange={e => updAccident('date', e.target.value)} /></F>
-              <F label="Street / location"><input style={inp} value={accident.location} onChange={e => updAccident('location', e.target.value)} placeholder="e.g. Flinders St & Swanston St" /></F>
-              <F label="Suburb"><input style={inp} value={accident.suburb} onChange={e => updAccident('suburb', e.target.value)} /></F>
-              <F label="Description" full>
-                <textarea style={{ ...inp, height: '80px', resize: 'vertical' }} value={accident.description} onChange={e => updAccident('description', e.target.value)} placeholder="Brief description of what happened..." />
-              </F>
-            </div>
-          </SectionBlock>
-          <SectionBlock title="Vehicle Positions">
-            <AccidentMap onUpdate={setAccidentVehicles} nafRego={nafVehicleRego} faultRego={atFault.vehicleRegistration} tp1Rego={tp1.vehicleRegistration} tp2Rego={tp2.vehicleRegistration} />
-          </SectionBlock>
-        </>
+        <SectionBlock title="Accident Details">
+          <div style={grid3}>
+            <F label="Date of accident"><input type="date" style={inp} value={accident.date} onChange={e => updAccident('date', e.target.value)} /></F>
+            <F label="Street / location"><input style={inp} value={accident.location} onChange={e => updAccident('location', e.target.value)} /></F>
+            <F label="Suburb"><input style={inp} value={accident.suburb} onChange={e => updAccident('suburb', e.target.value)} /></F>
+            <F label="Description" full>
+              <textarea style={{ ...inp, height: '80px', resize: 'vertical' }} value={accident.description} onChange={e => updAccident('description', e.target.value)} />
+            </F>
+          </div>
+        </SectionBlock>
       )}
 
       {/* ── Tab 5: Damages ── */}
       {activeTab === 5 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '16px' }}>
-            <CarSvg color="#01ae42" size={32} />
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', flex: 1 }}>
-              {[{ label: 'Rego', value: nafVehicleRego || '—' }, { label: 'Make', value: nafVehicleMake || '—' }, { label: 'Model', value: nafVehicleModel || '—' }, { label: 'Year', value: nafVehicleYear || '—' }, { label: 'Body', value: nafVehicleBodyType || '—' }].map(({ label, value }) => (
+              {[{ label: 'Rego', value: nafRego || r?.vehicle?.registration || '—' }, { label: 'Make', value: nafMake || r?.vehicle?.make || '—' }, { label: 'Model', value: nafModel || r?.vehicle?.model || '—' }, { label: 'Year', value: nafYear || r?.vehicle?.year?.toString() || '—' }, { label: 'Body', value: nafBodyType || '—' }].map(({ label, value }) => (
                 <div key={label}>
                   <div style={{ fontSize: '10px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
                   <div style={{ fontSize: '13px', fontWeight: 500, color: '#0f172a' }}>{value}</div>
                 </div>
               ))}
             </div>
-            {!nafVehicleRego && !nafVehicleMake && <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 500 }}>Fill in Customer tab first</span>}
           </div>
           <SectionBlock title="Damage Selector">
-            <DamageSelector bodyType={nafVehicleBodyType} damaged={damagedPanels} onToggle={togglePanel} description={damageDescription} onDescriptionChange={setDamageDescription} />
+            <DamageSelector bodyType={nafBodyType} damaged={damagedPanels} onToggle={togglePanel} description={damageDescription} onDescriptionChange={setDamageDescription} />
           </SectionBlock>
         </>
       )}
@@ -1004,49 +837,75 @@ export default function CreditHirePage() {
         <>
           {missingMandatory.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '10px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '16px' }}>⚠️</span>
+              <span>⚠️</span>
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 600, color: '#92400e' }}>Required photos missing</div>
-                <div style={{ fontSize: '11px', color: '#92400e', marginTop: '1px' }}>{missingMandatory.join(' and ')} {missingMandatory.length === 1 ? 'is' : 'are'} required</div>
+                <div style={{ fontSize: '11px', color: '#92400e' }}>{missingMandatory.join(' and ')} {missingMandatory.length === 1 ? 'is' : 'are'} required</div>
               </div>
             </div>
           )}
           <SectionBlock title="Required Documents">
             <div style={grid2}>
-              <MandatoryPhotoSlot label="Driver's Licence" description="Front of the customer's licence" icon="🪪" value={licencePhoto} onChange={setLicencePhoto} onClear={() => setLicencePhoto(null)} />
-              <MandatoryPhotoSlot label="Vehicle Registration Papers" description="Current registration certificate" icon="📄" value={regoPhoto} onChange={setRegoPhoto} onClear={() => setRegoPhoto(null)} />
+              {[{ label: "Driver's Licence", desc: "Front of the customer's licence", icon: '🪪', val: licencePhoto, set: setLicencePhoto }, { label: 'Vehicle Registration Papers', desc: 'Current registration certificate', icon: '📄', val: regoPhoto, set: setRegoPhoto }].map(slot => {
+                const fileRef = useRef<HTMLInputElement>(null);
+                const camRef = useRef<HTMLInputElement>(null);
+                const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f) return; const reader = new FileReader(); reader.onload = () => slot.set(reader.result as string); reader.readAsDataURL(f); e.target.value = ''; };
+                return (
+                  <div key={slot.label} style={{ border: `2px solid ${slot.val ? '#86efac' : '#e2e8f0'}`, borderRadius: '12px', overflow: 'hidden', background: slot.val ? '#f0fdf4' : '#f8fafc' }}>
+                    <input ref={camRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
+                    <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+                    {slot.val ? (
+                      <div>
+                        <div style={{ position: 'relative' }}>
+                          <img src={slot.val} alt={slot.label} style={{ width: '100%', height: '160px', objectFit: 'cover', display: 'block' }} />
+                          <button type="button" onClick={() => slot.set(null)} style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '16px' }}>×</button>
+                        </div>
+                        <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>✅</span><span style={{ fontSize: '12px', fontWeight: 500, color: '#16a34a' }}>Uploaded</span>
+                          <button type="button" onClick={() => fileRef.current?.click()} style={{ marginLeft: 'auto', fontSize: '11px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Replace</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '20px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                          <span style={{ fontSize: '24px' }}>{slot.icon}</span>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{slot.label}<span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: 600, color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', padding: '1px 5px' }}>REQUIRED</span></div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>{slot.desc}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button type="button" onClick={() => camRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #01ae42', background: '#fff', color: '#01ae42', fontSize: '12px', cursor: 'pointer' }}>📷 Take photo</button>
+                          <button type="button" onClick={() => fileRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#fff', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>📁 Upload</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </SectionBlock>
           <SectionBlock title="Additional Photos">
             <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" multiple onChange={handlePhotoCapture} style={{ display: 'none' }} />
             <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handlePhotoCapture} style={{ display: 'none' }} />
             <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-              <button type="button" onClick={() => cameraInputRef.current?.click()} disabled={photos.length >= 20}
-                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1.5px dashed #86efac', background: '#f0fdf4', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: photos.length >= 20 ? 'not-allowed' : 'pointer', textAlign: 'center', opacity: photos.length >= 20 ? 0.5 : 1 }}>
-                📷 Take photo
-              </button>
-              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={photos.length >= 20}
-                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#f8fafc', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: photos.length >= 20 ? 'not-allowed' : 'pointer', textAlign: 'center', opacity: photos.length >= 20 ? 0.5 : 1 }}>
-                📁 Upload photo
-              </button>
+              <button type="button" onClick={() => cameraInputRef.current?.click()} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1.5px dashed #86efac', background: '#f0fdf4', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>📷 Take photo</button>
+              <button type="button" onClick={() => fileInputRef.current?.click()} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#f8fafc', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>📁 Upload photo</button>
             </div>
-            {photos.length === 0 && (
+            {photos.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px', border: '1.5px dashed #e2e8f0', borderRadius: '10px', color: '#94a3b8' }}>
                 <div style={{ fontSize: '28px', marginBottom: '6px' }}>📷</div>
-                <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '3px', color: '#64748b' }}>No additional photos yet</div>
-                <div style={{ fontSize: '11px' }}>Take or upload damage, vehicle or scene photos — up to 20</div>
+                <div style={{ fontSize: '13px', color: '#64748b' }}>No additional photos yet</div>
               </div>
-            )}
-            {photos.length > 0 && (
+            ) : (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                   {photos.map((photo, i) => (
-                    <div key={i} style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                    <div key={i} style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
                       <div style={{ position: 'relative' }}>
                         <img src={photo.dataUrl} alt={`Photo ${i + 1}`} style={{ width: '100%', height: '130px', objectFit: 'cover', display: 'block' }} />
-                        <button type="button" onClick={() => removePhoto(i)}
-                          style={{ position: 'absolute', top: '6px', right: '6px', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                        <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.5)', borderRadius: '4px', padding: '2px 7px', fontSize: '10px', color: '#fff', fontWeight: 500 }}>{photo.category}</div>
+                        <button type="button" onClick={() => removePhoto(i)} style={{ position: 'absolute', top: '6px', right: '6px', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '14px' }}>×</button>
+                        <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.5)', borderRadius: '4px', padding: '2px 7px', fontSize: '10px', color: '#fff' }}>{photo.category}</div>
                       </div>
                       <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <select value={photo.category} onChange={e => updatePhotoField(i, 'category', e.target.value)} style={{ ...inp, fontSize: '11px', padding: '5px 8px' }}>
@@ -1069,56 +928,43 @@ export default function CreditHirePage() {
         <>
           <SectionBlock title="Police Report">
             <div style={grid3}>
-              <F label="Report number">
-                <input style={inp} value={policeReportNo} onChange={e => setPoliceReportNo(e.target.value)} placeholder="e.g. E12345678" />
-              </F>
-              <F label="Police station">
-                <input style={inp} value={policeStation} onChange={e => setPoliceStation(e.target.value)} placeholder="e.g. Melbourne Central" />
-              </F>
-              <F label="Officer name">
-                <input style={inp} value={policeOfficerName} onChange={e => setPoliceOfficerName(e.target.value)} />
-              </F>
-              <F label="Officer phone">
-                <input style={inp} value={policeOfficerPhone} onChange={e => setPoliceOfficerPhone(e.target.value)} />
-              </F>
+              <F label="Report number"><input style={inp} value={policeReportNo} onChange={e => setPoliceReportNo(e.target.value)} placeholder="e.g. E12345678" /></F>
+              <F label="Police station"><input style={inp} value={policeStation} onChange={e => setPoliceStation(e.target.value)} /></F>
+              <F label="Officer name"><input style={inp} value={policeOfficerName} onChange={e => setPoliceOfficerName(e.target.value)} /></F>
+              <F label="Officer phone"><input style={inp} value={policeOfficerPhone} onChange={e => setPoliceOfficerPhone(e.target.value)} /></F>
             </div>
           </SectionBlock>
-
           <SectionBlock title="Witness Details">
             <div style={grid3}>
-              <F label="Witness name">
-                <input style={inp} value={witnessName} onChange={e => setWitnessName(e.target.value)} />
-              </F>
-              <F label="Witness phone">
-                <input style={inp} value={witnessPhone} onChange={e => setWitnessPhone(e.target.value)} />
-              </F>
-              <F label="Witness email">
-                <input style={inp} value={witnessEmail} onChange={e => setWitnessEmail(e.target.value)} />
-              </F>
+              <F label="Witness name"><input style={inp} value={witnessName} onChange={e => setWitnessName(e.target.value)} /></F>
+              <F label="Witness phone"><input style={inp} value={witnessPhone} onChange={e => setWitnessPhone(e.target.value)} /></F>
+              <F label="Witness email"><input style={inp} value={witnessEmail} onChange={e => setWitnessEmail(e.target.value)} /></F>
             </div>
           </SectionBlock>
-
           <SectionBlock title="Additional Notes">
-            <textarea
-              style={{ ...inp, height: '120px', resize: 'vertical' }}
-              value={additionalNotes}
-              onChange={e => setAdditionalNotes(e.target.value)}
-              placeholder="Any other relevant details about the accident or claim..."
-            />
+            <textarea style={{ ...inp, height: '120px', resize: 'vertical' }} value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} placeholder="Any other relevant details..." />
           </SectionBlock>
         </>
       )}
 
-      {/* ── Tab 8: Documents ── */}
-      {activeTab === 8 && (
+      {/* ── Tab 8+: Documents or extra tabs ── */}
+      {activeTab >= 8 && extraTabContent && extraTabContent(activeTab)}
+
+      {/* Default Documents tab — rendered if no extra content handles it */}
+      {activeTab === tabs.length - 1 && !extraTabContent && (
         <>
           <SectionBlock title="Authority to Act">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '20px', border: '1.5px dashed #e2e8f0', borderRadius: '10px', background: '#f8fafc' }}>
               <span style={{ fontSize: '28px' }}>📋</span>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginBottom: '3px' }}>Authority to Act</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Available to sign once the reservation is on hire. Customer and accident details will be pre-filled automatically.</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  {r?.status === 'ACTIVE' ? 'Ready to sign — customer details pre-filled.' : 'Available to sign once the reservation is on hire.'}
+                </div>
               </div>
+              {r?.status === 'ACTIVE' && (
+                <button style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Sign now</button>
+              )}
             </div>
           </SectionBlock>
           <SectionBlock title="Rental Agreement">
@@ -1126,24 +972,17 @@ export default function CreditHirePage() {
               <span style={{ fontSize: '28px' }}>📝</span>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginBottom: '3px' }}>Rental Agreement</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Available to sign once the reservation is on hire. Vehicle and hire details will be pre-filled automatically.</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  {r?.status === 'ACTIVE' ? 'Ready to sign — vehicle and hire details pre-filled.' : 'Available to sign once the reservation is on hire.'}
+                </div>
               </div>
+              {r?.status === 'ACTIVE' && (
+                <button style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Sign now</button>
+              )}
             </div>
           </SectionBlock>
         </>
       )}
-
-      {/* Action buttons */}
-      <div style={{ display: 'flex', gap: '10px', paddingBottom: '40px', marginTop: '20px' }}>
-        <button onClick={() => router.push('/dashboard/reservations')}
-          style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>
-          Cancel
-        </button>
-        <button onClick={() => mutation.mutate('PENDING')} disabled={mutation.isPending}
-          style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: mutation.isPending ? 0.7 : 1 }}>
-          {mutation.isPending ? 'Saving...' : 'Create Reservation'}
-        </button>
-      </div>
     </div>
   );
 }
