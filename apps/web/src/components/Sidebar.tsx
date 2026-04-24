@@ -170,7 +170,7 @@ export default function Sidebar() {
         background: isLight ? config.sidebarBottom : config.sidebarBottom,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <UserButton afterSignOutUrl="/sign-in" />
+          <UserButton />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '12px', color: isLight ? '#0f172a' : '#fff', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {user?.firstName || 'User'}
