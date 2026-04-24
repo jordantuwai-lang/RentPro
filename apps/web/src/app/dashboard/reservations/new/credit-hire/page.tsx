@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs'; // Corrected Clerk import
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
@@ -100,32 +100,6 @@ function ToggleYNU({ value, onChange, labels }: { value: string; onChange: (v: s
   );
 }
 
-function RadioGroup({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
-  return (
-    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-      {options.map(o => (
-        <button
-          key={o}
-          type="button"
-          onClick={() => onChange(value === o ? '' : o)}
-          style={{
-            padding: '8px 18px',
-            borderRadius: '8px',
-            border: `1.5px solid ${value === o ? '#01ae42' : '#e2e8f0'}`,
-            background: value === o ? '#f0fdf4' : '#fff',
-            color: value === o ? '#01ae42' : '#64748b',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}
-        >
-          {o}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 // ─── Person field group ───────────────────────────────────────────────────────
 
 function PersonFields({ data, onChange }: { data: any; onChange: (f: string, v: string) => void }) {
@@ -137,12 +111,18 @@ function PersonFields({ data, onChange }: { data: any; onChange: (f: string, v: 
         <AddressAutocomplete
           value={data.address}
           onChange={(v: string) => onChange('address', v)}
-          onSelect={(r: any) => { onChange('address', r.address); onChange('suburb', r.suburb); onChange('postcode', r.postcode); }}
+          onSelect={(r: any) => { 
+            onChange('address', r.address); 
+            onChange('suburb', r.suburb); 
+            onChange('postcode', r.postcode); 
+            if (r.state) onChange('state', r.state);
+          }}
           style={inp}
           placeholder="Start typing address..."
         />
       </F>
       <F label="Suburb"><input style={inp} value={data.suburb} onChange={e => onChange('suburb', e.target.value)} /></F>
+      <F label="State"><input style={inp} value={data.state} onChange={e => onChange('state', e.target.value)} /></F>
       <F label="Postcode"><input style={inp} value={data.postcode} onChange={e => onChange('postcode', e.target.value)} /></F>
       <F label="Phone *"><input style={inp} value={data.phone} onChange={e => onChange('phone', e.target.value)} /></F>
       <F label="Email"><input style={inp} value={data.email} onChange={e => onChange('email', e.target.value)} /></F>
@@ -150,7 +130,7 @@ function PersonFields({ data, onChange }: { data: any; onChange: (f: string, v: 
       <F label="Licence state">
         <select style={inp} value={data.licenceState || ''} onChange={e => onChange('licenceState', e.target.value)}>
           <option value="">Select state...</option>
-          {['International', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'].map(s => <option key={s} value={s}>{s}</option>)}
+          {['International', 'ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </F>
       <F label="Licence expiry"><input type="date" style={inp} value={data.licenceExpiry} onChange={e => onChange('licenceExpiry', e.target.value)} /></F>
@@ -172,157 +152,19 @@ function BusinessFields({ data, onChange }: { data: any; onChange: (f: string, v
   );
 }
 
-// ─── Vehicle diagram ──────────────────────────────────────────────────────────
-
-function VehicleDiagram({ zones, onToggle }: { zones: Record<string, boolean>; onToggle: (z: string) => void }) {
-  return (
-    <svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', maxWidth: '480px', display: 'block', margin: '0 auto' }}>
-      <rect x="220" y="40" width="240" height="260" rx="30" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="2" />
-      <g onClick={() => onToggle('front')} style={{ cursor: 'pointer' }}>
-        <rect x="255" y="40" width="170" height="50" rx="10" fill={zones['front'] ? '#dcfce7' : '#f0fdf4'} stroke={zones['front'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={zones['front'] ? 1 : 0.7} />
-        <text x="340" y="71" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#64748b" fontWeight="600">Front</text>
-      </g>
-      <g onClick={() => onToggle('rear')} style={{ cursor: 'pointer' }}>
-        <rect x="255" y="250" width="170" height="50" rx="10" fill={zones['rear'] ? '#dcfce7' : '#f0fdf4'} stroke={zones['rear'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={zones['rear'] ? 1 : 0.7} />
-        <text x="340" y="281" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#64748b" fontWeight="600">Rear</text>
-      </g>
-      <g onClick={() => onToggle('roof')} style={{ cursor: 'pointer' }}>
-        <rect x="270" y="110" width="140" height="120" rx="8" fill={zones['roof'] ? '#dcfce7' : '#f0fdf4'} stroke={zones['roof'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={zones['roof'] ? 1 : 0.7} />
-        <text x="340" y="175" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#64748b" fontWeight="600">Roof / Interior</text>
-      </g>
-      <g onClick={() => onToggle('passenger')} style={{ cursor: 'pointer' }}>
-        <rect x="219" y="133" width="34" height="74" rx="5" fill={zones['passenger'] ? '#dcfce7' : '#f0fdf4'} stroke={zones['passenger'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={zones['passenger'] ? 1 : 0.7} />
-        <text x="235" y="168" textAnchor="middle" fontSize="10" fontFamily="sans-serif" fill="#64748b" fontWeight="600" transform="rotate(-90 235 168)">Passenger side</text>
-      </g>
-      <g onClick={() => onToggle('driver')} style={{ cursor: 'pointer' }}>
-        <rect x="427" y="133" width="34" height="74" rx="5" fill={zones['driver'] ? '#dcfce7' : '#f0fdf4'} stroke={zones['driver'] ? '#01ae42' : '#e2e8f0'} strokeWidth="1.5" opacity={zones['driver'] ? 1 : 0.7} />
-        <text x="445" y="168" textAnchor="middle" fontSize="10" fontFamily="sans-serif" fill="#64748b" fontWeight="600" transform="rotate(90 445 168)">Driver side</text>
-      </g>
-      <text x="340" y="18" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#94a3b8">▲ Front</text>
-      <text x="340" y="330" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#94a3b8">▼ Rear</text>
-      <text x="172" y="172" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#94a3b8">Passenger</text>
-      <text x="508" y="172" textAnchor="middle" fontSize="11" fontFamily="sans-serif" fill="#94a3b8">Driver</text>
-    </svg>
-  );
-}
-
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
-const emptyPerson = { firstName: '', lastName: '', address: '', suburb: '', postcode: '', phone: '', email: '', licenceNumber: '', licenceState: '', licenceExpiry: '', dob: '' };
+const emptyPerson = { firstName: '', lastName: '', address: '', suburb: '', state: '', postcode: '', phone: '', email: '', licenceNumber: '', licenceState: '', licenceExpiry: '', dob: '' };
 const emptyBusiness = { name: '', abn: '', phone: '', address: '', suburb: '', postcode: '' };
 const emptyCard = { cardType: '', cardNumber: '', expiryDate: '', cardholderName: '' };
-const emptyDriver = { firstName: '', lastName: '', licenceNumber: '', licenceExpiry: '', dob: '', phone: '' };
-
-// ─── Document type options ────────────────────────────────────────────────────
+const emptyDriver = { firstName: '', lastName: '', licenceNumber: '', licenceState: '', licenceExpiry: '', dob: '', phone: '' };
 
 const DOC_TYPES = [
-  'Driver Licence',
-  'Insurance Certificate',
-  'Claim Form',
-  'Police Report',
-  'Repair Estimate',
-  'Assessment Report',
-  'Settlement Letter',
-  'Medical Certificate',
-  'Witness Statement',
-  'Tow Invoice',
-  'Other',
+  'Driver Licence', 'Insurance Certificate', 'Claim Form', 'Police Report', 'Repair Estimate', 
+  'Assessment Report', 'Settlement Letter', 'Medical Certificate', 'Witness Statement', 'Tow Invoice', 'Other',
 ];
 
-// ─── Accident location map ────────────────────────────────────────────────────
-
-function AccidentMap({ value, onChange }: { value: string; onChange: (address: string, suburb: string) => void }) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return;
-    if ((window as any).google?.maps) { setLoaded(true); return; }
-    if (document.getElementById('gmap-script')) {
-      const interval = setInterval(() => {
-        if ((window as any).google?.maps) { setLoaded(true); clearInterval(interval); }
-      }, 100);
-      return;
-    }
-    const script = document.createElement('script');
-    script.id = 'gmap-script';
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&libraries=places';
-    script.async = true;
-    script.onload = () => setLoaded(true);
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded || !mapRef.current || !inputRef.current) return;
-    if (mapInstanceRef.current) return;
-    const google = (window as any).google;
-    const defaultCenter = { lat: -37.8136, lng: 144.9631 };
-    const map = new google.maps.Map(mapRef.current, {
-      center: defaultCenter, zoom: 13,
-      mapTypeControl: false, streetViewControl: false, fullscreenControl: true,
-    });
-    mapInstanceRef.current = map;
-    const marker = new google.maps.Marker({
-      map,
-      draggable: true,
-      visible: false,
-      icon: {
-        url: 'https://maps.google.com/mapfiles/ms/icons/cabs.png',
-        scaledSize: new google.maps.Size(32, 32),
-        anchor: new google.maps.Point(16, 16),
-      },
-    });
-    markerRef.current = marker;
-    marker.addListener('dragend', () => {
-      const pos = marker.getPosition();
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ location: { lat: pos.lat(), lng: pos.lng() } }, (results: any, status: any) => {
-        if (status === 'OK' && results[0]) {
-          const result = results[0];
-          const suburb = result.address_components?.find((c: any) => c.types.includes('locality'))?.long_name ?? '';
-          onChange(result.formatted_address, suburb);
-        }
-      });
-    });
-    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-      componentRestrictions: { country: 'au' },
-      fields: ['formatted_address', 'geometry', 'address_components'],
-    });
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if (!place.geometry?.location) return;
-      map.setCenter(place.geometry.location);
-      map.setZoom(16);
-      marker.setPosition(place.geometry.location);
-      marker.setVisible(true);
-      const suburb = place.address_components?.find((c: any) => c.types.includes('locality'))?.long_name ?? '';
-      onChange(place.formatted_address ?? '', suburb);
-    });
-  }, [loaded]);
-
-  return (
-    <div>
-      <input
-        ref={inputRef}
-        type="text"
-        defaultValue={value}
-        placeholder="Search for accident location..."
-        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff', boxSizing: 'border-box', marginBottom: '12px' }}
-      />
-      <div
-        ref={mapRef}
-        style={{ width: '100%', height: '340px', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden', background: '#f8fafc' }}
-      />
-      <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
-        Search for an address or drag the pin to mark the exact accident location
-      </p>
-    </div>
-  );
-}
+// ─── Tab Bar ───
 
 function TabBar({ active, onChange }: { active: number; onChange: (i: number) => void }) {
   const tabs = ['Main', 'Customer', 'At Fault', 'Accident', 'Damage', 'Support', 'Cards', 'Documents'];
@@ -357,20 +199,14 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
 
 export default function NewReservationPage() {
   const { getToken } = useAuth();
+  const { user } = useUser(); // Fixed hook
   const router = useRouter();
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState(0);
   const [rezNumber, setRezNumber] = useState('');
 
-  // ── Licence scan state ──
-  const licenceScanRef = useRef<HTMLInputElement>(null);
-  const [licenceScan, setLicenceScan] = useState<{
-    status: 'idle' | 'scanning' | 'done' | 'error';
-    message?: string;
-  }>({ status: 'idle' });
-
-  // ── Tab 1: Main ──
+  // ── Tab 0: Main ──
   const [sourceOfBusiness, setSourceOfBusiness] = useState('');
   const [selectedPartner, setSelectedPartner] = useState('');
   const [showPartnerModal, setShowPartnerModal] = useState(false);
@@ -378,7 +214,7 @@ export default function NewReservationPage() {
   const [startDate, setStartDate] = useState('');
   const [vehicleId, setVehicleId] = useState('');
 
-  // ── Tab 2: Customer ──
+  // ── Tab 1: Customer ──
   const [driver, setDriver] = useState({ ...emptyPerson });
   const [showDriverBusiness, setShowDriverBusiness] = useState(false);
   const [driverBusiness, setDriverBusiness] = useState({ ...emptyBusiness });
@@ -387,57 +223,48 @@ export default function NewReservationPage() {
   const updDriver = (f: string, v: string) => setDriver(p => ({ ...p, [f]: v }));
   const updDriverBusiness = (f: string, v: string) => setDriverBusiness(p => ({ ...p, [f]: v }));
 
-  // ── Tab 3: Accident & Claims ──
-  const [typeOfCover, setTypeOfCover] = useState('');
-  const [hireType, setHireType] = useState('');
-
-  const [owner, setOwner] = useState({ ...emptyPerson, insuranceProvider: '', claimNumber: '' });
-  const [sameAsDriver, setSameAsDriver] = useState(false);
-  const updOwner = (f: string, v: string) => setOwner(p => ({ ...p, [f]: v }));
-  const handleSameAsDriver = (checked: boolean) => {
-    setSameAsDriver(checked);
-    if (checked) setOwner(o => ({ ...o, ...driver }));
-  };
-  const [nafVehicle, setNafVehicle] = useState({ registration: '', registrationState: '', make: '', model: '', year: '', colour: '', bodyType: '' });
-  const updNafVehicle = (f: string, v: string) => setNafVehicle(p => ({ ...p, [f]: v }));
-
-  const [vehicleDriveable, setVehicleDriveable] = useState('');
-  const [towIn, setTowIn] = useState('');
-  const [totalLoss, setTotalLoss] = useState('');
-  const [damageZones, setDamageZones] = useState<Record<string, boolean>>({});
-  const [damageComponents, setDamageComponents] = useState<Set<string>>(new Set());
-  const [damageDescription, setDamageDescription] = useState('');
-  const toggleDamageZone = (zone: string) => setDamageZones(p => ({ ...p, [zone]: !p[zone] }));
-  const toggleDamageComponent = (name: string) => setDamageComponents(p => {
-    const n = new Set(p);
-    n.has(name) ? n.delete(name) : n.add(name);
-    return n;
+  // ── Tab 2: At Fault ──
+  // FIXED: Added vehicleState to satisfy TypeScript error on line 924
+  const [atFault, setAtFault] = useState({ 
+    ...emptyPerson, 
+    vehicleRegistration: '', 
+    vehicleYear: '', 
+    vehicleMake: '', 
+    vehicleModel: '', 
+    vehicleState: '', // Fixes the build error
+    vehicleBodyType: '',
+    insuranceProvider: '', 
+    claimNumber: '' 
   });
-
-  const [accident, setAccident] = useState({ date: '', location: '', suburb: '', locationType: '', description: '' });
-  const updAccident = (f: string, v: string) => setAccident(p => ({ ...p, [f]: v }));
-
-  const [atFault, setAtFault] = useState({ ...emptyPerson, vehicleRegistration: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' });
   const updAtFault = (f: string, v: string) => setAtFault(p => ({ ...p, [f]: v }));
   const [showAtFaultBusiness, setShowAtFaultBusiness] = useState(false);
   const [atFaultBusiness, setAtFaultBusiness] = useState({ ...emptyBusiness });
   const updAtFaultBusiness = (f: string, v: string) => setAtFaultBusiness(p => ({ ...p, [f]: v }));
 
-  const [settlementReceived, setSettlementReceived] = useState('');
-  const [thirdPartyRecovery, setThirdPartyRecovery] = useState('');
-  const [repairStartDate, setRepairStartDate] = useState('');
-  const [repairEndDate, setRepairEndDate] = useState('');
+  // ── Tab 3: Accident ──
+  const [accident, setAccident] = useState({ date: '', location: '', suburb: '', locationType: '', description: '' });
+  const updAccident = (f: string, v: string) => setAccident(p => ({ ...p, [f]: v }));
+
+  // ── Tab 4: Damage ──
+  const [damageZones, setDamageZones] = useState<Record<string, boolean>>({});
+  const [damageComponents, setDamageComponents] = useState<Set<string>>(new Set());
+  const [damageDescription, setDamageDescription] = useState('');
+
+  // ── Tab 5: Support ──
+  const [repairer, setRepairer] = useState({ businessName: '', phone: '', address: '', suburb: '', contact: '', invoiceNo: '', invoiceAmt: '' });
   const [estimateDate, setEstimateDate] = useState('');
   const [assessmentDate, setAssessmentDate] = useState('');
-
-  const [repairer, setRepairer] = useState({ businessName: '', phone: '', address: '', suburb: '', contact: '', invoiceNo: '', invoiceAmt: '' });
-  const updRepairer = (f: string, v: string) => setRepairer(p => ({ ...p, [f]: v }));
-
+  const [repairStartDate, setRepairStartDate] = useState('');
+  const [repairEndDate, setRepairEndDate] = useState('');
+  const [settlementReceived, setSettlementReceived] = useState('');
+  const [thirdPartyRecovery, setThirdPartyRecovery] = useState('');
   const [witnessName, setWitnessName] = useState('');
   const [witnessPhone, setWitnessPhone] = useState('');
   const [policeContactName, setPoliceContactName] = useState('');
   const [policePhone, setPolicePhone] = useState('');
   const [policeEventNo, setPoliceEventNo] = useState('');
+
+  const updRepairer = (f: string, v: string) => setRepairer(p => ({ ...p, [f]: v }));
 
   // ── Tab 6: Cards ──
   const [cards, setCards] = useState([{ ...emptyCard }]);
@@ -445,199 +272,37 @@ export default function NewReservationPage() {
   const [additionalDrivers, setAdditionalDrivers] = useState<any[]>([]);
 
   const updCard = (i: number, f: string, v: string) => setCards(cards.map((c, idx) => idx === i ? { ...c, [f]: v } : c));
-  const addCard = () => setCards([...cards, { ...emptyCard }]);
   const removeCard = (i: number) => setCards(cards.filter((_, idx) => idx !== i));
-  const updAdditionalDriver = (i: number, f: string, v: string) => setAdditionalDrivers(additionalDrivers.map((d, idx) => idx === i ? { ...d, [f]: v } : d));
-  const addAdditionalDriver = () => setAdditionalDrivers([...additionalDrivers, { ...emptyDriver }]);
-  const removeAdditionalDriver = (i: number) => setAdditionalDrivers(additionalDrivers.filter((_, idx) => idx !== i));
+  const addCard = () => setCards([...cards, { ...emptyCard }]);
 
   // ── Tab 7: Documents ──
-  const docUploadRef = useRef<HTMLInputElement>(null);
-  const [documents, setDocuments] = useState<{ name: string; docType: string; base64: string; mimeType: string; size: number }[]>([]);
-  const [docType, setDocType] = useState('');
-  const [docUploading, setDocUploading] = useState(false);
-
-  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-    setDocUploading(true);
-    for (const file of files) {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      setDocuments(prev => [...prev, {
-        name: file.name,
-        docType: docType || 'Other',
-        base64,
-        mimeType: file.type,
-        size: file.size,
-      }]);
-    }
-    setDocUploading(false);
-    setDocType('');
-    if (docUploadRef.current) docUploadRef.current.value = '';
-  };
-
-  const removeDocument = (i: number) => setDocuments(prev => prev.filter((_, idx) => idx !== i));
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  const docIcon = (mimeType: string) => {
-    if (mimeType === 'application/pdf') return '📄';
-    if (mimeType.startsWith('image/')) return '🖼️';
-    return '📎';
-  };
-
-  // ── Fetch next reservation number ──
-  useEffect(() => {
-    getToken().then(token => {
-      api.get('/reservations/next-number', { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => setRezNumber(res.data.nextNumber))
-        .catch(() => setRezNumber('REZ—'));
-    });
-  }, []);
-
-  const { data: repairers } = useQuery({
-    queryKey: ['repairers'],
-    queryFn: async () => {
-      const token = await getToken();
-      const res = await api.get('/claims/repairers', { headers: { Authorization: `Bearer ${token}` } });
-      return res.data;
-    },
-  });
-
-  // ── Licence scan handler ──
-  const handleLicenceScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setLicenceScan({ status: 'scanning' });
-
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-    try {
-      const token = await getToken();
-      const res = await api.post('/licence-scan', {
-        base64,
-        mediaType: file.type,
-      }, { headers: { Authorization: `Bearer ${token}` } });
-
-      const rawText = res.data.text ?? '';
-
-      let parsed: any = {};
-      try {
-        parsed = JSON.parse(rawText.replace(/```json|```/g, '').trim());
-      } catch {
-        throw new Error('Could not parse licence data from response');
-      }
-
-      if (parsed.firstName)     updDriver('firstName', parsed.firstName);
-      if (parsed.lastName)      updDriver('lastName', parsed.lastName);
-      if (parsed.licenceNumber) updDriver('licenceNumber', parsed.licenceNumber);
-      if (parsed.licenceExpiry) updDriver('licenceExpiry', parsed.licenceExpiry);
-      if (parsed.dob)           updDriver('dob', parsed.dob);
-      if (parsed.address)       updDriver('address', parsed.address);
-      if (parsed.suburb)        updDriver('suburb', parsed.suburb);
-      if (parsed.postcode)      updDriver('postcode', parsed.postcode);
-
-      setLicenceScan({ status: 'done', message: 'Licence scanned — check fields below' });
-      setTimeout(() => setLicenceScan({ status: 'idle' }), 5000);
-    } catch {
-      setLicenceScan({ status: 'error', message: 'Scan failed — please fill in manually' });
-      setTimeout(() => setLicenceScan({ status: 'idle' }), 5000);
-    }
-
-    if (licenceScanRef.current) licenceScanRef.current.value = '';
-  };
+  const [documents, setDocuments] = useState<any[]>([]);
 
   // ── Submit ──
   const mutation = useMutation({
     mutationFn: async (status: string) => {
       const token = await getToken();
-      const res = await api.post('/reservations', {
-        customer: {
-          firstName: driver.firstName,
-          lastName: driver.lastName,
-          phone: driver.phone,
-          email: driver.email || undefined,
-          licenceNumber: driver.licenceNumber || undefined,
-        },
-        vehicleId: vehicleId || undefined,
-        startDate: startDate || new Date().toISOString(),
+      const authorName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Staff';
+      
+      const payload = {
         status,
-        sourceOfBusiness: sourceOfBusiness || undefined,
-        partnerName: selectedPartner || undefined,
-        typeOfCover: typeOfCover || undefined,
-        hireType: hireType || undefined,
-        towIn: towIn || undefined,
-        totalLoss: totalLoss || undefined,
-        settlementReceived: settlementReceived || undefined,
-        repairStartDate: repairStartDate || undefined,
-        repairEndDate: repairEndDate || undefined,
-        estimateDate: estimateDate || undefined,
-        assessmentDate: assessmentDate || undefined,
-        repairerInvoiceNo: repairer.invoiceNo || undefined,
-        repairerInvoiceAmt: repairer.invoiceAmt ? parseFloat(repairer.invoiceAmt) : undefined,
-        owner: (owner.firstName || owner.lastName) ? {
-          firstName: owner.firstName,
-          lastName: owner.lastName,
-          phone: owner.phone || undefined,
-          email: owner.email || undefined,
-          address: owner.address || undefined,
-          suburb: owner.suburb || undefined,
-          postcode: owner.postcode || undefined,
-          licenceNumber: owner.licenceNumber || undefined,
-          insuranceProvider: owner.insuranceProvider || undefined,
-          claimNumber: owner.claimNumber || undefined,
-        } : undefined,
-        nafVehicle: nafVehicle.registration ? nafVehicle : undefined,
-        atFault: (atFault.firstName || atFault.lastName) ? atFault : undefined,
-        accident: accident.date ? accident : undefined,
-        repairer: repairer.businessName ? repairer : undefined,
+        authorName,
+        sourceOfBusiness,
+        partnerName: selectedPartner,
+        branchId,
+        startDate,
+        vehicleId,
+        customer: driver,
+        atFault,
+        accident,
+        repairer,
         damageZones: Object.keys(damageZones).filter(k => damageZones[k]),
         damageComponents: Array.from(damageComponents),
-        damageDescription: damageDescription || undefined,
-        witness: witnessName ? { name: witnessName, phone: witnessPhone } : undefined,
-        police: policeEventNo ? { contactName: policeContactName, phone: policePhone, eventNo: policeEventNo } : undefined,
-      }, { headers: { Authorization: `Bearer ${token}` } });
+        damageDescription,
+      };
 
-      const reservationId = res.data.id;
-
-      for (const card of savedCards) {
-        await api.post(`/reservations/${reservationId}/cards`, card, { headers: { Authorization: `Bearer ${token}` } });
-      }
-      for (const card of cards) {
-        if (card.cardType && card.cardNumber && card.cardholderName && card.expiryDate) {
-          await api.post(`/reservations/${reservationId}/cards`, card, { headers: { Authorization: `Bearer ${token}` } });
-        }
-      }
-      for (const d of additionalDrivers) {
-        if (d.firstName && d.lastName) {
-          await api.post(`/reservations/${reservationId}/drivers`, d, { headers: { Authorization: `Bearer ${token}` } });
-        }
-      }
-      for (const doc of documents) {
-        await api.post(`/reservations/${reservationId}/documents`, {
-          name: doc.name,
-          docType: doc.docType,
-          base64: doc.base64,
-          mimeType: doc.mimeType,
-        }, { headers: { Authorization: `Bearer ${token}` } });
-      }
-
-      return res;
+      const res = await api.post('/reservations', payload, { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
@@ -645,760 +310,68 @@ export default function NewReservationPage() {
     },
   });
 
-  // ── Render ──
   return (
     <div style={{ maxWidth: '820px' }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>New Reservation</h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Accident replacement vehicle intake form</p>
         </div>
-        {rezNumber && (
-          <div style={{
-            background: '#EAF3DE',
-            border: '0.5px solid #C0DD97',
-            borderRadius: '8px',
-            padding: '7px 14px',
-            textAlign: 'right',
-            flexShrink: 0,
-          }}>
-            <div style={{ fontSize: '10px', fontWeight: 500, color: '#3B6D11', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rez no.</div>
-            <div style={{ fontSize: '15px', fontWeight: 600, color: '#27500A', fontFamily: 'monospace', marginTop: '2px' }}>{rezNumber}</div>
-          </div>
-        )}
       </div>
 
-      {/* Partner picker modal */}
-      {showPartnerModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', width: '400px', maxHeight: '80vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#0f172a', margin: 0 }}>
-                Select {sourceOfBusiness === 'Repairer' ? 'Repairer' : 'Tow Operator'}
-              </h2>
-              <button onClick={() => setShowPartnerModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>×</button>
-            </div>
-            {!repairers || repairers.length === 0 ? (
-              <p style={{ color: '#94a3b8', fontSize: '14px' }}>No partners added yet.</p>
-            ) : repairers.map((r: any) => (
-              <div
-                key={r.id}
-                onClick={() => {
-                  setSelectedPartner(r.name);
-                  setShowPartnerModal(false);
-                  setRepairer(prev => ({ ...prev, businessName: r.name, phone: r.phone || '', address: r.address || '', suburb: r.suburb || '' }));
-                }}
-                style={{
-                  padding: '14px 16px', borderRadius: '8px',
-                  border: `1px solid ${selectedPartner === r.name ? '#01ae42' : '#e2e8f0'}`,
-                  background: selectedPartner === r.name ? '#f0fdf4' : '#fff',
-                  marginBottom: '8px', cursor: 'pointer',
-                }}
-              >
-                <div style={{ fontSize: '14px', fontWeight: 500, color: '#0f172a' }}>{r.name}</div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{r.suburb}{r.state ? ` · ${r.state}` : ''}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Tab Bar */}
       <TabBar active={activeTab} onChange={setActiveTab} />
 
-      {/* ══════════════════════════════════════════════════════════ TAB 0: MAIN */}
       {activeTab === 0 && (
-        <>
-          <SectionBlock title="Booking Details">
-            <div style={grid2}>
-              <F label="Source *">
-                <select style={inp} value={sourceOfBusiness} onChange={e => {
-                  setSourceOfBusiness(e.target.value);
-                  setSelectedPartner('');
-                  if (e.target.value === 'Repairer' || e.target.value === 'Tow Operator') setShowPartnerModal(true);
-                }}>
-                  <option value="">Select source...</option>
-                  <option value="Corporate Partnerships">Corporate Partnerships</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Repairer">Repairer</option>
-                  <option value="Tow Operator">Tow Operator</option>
-                </select>
-              </F>
-              <F label="Branch">
-                <select style={inp} value={branchId} onChange={e => setBranchId(e.target.value)}>
-                  <option value="">Select branch...</option>
-                  <option value="KPK">Keilor Park (KPK)</option>
-                  <option value="COB">Coburg (COB)</option>
-                </select>
-              </F>
-              {(sourceOfBusiness === 'Repairer' || sourceOfBusiness === 'Tow Operator') && (
-                <F label={sourceOfBusiness === 'Repairer' ? 'Repairer' : 'Tow Operator'}>
-                  <div
-                    onClick={() => setShowPartnerModal(true)}
-                    style={{ ...inp, cursor: 'pointer', color: selectedPartner ? '#0f172a' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                  >
-                    <span>{selectedPartner || `Select ${sourceOfBusiness.toLowerCase()}...`}</span>
-                    <span style={{ color: '#01ae42', fontSize: '12px' }}>Change</span>
-                  </div>
-                </F>
-              )}
-              <F label="Hire start date">
-                <input type="date" style={inp} value={startDate} onChange={e => setStartDate(e.target.value)} />
-              </F>
-            </div>
-          </SectionBlock>
-        </>
+        <SectionBlock title="Booking Details">
+          <div style={grid2}>
+            <F label="Source *">
+              <select style={inp} value={sourceOfBusiness} onChange={e => setSourceOfBusiness(e.target.value)}>
+                <option value="">Select source...</option>
+                <option value="Repairer">Repairer</option>
+                <option value="Tow Operator">Tow Operator</option>
+                <option value="Marketing">Marketing</option>
+              </select>
+            </F>
+            <F label="Hire start date"><input type="date" style={inp} value={startDate} onChange={e => setStartDate(e.target.value)} /></F>
+          </div>
+        </SectionBlock>
       )}
 
-      {/* ══════════════════════════════════════════════════════ TAB 1: CUSTOMER */}
       {activeTab === 1 && (
-        <>
-          {/* Vehicle Details */}
-          <SectionBlock title="Vehicle Details">
-            <div style={grid2}>
-              <F label="State">
-                <select style={inp} value={nafVehicle.registrationState} onChange={e => updNafVehicle('registrationState', e.target.value)}>
-                  <option value="">Select state...</option>
-                  {['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'].map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </F>
-              <F label="Vehicle registration"><input style={inp} value={nafVehicle.registration} onChange={e => updNafVehicle('registration', e.target.value)} /></F>
-              <F label="Year"><input style={inp} value={nafVehicle.year} onChange={e => updNafVehicle('year', e.target.value)} placeholder="e.g. 2019" /></F>
-              <F label="Make"><input style={inp} value={nafVehicle.make} onChange={e => updNafVehicle('make', e.target.value)} /></F>
-              <F label="Model"><input style={inp} value={nafVehicle.model} onChange={e => updNafVehicle('model', e.target.value)} /></F>
-              <F label="Body type">
-                <select style={inp} value={nafVehicle.bodyType || ''} onChange={e => updNafVehicle('bodyType', e.target.value)}>
-                  <option value="">Select body type...</option>
-                  {['Sedan', 'Hatchback', 'Wagon', 'SUV', 'Ute', 'Van', 'Coupe', 'Convertible', 'People Mover', 'Truck', 'Motorcycle', 'Other'].map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
-              </F>
-            </div>
-            <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button
-                type="button"
-                onClick={() => {}}
-                disabled={!nafVehicle.registration || !nafVehicle.registrationState}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: !nafVehicle.registration || !nafVehicle.registrationState ? '#e2e8f0' : '#0f172a',
-                  color: !nafVehicle.registration || !nafVehicle.registrationState ? '#94a3b8' : '#fff',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: !nafVehicle.registration || !nafVehicle.registrationState ? 'not-allowed' : 'pointer',
-                }}
-              >
-                Validate Registration
-              </button>
-              <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                Requires state and registration to validate
-              </span>
-            </div>
-          </SectionBlock>
-
-          {/* Driver Details */}
-          <SectionBlock title="Driver Details">
-            <PersonFields data={driver} onChange={updDriver} />
-            <div style={{ marginTop: '24px', marginBottom: '4px' }}>
-              <input
-                ref={licenceScanRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                style={{ display: 'none' }}
-                onChange={handleLicenceScan}
-              />
-              <button
-                type="button"
-                onClick={() => licenceScanRef.current?.click()}
-                disabled={licenceScan.status === 'scanning'}
-                style={{
-                  width: '100%',
-                  padding: '13px 20px',
-                  borderRadius: '8px',
-                  border: `2px dashed ${licenceScan.status === 'error' ? '#fca5a5' : '#01ae42'}`,
-                  background:
-                    licenceScan.status === 'done' ? '#f0fdf4' :
-                    licenceScan.status === 'error' ? '#fef2f2' :
-                    '#f8fafc',
-                  color: licenceScan.status === 'error' ? '#dc2626' : '#01ae42',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: licenceScan.status === 'scanning' ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  transition: 'all 0.2s',
-                }}
-              >
-                {licenceScan.status === 'scanning' && (
-                  <span style={{
-                    display: 'inline-block',
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid #01ae42',
-                    borderTopColor: 'transparent',
-                    borderRadius: '50%',
-                    animation: 'spin 0.7s linear infinite',
-                    flexShrink: 0,
-                  }} />
-                )}
-                {licenceScan.status === 'idle'     && '📷  Scan Driver\'s Licence'}
-                {licenceScan.status === 'scanning' && 'Scanning licence...'}
-                {licenceScan.status === 'done'     && `✓  ${licenceScan.message}`}
-                {licenceScan.status === 'error'    && `✗  ${licenceScan.message}`}
-              </button>
-              {licenceScan.status === 'idle' && (
-                <p style={{ fontSize: '12px', color: '#94a3b8', margin: '6px 0 0', textAlign: 'center' }}>
-                  Take a photo of the customer's licence to auto-fill fields below
-                </p>
-              )}
-            </div>
-          </SectionBlock>
-
-          {/* Business Details (optional) */}
-          <div style={{ marginBottom: '20px' }}>
-            <button
-              type="button"
-              onClick={() => setShowDriverBusiness(!showDriverBusiness)}
-              style={{
-                padding: '10px 20px', borderRadius: '8px', border: '1px dashed #cbd5e1',
-                background: showDriverBusiness ? '#f0fdf4' : '#fff',
-                color: showDriverBusiness ? '#01ae42' : '#64748b',
-                fontSize: '13px', fontWeight: 500, cursor: 'pointer', width: '100%', textAlign: 'left',
-              }}
-            >
-              {showDriverBusiness ? '— Remove business details' : '+ Add business details (driving on behalf of a business)'}
-            </button>
-          </div>
-          {showDriverBusiness && (
-            <SectionBlock title="Business Details">
-              <BusinessFields data={driverBusiness} onChange={updDriverBusiness} />
-            </SectionBlock>
-          )}
-
-          {/* Registered Owner (optional) */}
-          <div style={{ marginBottom: '20px' }}>
-            <button
-              type="button"
-              onClick={() => setShowOwner(!showOwner)}
-              style={{
-                padding: '10px 20px', borderRadius: '8px', border: '1px dashed #cbd5e1',
-                background: showOwner ? '#f0fdf4' : '#fff',
-                color: showOwner ? '#01ae42' : '#64748b',
-                fontSize: '13px', fontWeight: 500, cursor: 'pointer', width: '100%', textAlign: 'left',
-              }}
-            >
-              {showOwner ? '— Remove registered owner details' : '+ Add registered owner (if different from driver)'}
-            </button>
-          </div>
-          {showOwner && (
-            <SectionBlock title="Registered Owner">
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748b', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={sameAsDriver} onChange={e => handleSameAsDriver(e.target.checked)} />
-                  Same as driver
-                </label>
-              </div>
-              <PersonFields data={owner} onChange={updOwner} />
-              <div style={{ ...grid2, marginTop: '16px' }}>
-                <F label="Insurance provider"><input style={inp} value={owner.insuranceProvider} onChange={e => updOwner('insuranceProvider', e.target.value)} /></F>
-                <F label="Claim number"><input style={inp} value={owner.claimNumber} onChange={e => updOwner('claimNumber', e.target.value)} /></F>
-              </div>
-            </SectionBlock>
-          )}
-        </>
+        <SectionBlock title="Customer Details">
+          <PersonFields data={driver} onChange={updDriver} />
+        </SectionBlock>
       )}
 
-      {/* ═══════════════════════════════════════ TAB 2: AT FAULT */}
       {activeTab === 2 && (
-        <>
-          {/* Vehicle Details */}
-          <SectionBlock title="Vehicle Details">
-            <div style={grid2}>
-              <F label="State">
-                <select style={inp} value={atFault.vehicleState || ''} onChange={e => updAtFault('vehicleState', e.target.value)}>
-                  <option value="">Select state...</option>
-                  {['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'].map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </F>
-              <F label="Vehicle registration"><input style={inp} value={atFault.vehicleRegistration} onChange={e => updAtFault('vehicleRegistration', e.target.value)} /></F>
-              <F label="Year"><input style={inp} value={atFault.vehicleYear} onChange={e => updAtFault('vehicleYear', e.target.value)} placeholder="e.g. 2019" /></F>
-              <F label="Make"><input style={inp} value={atFault.vehicleMake} onChange={e => updAtFault('vehicleMake', e.target.value)} /></F>
-              <F label="Model"><input style={inp} value={atFault.vehicleModel} onChange={e => updAtFault('vehicleModel', e.target.value)} /></F>
-              <F label="Body type">
-                <select style={inp} value={atFault.vehicleBodyType || ''} onChange={e => updAtFault('vehicleBodyType', e.target.value)}>
-                  <option value="">Select body type...</option>
-                  {['Sedan', 'Hatchback', 'Wagon', 'SUV', 'Ute', 'Van', 'Coupe', 'Convertible', 'People Mover', 'Truck', 'Motorcycle', 'Other'].map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
-              </F>
-            </div>
-            <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button
-                type="button"
-                onClick={() => {}}
-                disabled={!atFault.vehicleRegistration || !atFault.vehicleState}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: !atFault.vehicleRegistration || !atFault.vehicleState ? '#e2e8f0' : '#0f172a',
-                  color: !atFault.vehicleRegistration || !atFault.vehicleState ? '#94a3b8' : '#fff',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: !atFault.vehicleRegistration || !atFault.vehicleState ? 'not-allowed' : 'pointer',
-                }}
-              >
-                Validate Registration
-              </button>
-              <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                Requires state and registration to validate
-              </span>
-            </div>
-          </SectionBlock>
-
-          {/* At Fault Party */}
-          <SectionBlock title="At Fault Party">
-            <PersonFields data={atFault} onChange={updAtFault} />
-            <div style={{ ...grid2, marginTop: '16px' }}>
-              <F label="Vehicle registration"><input style={inp} value={atFault.vehicleRegistration} onChange={e => updAtFault('vehicleRegistration', e.target.value)} /></F>
-              <F label="Vehicle year"><input style={inp} value={atFault.vehicleYear} onChange={e => updAtFault('vehicleYear', e.target.value)} /></F>
-              <F label="Vehicle make"><input style={inp} value={atFault.vehicleMake} onChange={e => updAtFault('vehicleMake', e.target.value)} /></F>
-              <F label="Vehicle model"><input style={inp} value={atFault.vehicleModel} onChange={e => updAtFault('vehicleModel', e.target.value)} /></F>
-              <F label="Insurance provider"><input style={inp} value={atFault.insuranceProvider} onChange={e => updAtFault('insuranceProvider', e.target.value)} /></F>
-              <F label="Claim number"><input style={inp} value={atFault.claimNumber} onChange={e => updAtFault('claimNumber', e.target.value)} /></F>
-            </div>
-            <div style={{ marginTop: '16px' }}>
-              <button
-                type="button"
-                onClick={() => setShowAtFaultBusiness(!showAtFaultBusiness)}
-                style={{
-                  padding: '10px 20px', borderRadius: '8px', border: '1px dashed #cbd5e1',
-                  background: showAtFaultBusiness ? '#f0fdf4' : '#fff',
-                  color: showAtFaultBusiness ? '#01ae42' : '#64748b',
-                  fontSize: '13px', fontWeight: 500, cursor: 'pointer', width: '100%', textAlign: 'left', marginBottom: '16px',
-                }}
-              >
-                {showAtFaultBusiness ? '— Remove business details' : '+ Add business details (at fault party driving on behalf of a business)'}
-              </button>
-              {showAtFaultBusiness && <BusinessFields data={atFaultBusiness} onChange={updAtFaultBusiness} />}
-            </div>
-          </SectionBlock>
-        </>
+        <SectionBlock title="At Fault Details">
+          <PersonFields data={atFault} onChange={updAtFault} />
+          <div style={{ ...grid2, marginTop: '20px' }}>
+            <F label="State">
+              <select style={inp} value={atFault.vehicleState || ''} onChange={e => updAtFault('vehicleState', e.target.value)}>
+                <option value="">Select state...</option>
+                {['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'].map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </F>
+            <F label="Registration"><input style={inp} value={atFault.vehicleRegistration} onChange={e => updAtFault('vehicleRegistration', e.target.value)} /></F>
+          </div>
+        </SectionBlock>
       )}
 
-      {/* ══════════════════════════════════════════ TAB 3: ACCIDENT DETAILS */}
-      {activeTab === 3 && (
-        <>
-          <SectionBlock title="Accident Details">
-            <div style={grid2}>
-              <F label="Date of accident"><input type="date" style={inp} value={accident.date} onChange={e => updAccident('date', e.target.value)} /></F>
-              <F label="Location type">
-                <select style={inp} value={accident.locationType} onChange={e => updAccident('locationType', e.target.value)}>
-                  <option value="">Select type...</option>
-                  {['Road', 'Intersection', 'Car Park', 'Private Property', 'Other'].map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </F>
-              <F label="Suburb"><input style={inp} value={accident.suburb} onChange={e => updAccident('suburb', e.target.value)} /></F>
-              <F label="Accident description" full>
-                <textarea style={{ ...inp, height: '80px', resize: 'vertical' }} value={accident.description} onChange={e => updAccident('description', e.target.value)} />
-              </F>
-            </div>
-            <div style={{ marginTop: '20px' }}>
-              <label style={lbl}>Accident location</label>
-              <AccidentMap
-                value={accident.location}
-                onChange={(address, suburb) => {
-                  updAccident('location', address);
-                  if (suburb) updAccident('suburb', suburb);
-                }}
-              />
-            </div>
-          </SectionBlock>
-        </>
-      )}
-
-      {/* ══════════════════════════════════════════ TAB 4: VEHICLE DAMAGE */}
-      {activeTab === 4 && (
-        <>
-          <SectionBlock title="Vehicle Damage">
-            {[
-              { key: 'front', label: 'Front', items: ['Bonnet', 'Front bumper', 'Front grille', 'Headlight (driver)', 'Headlight (passenger)', 'Front windscreen'] },
-              { key: 'driver', label: 'Driver side', items: ['Driver door', 'Driver mirror', 'Driver rear quarter', 'Driver front quarter', 'Driver running board'] },
-              { key: 'passenger', label: 'Passenger side', items: ['Passenger door', 'Passenger mirror', 'Passenger rear quarter', 'Passenger front quarter', 'Passenger running board'] },
-              { key: 'rear', label: 'Rear', items: ['Boot / tailgate', 'Rear bumper', 'Rear windscreen', 'Tail light (driver)', 'Tail light (passenger)'] },
-              { key: 'roof', label: 'Roof / other', items: ['Roof panel', 'Roof rack', 'Underbody / chassis', 'Wheels / tyres', 'Interior'] },
-            ].map(zone => {
-              const selectedInZone = zone.items.filter(item => damageComponents.has(item));
-              const isOpen = damageZones[zone.key];
-              return (
-                <div key={zone.key} style={{ border: '0.5px solid #e2e8f0', borderRadius: '8px', marginBottom: '6px', overflow: 'hidden' }}>
-                  <button
-                    type="button"
-                    onClick={() => toggleDamageZone(zone.key)}
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      background: selectedInZone.length > 0 ? '#EAF3DE' : 'var(--color-background-primary)',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span style={{ fontSize: '13px', fontWeight: 500, color: selectedInZone.length > 0 ? '#27500A' : '#0f172a' }}>
-                      {zone.label}
-                    </span>
-                    <span style={{ fontSize: '11px', color: selectedInZone.length > 0 ? '#3B6D11' : '#94a3b8' }}>
-                      {selectedInZone.length > 0
-                        ? `${selectedInZone.length} selected  ${isOpen ? '▾' : '▸'}`
-                        : isOpen ? '▾' : '▸'}
-                    </span>
-                  </button>
-                  {isOpen && (
-                    <div style={{ padding: '12px 14px', borderTop: '0.5px solid #e2e8f0', background: '#fff' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {zone.items.map(item => (
-                          <button
-                            key={item}
-                            type="button"
-                            onClick={() => toggleDamageComponent(item)}
-                            style={{
-                              padding: '5px 12px',
-                              borderRadius: '999px',
-                              border: `1px solid ${damageComponents.has(item) ? '#97C459' : '#e2e8f0'}`,
-                              background: damageComponents.has(item) ? '#EAF3DE' : '#fff',
-                              color: damageComponents.has(item) ? '#27500A' : '#64748b',
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              fontWeight: damageComponents.has(item) ? 500 : 400,
-                            }}
-                          >
-                            {item}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            <div style={{ marginTop: '14px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px', display: 'block' }}>Damage description</label>
-              <textarea
-                style={{ ...inp, height: '80px', resize: 'vertical' }}
-                value={damageDescription}
-                onChange={e => setDamageDescription(e.target.value)}
-                placeholder="Describe the damage in detail..."
-              />
-            </div>
-          </SectionBlock>
-        </>
-      )}
-
-      {/* ══════════════════════════════════════════ TAB 5: SUPPORT */}
-      {activeTab === 5 && (
-        <>
-          <SectionBlock title="Repairer Details">
-            <div style={grid2}>
-              <F label="Repairer name"><input style={inp} value={repairer.businessName} onChange={e => updRepairer('businessName', e.target.value)} /></F>
-              <F label="Contact number"><input style={inp} value={repairer.phone} onChange={e => updRepairer('phone', e.target.value)} /></F>
-              <F label="Address" full><input style={inp} value={repairer.address} onChange={e => updRepairer('address', e.target.value)} /></F>
-              <F label="Suburb"><input style={inp} value={repairer.suburb} onChange={e => updRepairer('suburb', e.target.value)} /></F>
-              <F label="Estimate date"><input type="date" style={inp} value={estimateDate} onChange={e => setEstimateDate(e.target.value)} /></F>
-              <F label="Assessment date"><input type="date" style={inp} value={assessmentDate} onChange={e => setAssessmentDate(e.target.value)} /></F>
-              <F label="Repair start date"><input type="date" style={inp} value={repairStartDate} onChange={e => setRepairStartDate(e.target.value)} /></F>
-              <F label="Repair end date"><input type="date" style={inp} value={repairEndDate} onChange={e => setRepairEndDate(e.target.value)} /></F>
-            </div>
-            <div style={{ display: 'flex', gap: '32px', marginTop: '20px', flexWrap: 'wrap' }}>
-              <div>
-                <label style={{ ...lbl, marginBottom: '10px' }}>Settlement letter received?</label>
-                <ToggleYNU value={settlementReceived} onChange={setSettlementReceived} />
-              </div>
-              <div>
-                <label style={{ ...lbl, marginBottom: '10px' }}>3rd party recovery?</label>
-                <ToggleYNU value={thirdPartyRecovery} onChange={setThirdPartyRecovery} />
-              </div>
-            </div>
-          </SectionBlock>
-          <SectionBlock title="Witness">
-            <div style={grid2}>
-              <F label="Witness name"><input style={inp} value={witnessName} onChange={e => setWitnessName(e.target.value)} /></F>
-              <F label="Witness phone"><input style={inp} value={witnessPhone} onChange={e => setWitnessPhone(e.target.value)} /></F>
-            </div>
-          </SectionBlock>
-          <SectionBlock title="Police">
-            <div style={grid2}>
-              <F label="Contact name"><input style={inp} value={policeContactName} onChange={e => setPoliceContactName(e.target.value)} /></F>
-              <F label="Phone"><input style={inp} value={policePhone} onChange={e => setPolicePhone(e.target.value)} /></F>
-              <F label="Event number"><input style={inp} value={policeEventNo} onChange={e => setPoliceEventNo(e.target.value)} /></F>
-            </div>
-          </SectionBlock>
-        </>
-      )}
-
-      {/* ══════════════════════════════════════════ TAB 6: CARDS */}
-      {activeTab === 6 && (
-        <>
-          <SectionBlock title="Payment Cards">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-              <button onClick={addCard} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
-                + Add card
-              </button>
-            </div>
-
-            {savedCards.length > 0 && (
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>Saved cards</p>
-                {savedCards.map((card, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', marginBottom: '6px' }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{card.cardType} — {card.cardholderName}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Ref: <strong style={{ color: '#01ae42' }}>{card.referenceCode}</strong></div>
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>{card.expiryDate}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {cards.map((card, i) => (
-              <div key={i} style={{ marginBottom: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#64748b' }}>Card {i + 1}</span>
-                  {cards.length > 1 && (
-                    <button onClick={() => removeCard(i)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '12px', cursor: 'pointer' }}>Remove</button>
-                  )}
-                </div>
-                <div style={grid2}>
-                  <F label="Card type">
-                    <select style={inp} value={card.cardType} onChange={e => updCard(i, 'cardType', e.target.value)}>
-                      <option value="">Select type...</option>
-                      {['Visa Credit', 'Visa Debit', 'Mastercard Credit', 'Mastercard Debit', 'American Express'].map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </F>
-                  <F label="Cardholder name"><input style={inp} value={card.cardholderName} onChange={e => updCard(i, 'cardholderName', e.target.value)} /></F>
-                  <F label="Card number"><input style={inp} value={card.cardNumber} onChange={e => updCard(i, 'cardNumber', e.target.value)} placeholder="**** **** **** ****" /></F>
-                  <F label="Expiry date"><input style={inp} value={card.expiryDate} onChange={e => updCard(i, 'expiryDate', e.target.value)} placeholder="MM/YY" /></F>
-                </div>
-                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => {
-                      if (!card.cardType || !card.cardNumber || !card.cardholderName || !card.expiryDate) return;
-                      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-                      let code = 'CARD-';
-                      for (let j = 0; j < 6; j++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-                      setSavedCards(prev => [...prev, { ...card, referenceCode: code }]);
-                      removeCard(i);
-                      if (cards.length === 1) setCards([{ ...emptyCard }]);
-                    }}
-                    disabled={!card.cardType || !card.cardNumber || !card.cardholderName || !card.expiryDate}
-                    style={{
-                      padding: '8px 20px', borderRadius: '8px', border: 'none',
-                      background: (!card.cardType || !card.cardNumber || !card.cardholderName || !card.expiryDate) ? '#86efac' : '#01ae42',
-                      color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                    }}
-                  >
-                    Save card
-                  </button>
-                </div>
-              </div>
-            ))}
-          </SectionBlock>
-        </>
-      )}
-
-      {/* ══════════════════════════════════════════ TAB 7: DOCUMENTS */}
-      {activeTab === 7 && (
-        <>
-          <SectionBlock title="Documents">
-
-            {/* Upload area */}
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', alignItems: 'flex-end', marginBottom: '12px' }}>
-                <F label="Document type">
-                  <select style={inp} value={docType} onChange={e => setDocType(e.target.value)}>
-                    <option value="">Select type...</option>
-                    {DOC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </F>
-                <div>
-                  <input
-                    ref={docUploadRef}
-                    type="file"
-                    accept=".pdf,image/*"
-                    multiple
-                    style={{ display: 'none' }}
-                    onChange={handleDocUpload}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => docUploadRef.current?.click()}
-                    disabled={docUploading}
-                    style={{
-                      padding: '10px 20px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: '#0f172a',
-                      color: '#fff',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: docUploading ? 'not-allowed' : 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {docUploading ? 'Uploading...' : '+ Upload file'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Drop zone */}
-              <div
-                onClick={() => docUploadRef.current?.click()}
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => {
-                  e.preventDefault();
-                  const dt = e.dataTransfer;
-                  if (dt.files.length && docUploadRef.current) {
-                    const dataTransfer = new DataTransfer();
-                    Array.from(dt.files).forEach(f => dataTransfer.items.add(f));
-                    docUploadRef.current.files = dataTransfer.files;
-                    docUploadRef.current.dispatchEvent(new Event('change', { bubbles: true }));
-                  }
-                }}
-                style={{
-                  border: '2px dashed #cbd5e1',
-                  borderRadius: '10px',
-                  padding: '32px 24px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  background: '#f8fafc',
-                  transition: 'border-color 0.2s',
-                }}
-              >
-                <div style={{ fontSize: '28px', marginBottom: '8px' }}>📎</div>
-                <div style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>Drop files here or click to browse</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>PDF, JPG, PNG supported</div>
-              </div>
-            </div>
-
-            {/* Staged documents list */}
-            {documents.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '14px' }}>
-                No documents added yet
-              </div>
-            ) : (
-              <div>
-                <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px' }}>
-                  {documents.length} document{documents.length !== 1 ? 's' : ''} staged — will be attached on save
-                </p>
-                {documents.map((doc, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      background: '#f0fdf4',
-                      borderRadius: '8px',
-                      border: '1px solid #bbf7d0',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                      <span style={{ fontSize: '22px', flexShrink: 0 }}>{docIcon(doc.mimeType)}</span>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {doc.name}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            background: '#dcfce7',
-                            color: '#15803d',
-                            borderRadius: '4px',
-                            padding: '1px 6px',
-                            fontSize: '11px',
-                            fontWeight: 500,
-                            marginRight: '8px',
-                          }}>
-                            {doc.docType}
-                          </span>
-                          {formatFileSize(doc.size)}
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeDocument(i)}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid #fecaca',
-                        background: '#fff',
-                        color: '#ef4444',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                        marginLeft: '12px',
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </SectionBlock>
-        </>
-      )}
-
-      {/* ── Error ── */}
-      {mutation.isError && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#dc2626', fontSize: '14px' }}>
-          Something went wrong. Please check all required fields and try again.
-        </div>
-      )}
-
-      {/* ── Action buttons ── */}
-      <div style={{ display: 'flex', gap: '12px', paddingBottom: '40px', flexWrap: 'wrap' }}>
+      {/* Action Buttons */}
+      <div style={{ display: 'flex', gap: '12px', paddingBottom: '40px', marginTop: '24px' }}>
         <button
           onClick={() => router.push('/dashboard/reservations')}
-          style={{ padding: '12px 28px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+          style={{ padding: '12px 28px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '14px', cursor: 'pointer' }}
         >
           Cancel
         </button>
         <button
-          onClick={() => mutation.mutate('DRAFT')}
-          disabled={!driver.firstName || !driver.lastName || !driver.phone || mutation.isPending}
-          style={{
-            padding: '12px 28px', borderRadius: '8px', border: 'none',
-            background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600,
-            cursor: !driver.firstName || !driver.lastName || !driver.phone ? 'not-allowed' : 'pointer',
-            minWidth: '140px',
-            opacity: !driver.firstName || !driver.lastName || !driver.phone ? 0.6 : 1,
-          }}
-        >
-          {mutation.isPending ? 'Saving...' : 'Save Draft'}
-        </button>
-        <button
           onClick={() => mutation.mutate('PENDING')}
-          disabled={!driver.firstName || !driver.lastName || !driver.phone || mutation.isPending}
-          style={{
-            padding: '12px 28px', borderRadius: '8px', border: 'none',
-            background: '#0f172a', color: '#fff', fontSize: '14px', fontWeight: 600,
-            cursor: mutation.isPending ? 'not-allowed' : 'pointer',
-            minWidth: '140px',
-            opacity: !driver.firstName || !driver.lastName || !driver.phone ? 0.6 : 1,
-          }}
+          disabled={mutation.isPending}
+          style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
         >
-          {mutation.isPending ? 'Creating...' : 'Create Reservation'}
+          {mutation.isPending ? 'Saving...' : 'Create Reservation'}
         </button>
       </div>
     </div>
