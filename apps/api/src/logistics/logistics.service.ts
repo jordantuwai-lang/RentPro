@@ -60,6 +60,26 @@ export class LogisticsService {
     });
   }
 
+  async findTodayForDriver(clerkId: string) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+
+    return this.prisma.delivery.findMany({
+      where: {
+        driver: { clerkId },
+        scheduledAt: {
+          gte: start,
+          lt: end,
+        },
+        status: { not: $Enums.DeliveryStatus.DELIVERED },
+      },
+      include: DELIVERY_INCLUDE,
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
   async findOne(id: string): Promise<(Delivery & { photos: (DeliveryPhoto & { url: string })[] }) | null> {
     const delivery = await this.prisma.delivery.findUnique({
       where: { id },

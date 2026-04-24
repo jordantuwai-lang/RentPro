@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Req, Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { LogisticsService } from './logistics.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -30,13 +30,17 @@ export class LogisticsController {
     return this.logisticsService.findAll(branchId);
   }
 
-  @Get('today')
+    @Get('today')
   @Roles(...ALL_STAFF)
-  getToday(@Query('branchId') branchId?: string) {
+  async getToday(@Req() req: any, @Query('branchId') branchId?: string) {
+    const user = req.user;
+    if (user && (user.role === 'DRIVER' || user.role === 'CSE_DRIVER')) {
+      return this.logisticsService.findTodayForDriver(user.clerkId);
+    }
     return this.logisticsService.findToday(branchId);
   }
 
-  @Post('bulk-assign')
+@Post('bulk-assign')
   @Roles(...OPS_ROLES)
   bulkAssign(@Body() body: BulkAssignDriverDto) {
     return this.logisticsService.bulkAssignDriver(body.jobIds, body.driverId);

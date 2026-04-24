@@ -1,9 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, RefreshControl, ActivityIndicator, Alert,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useEffect } from 'react';
 import api from '../api';
 import { logout } from '../auth';
 import { stopLocationTracking } from '../tasks/locationTask';
@@ -55,11 +55,9 @@ export default function JobsScreen({ user, onLogout, onSelectJob }: Props) {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchJobs();
-    }, [])
-  );
+  useEffect(() => {
+    fetchJobs();
+  }, []);
 
   const handleLogout = async () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
