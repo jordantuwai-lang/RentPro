@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useBranch } from '@/context/BranchContext';
 import api from '@/lib/api';
 
 export default function SelectBranchPage() {
-  const { getToken, isLoaded, user } = useAuth();
+  const { getToken, isLoaded } = useAuth(); const { user } = useUser();
   const router = useRouter();
   const { setSelectedBranch } = useBranch();
   const [selectedId, setSelectedId] = useState('');
