@@ -130,5 +130,10 @@ export class ReservationsController {
   getLicencePhoto(@Param('id') id: string) {
     return this.reservationsService.getLicencePhoto(id);
   }
+
+  @Post(':id/schedule')
+addToSchedule(@Param('id') id: string, @Body() body: any) {
+  return this.reservationsService.addToSchedule(id, body);
+}
 }
 

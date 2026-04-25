@@ -515,4 +515,37 @@ export class ReservationsService {
     });
     return { licencePhotoUrl: reservation?.licencePhotoUrl || null };
   }
+  async addToSchedule(reservationId: string, body: {
+    scheduledAt: string;
+    jobType: string;
+    address: string;
+    suburb: string;
+    postcode?: string;
+    driverId?: string;
+  }) {
+    const { scheduledAt, jobType, address, suburb, postcode, driverId } = body;
+  
+    return this.prisma.delivery.upsert({
+      where: { reservationId },
+      create: {
+        reservationId,
+        scheduledAt: new Date(scheduledAt),
+        jobType: jobType as any,
+        address,
+        suburb,
+        postcode: postcode || '',
+        status: 'SCHEDULED',
+        driverId: driverId || null,
+      },
+      update: {
+        scheduledAt: new Date(scheduledAt),
+        jobType: jobType as any,
+        address,
+        suburb,
+        postcode: postcode || '',
+        status: 'SCHEDULED',
+        driverId: driverId || null,
+      },
+    });
+  }
 }
