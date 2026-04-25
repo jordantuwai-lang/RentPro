@@ -1,10 +1,12 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
+import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library';
+
 
 const inp: React.CSSProperties = {
   width: '100%', padding: '8px 10px', borderRadius: '8px',
@@ -630,7 +632,7 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
-const emptyPerson = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', licenceNumber: '', licenceState: '', licenceExpiry: '', dob: '' };
+const emptyPerson = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', licenceNumber: '', licenceState: '', licenceExpiry: '', dob: '', insuranceProvider: '', claimNumber: '' };
 const emptyAtFault = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', vehicleRegistration: '', vehicleState: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' };
 const emptyOtherParty = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', vehicleRegistration: '', vehicleState: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' };
 
@@ -648,6 +650,7 @@ export default function CreditHirePage() {
   // Tab 0 — Main
   const [sourceOfBusiness, setSourceOfBusiness] = useState('');
   const [startDate, setStartDate] = useState('');
+  const [partnerName, setPartnerName] = useState('');
 
   // Tab 1 — Customer
   const [driver, setDriver] = useState({ ...emptyPerson });
@@ -658,6 +661,111 @@ export default function CreditHirePage() {
   const [nafVehicleYear, setNafVehicleYear] = useState('');
   const [nafVehicleBodyType, setNafVehicleBodyType] = useState('');
   const [validating, setValidating] = useState(false);
+  const [scanning, setScanning] = useState(false);
+const [scanError, setScanError] = useState('');
+const videoRef = useRef<HTMLVideoElement>(null);
+const scannerRef = useRef<any>(null);
+
+const stopScanner = () => {
+  if (scannerRef.current) {
+    scannerRef.current.reset();
+    scannerRef.current = null;
+  }
+  setScanning(false);
+  setScanError('');
+};
+
+const parseAusLicence = (raw: string) => {
+  // Australian PDF417 licences use AAMVA format or state-specific formats
+  // Most states encode as tab or newline delimited fields
+  const lines = raw.split(/[\n\r\t]+/).map(l => l.trim()).filter(Boolean);
+  const result: Record<string, string> = {};
+
+  // Try AAMVA format first (used by most states)
+  if (raw.includes('ANSI ') || raw.includes('AAMVA')) {
+    const dcs = raw.match(/DCS([^\n\r]+)/)?.[1]?.trim(); // last name
+    const dac = raw.match(/DAC([^\n\r]+)/)?.[1]?.trim(); // first name
+    const dad = raw.match(/DAD([^\n\r]+)/)?.[1]?.trim(); // middle name
+    const dbb = raw.match(/DBB([^\n\r]+)/)?.[1]?.trim(); // DOB MMDDYYYY
+    const dag = raw.match(/DAG([^\n\r]+)/)?.[1]?.trim(); // street address
+    const dai = raw.match(/DAI([^\n\r]+)/)?.[1]?.trim(); // city/suburb
+    const daj = raw.match(/DAJ([^\n\r]+)/)?.[1]?.trim(); // state
+    const dak = raw.match(/DAK([^\n\r]+)/)?.[1]?.trim(); // postcode
+    const daq = raw.match(/DAQ([^\n\r]+)/)?.[1]?.trim(); // licence number
+    const dba = raw.match(/DBA([^\n\r]+)/)?.[1]?.trim(); // expiry MMDDYYYY
+
+    if (dcs) result.lastName = dcs;
+    if (dac) result.firstName = dac;
+    if (dag) result.address = dag;
+    if (dai) result.suburb = dai;
+    if (daj) result.state = daj;
+    if (daq) result.licenceNumber = daq;
+
+    if (dak) result.postcode = dak.substring(0, 4);
+
+    if (dbb && dbb.length === 8) {
+      // MMDDYYYY → YYYY-MM-DD
+      result.dob = `${dbb.slice(4)}-${dbb.slice(0, 2)}-${dbb.slice(2, 4)}`;
+    }
+    if (dba && dba.length === 8) {
+      // MMDDYYYY → YYYY-MM-DD
+      result.licenceExpiry = `${dba.slice(4)}-${dba.slice(0, 2)}-${dba.slice(2, 4)}`;
+    }
+    if (daj) {
+      // Map state codes to Australian states
+      const stateMap: Record<string, string> = { 'VIC': 'VIC', 'NSW': 'NSW', 'QLD': 'QLD', 'WA': 'WA', 'SA': 'SA', 'TAS': 'TAS', 'NT': 'NT', 'ACT': 'ACT' };
+      result.licenceState = stateMap[daj] || daj;
+    }
+  }
+
+  return result;
+};
+
+const startScanner = async () => {
+  setScanError('');
+  setScanning(true);
+
+  // Wait for video element to mount
+  await new Promise(r => setTimeout(r, 300));
+
+  if (!videoRef.current) return;
+
+  try {
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.PDF_417]);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+
+    const reader = new BrowserMultiFormatReader(hints);
+    scannerRef.current = reader;
+
+    const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+    // Prefer rear camera on tablet
+    const rearCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment')) || devices[devices.length - 1];
+
+    await reader.decodeFromVideoDevice(rearCamera?.deviceId || null, videoRef.current, (result, err) => {
+      if (result) {
+        const parsed = parseAusLicence(result.getText());
+        if (parsed.licenceNumber || parsed.firstName) {
+          // Auto-fill driver fields
+          if (parsed.firstName) updDriver('firstName', parsed.firstName);
+          if (parsed.lastName) updDriver('lastName', parsed.lastName);
+          if (parsed.dob) updDriver('dob', parsed.dob);
+          if (parsed.licenceNumber) updDriver('licenceNumber', parsed.licenceNumber);
+          if (parsed.licenceState) updDriver('licenceState', parsed.licenceState);
+          if (parsed.licenceExpiry) updDriver('licenceExpiry', parsed.licenceExpiry);
+          if (parsed.address) updDriver('address', parsed.address);
+          if (parsed.suburb) updDriver('suburb', parsed.suburb);
+          if (parsed.postcode) updDriver('postcode', parsed.postcode);
+          if (parsed.state) updDriver('state', parsed.state);
+          stopScanner();
+        }
+      }
+    });
+  } catch (e: any) {
+    setScanError('Could not access camera. Please check permissions.');
+    setScanning(false);
+  }
+};
   const [owner, setOwner] = useState({ ...emptyPerson });
   const [sameAsDriver, setSameAsDriver] = useState(false);
   const updOwner = (f: string, v: string) => setOwner(p => ({ ...p, [f]: v }));
@@ -716,7 +824,23 @@ export default function CreditHirePage() {
   const [witnessPhone, setWitnessPhone] = useState('');
   const [witnessEmail, setWitnessEmail] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
+// Action modals
+const [showNotesModal, setShowNotesModal] = useState(false);
+const [showScheduleModal, setShowScheduleModal] = useState(false);
+const [noteText, setNoteText] = useState('');
+const [scheduleForm, setScheduleForm] = useState({
+  date: '', time: '', jobType: 'DELIVERY', addressType: 'customer',
+  customAddress: '', customSuburb: '', customPostcode: '', driverId: '',
+});
 
+const { data: drivers = [] } = useQuery({
+  queryKey: ['drivers'],
+  queryFn: async () => {
+    const token = await getToken();
+    const res = await api.get('/users', { headers: { Authorization: `Bearer ${token}` } });
+    return res.data.filter((u: any) => ['CSE_DRIVER', 'FLEET_COORDINATOR', 'OPS_MANAGER', 'BRANCH_MANAGER'].includes(u.role));
+  },
+});
   useEffect(() => {
     getToken().then(token => {
       api.get('/reservations/next-number', { headers: { Authorization: `Bearer ${token}` } })
@@ -725,12 +849,21 @@ export default function CreditHirePage() {
     });
   }, []);
 
+  const { data: repairers = [] } = useQuery({
+    queryKey: ['repairers'],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/claims/repairers', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
+
   const mutation = useMutation({
     mutationFn: async (status: string) => {
       const token = await getToken();
       const authorName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Staff';
       const res = await api.post('/reservations', {
-        status, authorName, hireType: 'Credit Hire', sourceOfBusiness, startDate,
+        status, authorName, hireType: 'Credit Hire', sourceOfBusiness, startDate, partnerName,
         customer: driver,
         nafVehicle: { registration: nafVehicleRego, make: nafVehicleMake, model: nafVehicleModel, year: nafVehicleYear, bodyType: nafVehicleBodyType },
         registeredOwner: owner, atFault,
@@ -744,6 +877,21 @@ export default function CreditHirePage() {
       return res.data;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['reservations'] }); router.push('/dashboard/reservations'); },
+  });
+  const addNote = useMutation({
+    mutationFn: async (reservationId: string) => {
+      const token = await getToken();
+      const authorName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Staff';
+      return api.post(`/reservations/${reservationId}/notes`,
+        { note: noteText, authorName },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    },
+    onSuccess: () => {
+      setNoteText(''); setShowNotesModal(false);
+      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      router.push('/dashboard/reservations');
+    },
   });
 
   return (
@@ -764,29 +912,81 @@ export default function CreditHirePage() {
 
       <TabBar active={activeTab} onChange={setActiveTab} />
 
-      {/* ── Tab 0: Main ── */}
       {activeTab === 0 && (
-        <SectionBlock title="Booking Details">
-          <div style={grid2}>
-            <F label="Source *">
-              <select style={inp} value={sourceOfBusiness} onChange={e => setSourceOfBusiness(e.target.value)}>
-                <option value="">Select source...</option>
-                <option value="Repairer">Repairer</option>
-                <option value="Tow Operator">Tow Operator</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Corporate Partnerships">Corporate Partnerships</option>
-              </select>
-            </F>
-            <F label="Hire start date">
-              <input type="date" style={inp} value={startDate} onChange={e => setStartDate(e.target.value)} />
-            </F>
-          </div>
-        </SectionBlock>
+  <SectionBlock title="Booking Details">
+    <div style={grid2}>
+      <F label="Source *">
+        <select style={inp} value={sourceOfBusiness} onChange={e => { setSourceOfBusiness(e.target.value); setPartnerName(''); }}>
+          <option value="">Select source...</option>
+          <option value="Repairer">Repairer</option>
+          <option value="Tow Operator">Tow Operator</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Corporate Partnerships">Corporate Partnerships</option>
+        </select>
+      </F>
+      <F label="Hire start date">
+        <input type="date" style={inp} value={startDate} onChange={e => setStartDate(e.target.value)} />
+      </F>
+
+      {sourceOfBusiness === 'Repairer' && (
+        <F label="Repairer *" full>
+          <select style={inp} value={partnerName} onChange={e => setPartnerName(e.target.value)}>
+            <option value="">Select repairer...</option>
+            {repairers.map((r: any) => (
+              <option key={r.id} value={r.name}>{r.name}</option>
+            ))}
+          </select>
+        </F>
       )}
+
+      {sourceOfBusiness === 'Tow Operator' && (
+        <F label="Tow operator name *" full>
+          <input style={inp} value={partnerName} onChange={e => setPartnerName(e.target.value)} placeholder="e.g. Smith's Towing" />
+        </F>
+      )}
+    </div>
+  </SectionBlock>
+)}
 
       {/* ── Tab 1: Customer ── */}
       {activeTab === 1 && (
         <>
+        {/* Scanner modal */}
+{scanning && (
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+    <div style={{ width: '100%', maxWidth: '500px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div>
+          <div style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>Scan Driver's Licence</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8' }}>Point the camera at the barcode on the back of the licence</div>
+        </div>
+        <button type="button" onClick={stopScanner} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '20px', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+      </div>
+
+      <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
+        <video ref={videoRef} style={{ width: '100%', height: '280px', objectFit: 'cover', display: 'block' }} />
+        {/* Targeting overlay */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{ width: '80%', height: '80px', border: '2px solid #01ae42', borderRadius: '8px', boxShadow: '0 0 0 1000px rgba(0,0,0,0.4)' }} />
+        </div>
+        {/* Scanning animation line */}
+        <div style={{ position: 'absolute', left: '10%', right: '10%', height: '2px', background: '#01ae42', opacity: 0.8, animation: 'scan 2s linear infinite', top: '50%' }} />
+      </div>
+
+      <style>{`@keyframes scan { 0% { transform: translateY(-40px); } 100% { transform: translateY(40px); } }`}</style>
+
+      {scanError && (
+        <div style={{ marginTop: '12px', padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '13px', color: '#ef4444' }}>
+          {scanError}
+        </div>
+      )}
+
+      <p style={{ textAlign: 'center', fontSize: '12px', color: '#64748b', marginTop: '12px' }}>
+        Scanning automatically — no need to tap anything
+      </p>
+    </div>
+  </div>
+)}
           <SectionBlock title="NAF Vehicle">
             <div style={grid3}>
               <F label="Registration"><input style={inp} value={nafVehicleRego} onChange={e => setNafVehicleRego(e.target.value)} placeholder="e.g. ABC123" /></F>
@@ -810,7 +1010,13 @@ export default function CreditHirePage() {
           </SectionBlock>
 
           <SectionBlock title="Customer Details">
-            <div style={grid3}>
+  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+    <button type="button" onClick={startScanner}
+      style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '7px', border: '1.5px solid #01ae42', background: '#f0fdf4', color: '#01ae42', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+      <span style={{ fontSize: '13px' }}>🪪</span> Scan Licence
+    </button>
+  </div>
+  <div style={grid3}>
               <F label="First name *"><input style={inp} value={driver.firstName} onChange={e => updDriver('firstName', e.target.value)} /></F>
               <F label="Last name *"><input style={inp} value={driver.lastName} onChange={e => updDriver('lastName', e.target.value)} /></F>
               <F label="Phone *"><input style={inp} value={driver.phone} onChange={e => updDriver('phone', e.target.value)} /></F>
@@ -849,6 +1055,16 @@ export default function CreditHirePage() {
               <F label="State"><select style={inp} value={owner.state} onChange={e => updOwner('state', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
             </div>
           </SectionBlock>
+          <SectionBlock title="Insurance Details">
+          <div style={grid2}>
+            <F label="Insurance provider">
+              <input style={inp} value={driver.insuranceProvider || ''} onChange={e => updDriver('insuranceProvider', e.target.value)} placeholder="e.g. AAMI, NRMA, Allianz" />
+            </F>
+            <F label="Claim number">
+              <input style={inp} value={driver.claimNumber || ''} onChange={e => updDriver('claimNumber', e.target.value)} placeholder="e.g. CLM-123456" />
+            </F>
+          </div>
+        </SectionBlock>          
         </>
       )}
 
@@ -1109,8 +1325,8 @@ export default function CreditHirePage() {
         </>
       )}
 
-      {/* ── Tab 8: Documents ── */}
-      {activeTab === 8 && (
+     {/* ── Tab 8: Documents ── */}
+     {activeTab === 8 && (
         <>
           <SectionBlock title="Authority to Act">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '20px', border: '1.5px dashed #e2e8f0', borderRadius: '10px', background: '#f8fafc' }}>
@@ -1133,12 +1349,178 @@ export default function CreditHirePage() {
         </>
       )}
 
-      {/* Action buttons */}
-      <div style={{ display: 'flex', gap: '10px', paddingBottom: '40px', marginTop: '20px' }}>
+      {/* ── Notes Modal ── */}
+      {showNotesModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }}>
+          <div style={{ background: '#fff', width: '100%', borderRadius: '20px 20px 0 0', padding: '24px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Add Note</h2>
+              <button onClick={() => setShowNotesModal(false)} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}>×</button>
+            </div>
+            <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '12px' }}>
+              Notes are saved against the reservation and visible across all pages.
+            </p>
+            <textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              placeholder="Log a call attempt, update, or any relevant note..."
+              style={{ ...inp, height: '120px', resize: 'vertical', marginBottom: '16px' }}
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setShowNotesModal(false)}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!noteText.trim()) return;
+                  const result = await mutation.mutateAsync('PENDING');
+                  if (result?.id) await addNote.mutateAsync(result.id);
+                }}
+                disabled={!noteText.trim() || mutation.isPending || addNote.isPending}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: noteText.trim() ? '#01ae42' : '#e2e8f0', color: noteText.trim() ? '#fff' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: noteText.trim() ? 'pointer' : 'not-allowed' }}>
+                {mutation.isPending || addNote.isPending ? 'Saving...' : 'Save & Add Note'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Schedule Modal ── */}
+      {showScheduleModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Add to Schedule</h2>
+              <button onClick={() => setShowScheduleModal(false)} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={grid2}>
+                <div>
+                  <label style={lbl}>Date *</label>
+                  <input type="date" style={inp} value={scheduleForm.date} onChange={e => setScheduleForm(p => ({ ...p, date: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={lbl}>Time *</label>
+                  <input type="time" style={inp} value={scheduleForm.time} onChange={e => setScheduleForm(p => ({ ...p, time: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Job type</label>
+                <select style={inp} value={scheduleForm.jobType} onChange={e => setScheduleForm(p => ({ ...p, jobType: e.target.value }))}>
+                  <option value="DELIVERY">Delivery</option>
+                  <option value="RETURN">Return</option>
+                  <option value="EXCHANGE">Exchange</option>
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Delivery address</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[
+                    { value: 'customer', label: '🏠 Customer home address', sub: driver.address ? `${driver.address}, ${driver.suburb}` : 'Not yet entered' },
+                    { value: 'repairer', label: '🔧 Repair shop', sub: partnerName || 'Select repairer on Main tab first' },
+                    { value: 'other', label: '📍 Other address', sub: 'Enter manually' },
+                  ].map(opt => (
+                    <div key={opt.value} onClick={() => setScheduleForm(p => ({ ...p, addressType: opt.value }))}
+                      style={{ padding: '10px 14px', borderRadius: '8px', border: `1.5px solid ${scheduleForm.addressType === opt.value ? '#01ae42' : '#e2e8f0'}`, background: scheduleForm.addressType === opt.value ? '#f0fdf4' : '#fff', cursor: 'pointer' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 500, color: '#0f172a' }}>{opt.label}</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>{opt.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {scheduleForm.addressType === 'other' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div>
+                    <label style={lbl}>Street address</label>
+                    <input style={inp} value={scheduleForm.customAddress} onChange={e => setScheduleForm(p => ({ ...p, customAddress: e.target.value }))} placeholder="e.g. 123 Smith Street" />
+                  </div>
+                  <div style={grid2}>
+                    <div>
+                      <label style={lbl}>Suburb</label>
+                      <input style={inp} value={scheduleForm.customSuburb} onChange={e => setScheduleForm(p => ({ ...p, customSuburb: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label style={lbl}>Postcode</label>
+                      <input style={inp} value={scheduleForm.customPostcode} onChange={e => setScheduleForm(p => ({ ...p, customPostcode: e.target.value }))} />
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div>
+                <label style={lbl}>Assign driver (optional)</label>
+                <select style={inp} value={scheduleForm.driverId} onChange={e => setScheduleForm(p => ({ ...p, driverId: e.target.value }))}>
+                  <option value="">Unassigned — assign later</option>
+                  {drivers.map((d: any) => (
+                    <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setShowScheduleModal(false)}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button
+                disabled={!scheduleForm.date || !scheduleForm.time || mutation.isPending}
+                onClick={async () => {
+                  if (!scheduleForm.date || !scheduleForm.time) return;
+                  const result = await mutation.mutateAsync('PENDING');
+                  if (!result?.id) return;
+                  const resolvedAddress =
+                    scheduleForm.addressType === 'customer' ? { address: driver.address, suburb: driver.suburb } :
+                    scheduleForm.addressType === 'repairer' ? { address: partnerName, suburb: '' } :
+                    { address: scheduleForm.customAddress, suburb: scheduleForm.customSuburb };
+                  const token = await getToken();
+                  await api.post(`/reservations/${result.id}/schedule`, {
+                    scheduledAt: `${scheduleForm.date}T${scheduleForm.time}:00`,
+                    jobType: scheduleForm.jobType,
+                    address: resolvedAddress.address,
+                    suburb: resolvedAddress.suburb,
+                    postcode: scheduleForm.customPostcode || driver.postcode || '',
+                    driverId: scheduleForm.driverId || undefined,
+                  }, { headers: { Authorization: `Bearer ${token}` } });
+                  setShowScheduleModal(false);
+                  queryClient.invalidateQueries({ queryKey: ['reservations'] });
+                  router.push('/dashboard/reservations');
+                }}
+                style={{ flex: 2, padding: '12px', borderRadius: '8px', border: 'none', background: !scheduleForm.date || !scheduleForm.time ? '#e2e8f0' : '#01ae42', color: !scheduleForm.date || !scheduleForm.time ? '#94a3b8' : '#fff', fontSize: '13px', fontWeight: 600, cursor: !scheduleForm.date || !scheduleForm.time ? 'not-allowed' : 'pointer' }}>
+                {mutation.isPending ? 'Saving...' : 'Save & Add to Schedule'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Action buttons ── */}
+      <div style={{ display: 'flex', gap: '10px', paddingBottom: '40px', marginTop: '20px', flexWrap: 'wrap' }}>
         <button onClick={() => router.push('/dashboard/reservations')}
           style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>
           Cancel
         </button>
+
+        <div style={{ flex: 1 }} />
+
+        <button onClick={() => setShowNotesModal(true)}
+          style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          📝 Notes
+        </button>
+
+        <button
+          onClick={() => {
+            console.log('Send email — Resend not configured yet');
+            alert('Email sending will be available once Resend is configured.');
+          }}
+          style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid #3b82f6', background: '#eff6ff', color: '#3b82f6', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          ✉️ Send Email
+        </button>
+
+        <button onClick={() => setShowScheduleModal(true)}
+          style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#d97706', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          🗓 Add to Schedule
+        </button>
+
         <button onClick={() => mutation.mutate('PENDING')} disabled={mutation.isPending}
           style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: mutation.isPending ? 0.7 : 1 }}>
           {mutation.isPending ? 'Saving...' : 'Create Reservation'}

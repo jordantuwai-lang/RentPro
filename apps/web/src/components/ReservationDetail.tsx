@@ -1,11 +1,9 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const inp: React.CSSProperties = {
   width: '100%', padding: '8px 10px', borderRadius: '8px',
@@ -51,8 +49,6 @@ const STATES = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'];
 const LICENCE_STATES = ['International', ...STATES];
 const BODY_TYPES = ['Sedan', 'Hatchback', 'SUV', 'Ute', 'Van', 'Wagon', 'Coupe', 'Convertible', 'Truck', 'Other'];
 const PHOTO_CATEGORIES = ['General', 'Front', 'Rear', 'Driver Side', 'Passenger Side', 'Interior', 'Damage', 'Other'];
-
-// ─── Damage panels ────────────────────────────────────────────────────────────
 
 const PANEL_GROUPS: Record<string, { label: string; panels: string[] }[]> = {
   default: [
@@ -382,8 +378,6 @@ function DamageSelector({ bodyType, damaged, onToggle, description, onDescriptio
   );
 }
 
-// ─── Tab bar ──────────────────────────────────────────────────────────────────
-
 function TabBar({ tabs, active, onChange }: { tabs: string[]; active: number; onChange: (i: number) => void }) {
   return (
     <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', overflowX: 'auto' }}>
@@ -399,8 +393,6 @@ function TabBar({ tabs, active, onChange }: { tabs: string[]; active: number; on
   );
 }
 
-// ─── Save indicator ───────────────────────────────────────────────────────────
-
 function SaveIndicator({ state }: { state: 'idle' | 'saving' | 'saved' | 'error' }) {
   if (state === 'idle') return null;
   const config = {
@@ -408,24 +400,16 @@ function SaveIndicator({ state }: { state: 'idle' | 'saving' | 'saved' | 'error'
     saved:  { color: '#01ae42', text: '✓ Saved' },
     error:  { color: '#ef4444', text: '⚠ Save failed' },
   }[state];
-  return (
-    <span style={{ fontSize: '12px', fontWeight: 500, color: config.color, transition: 'opacity 0.3s' }}>
-      {config.text}
-    </span>
-  );
+  return <span style={{ fontSize: '12px', fontWeight: 500, color: config.color }}>{config.text}</span>;
 }
-
-// ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface ReservationDetailProps {
   reservationId: string;
-  reservation: any; // full reservation object from API
-  tabs?: string[];  // override default tabs
-  extraTabContent?: (tabIndex: number) => React.ReactNode; // render extra tabs
+  reservation: any;
+  tabs?: string[];
+  extraTabContent?: (tabIndex: number) => React.ReactNode;
   onSaveSuccess?: () => void;
 }
-
-// ─── Main component ───────────────────────────────────────────────────────────
 
 const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Documents'];
 
@@ -444,16 +428,25 @@ export default function ReservationDetail({
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  // ── Flatten reservation data into local state ──────────────────────────────
-
   const r = reservation;
   const customer = r?.customer || {};
   const claim = r?.claim || {};
   const accidentDetails = claim?.accidentDetails || {};
   const atFaultParty = claim?.atFaultParty || {};
 
+  // ── Repairers query ──────────────────────────────────────────────────────────
+  const { data: repairers = [] } = useQuery({
+    queryKey: ['repairers'],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/claims/repairers', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
+
   // Tab 0 — Main
   const [sourceOfBusiness, setSourceOfBusiness] = useState(r?.sourceOfBusiness || '');
+  const [partnerName, setPartnerName] = useState(r?.partnerName || '');
   const [startDate, setStartDate] = useState(r?.startDate ? r.startDate.split('T')[0] : '');
 
   // Tab 1 — Customer / NAF Vehicle
@@ -477,7 +470,6 @@ export default function ReservationDetail({
     dob: customer.dob || '',
   });
   const updDriver = (f: string, v: string) => setDriver(p => ({ ...p, [f]: v }));
-
   const [owner, setOwner] = useState({ firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', dob: '' });
   const [sameAsDriver, setSameAsDriver] = useState(false);
   const updOwner = (f: string, v: string) => setOwner(p => ({ ...p, [f]: v }));
@@ -559,6 +551,7 @@ export default function ReservationDetail({
 
   const buildPayload = useCallback(() => ({
     sourceOfBusiness,
+    partnerName,
     startDate,
     customer: driver,
     nafVehicle: { registration: nafRego, make: nafMake, model: nafModel, year: nafYear, bodyType: nafBodyType },
@@ -566,7 +559,7 @@ export default function ReservationDetail({
     accident,
     additional: { policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes },
     damages: { panels: Array.from(damagedPanels), description: damageDescription },
-  }), [sourceOfBusiness, startDate, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType, atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription]);
+  }), [sourceOfBusiness, partnerName, startDate, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType, atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription]);
 
   const doSave = useCallback(async () => {
     setSaveState('saving');
@@ -583,25 +576,20 @@ export default function ReservationDetail({
     }
   }, [buildPayload, getToken, reservationId, queryClient, onSaveSuccess]);
 
-  // Debounce auto-save — fires 800ms after last change
   const scheduleAutoSave = useCallback(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(doSave, 800);
   }, [doSave]);
 
-  // Watch all editable state and trigger auto-save
   useEffect(() => { scheduleAutoSave(); }, [
-    sourceOfBusiness, startDate, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType,
+    sourceOfBusiness, partnerName, startDate, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType,
     atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone,
     witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription,
   ]);
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
     <div style={{ maxWidth: '860px', paddingBottom: '80px' }}>
 
-      {/* Save indicator */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', minHeight: '20px' }}>
         <SaveIndicator state={saveState} />
       </div>
@@ -613,7 +601,7 @@ export default function ReservationDetail({
         <SectionBlock title="Booking Details">
           <div style={grid2}>
             <F label="Source">
-              <select style={inp} value={sourceOfBusiness} onChange={e => setSourceOfBusiness(e.target.value)}>
+              <select style={inp} value={sourceOfBusiness} onChange={e => { setSourceOfBusiness(e.target.value); setPartnerName(''); }}>
                 <option value="">Select source...</option>
                 <option value="Repairer">Repairer</option>
                 <option value="Tow Operator">Tow Operator</option>
@@ -624,6 +612,23 @@ export default function ReservationDetail({
             <F label="Hire start date">
               <input type="date" style={inp} value={startDate} onChange={e => setStartDate(e.target.value)} />
             </F>
+
+            {sourceOfBusiness === 'Repairer' && (
+              <F label="Repairer" full>
+                <select style={inp} value={partnerName} onChange={e => setPartnerName(e.target.value)}>
+                  <option value="">Select repairer...</option>
+                  {repairers.map((rep: any) => (
+                    <option key={rep.id} value={rep.name}>{rep.name}</option>
+                  ))}
+                </select>
+              </F>
+            )}
+
+            {sourceOfBusiness === 'Tow Operator' && (
+              <F label="Tow operator name" full>
+                <input style={inp} value={partnerName} onChange={e => setPartnerName(e.target.value)} placeholder="e.g. Smith's Towing" />
+              </F>
+            )}
           </div>
         </SectionBlock>
       )}
@@ -846,10 +851,19 @@ export default function ReservationDetail({
           )}
           <SectionBlock title="Required Documents">
             <div style={grid2}>
-              {[{ label: "Driver's Licence", desc: "Front of the customer's licence", icon: '🪪', val: licencePhoto, set: setLicencePhoto }, { label: 'Vehicle Registration Papers', desc: 'Current registration certificate', icon: '📄', val: regoPhoto, set: setRegoPhoto }].map(slot => {
+              {[
+                { label: "Driver's Licence", desc: "Front of the customer's licence", icon: '🪪', val: licencePhoto, set: setLicencePhoto },
+                { label: 'Vehicle Registration Papers', desc: 'Current registration certificate', icon: '📄', val: regoPhoto, set: setRegoPhoto }
+              ].map(slot => {
                 const fileRef = useRef<HTMLInputElement>(null);
                 const camRef = useRef<HTMLInputElement>(null);
-                const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f) return; const reader = new FileReader(); reader.onload = () => slot.set(reader.result as string); reader.readAsDataURL(f); e.target.value = ''; };
+                const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const f = e.target.files?.[0]; if (!f) return;
+                  const reader = new FileReader();
+                  reader.onload = () => slot.set(reader.result as string);
+                  reader.readAsDataURL(f);
+                  e.target.value = '';
+                };
                 return (
                   <div key={slot.label} style={{ border: `2px solid ${slot.val ? '#86efac' : '#e2e8f0'}`, borderRadius: '12px', overflow: 'hidden', background: slot.val ? '#f0fdf4' : '#f8fafc' }}>
                     <input ref={camRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
@@ -947,10 +961,9 @@ export default function ReservationDetail({
         </>
       )}
 
-      {/* ── Tab 8+: Documents or extra tabs ── */}
+      {/* ── Tab 8+: Extra or Documents ── */}
       {activeTab >= 8 && extraTabContent && extraTabContent(activeTab)}
 
-      {/* Default Documents tab — rendered if no extra content handles it */}
       {activeTab === tabs.length - 1 && !extraTabContent && (
         <>
           <SectionBlock title="Authority to Act">
@@ -958,13 +971,9 @@ export default function ReservationDetail({
               <span style={{ fontSize: '28px' }}>📋</span>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginBottom: '3px' }}>Authority to Act</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                  {r?.status === 'ACTIVE' ? 'Ready to sign — customer details pre-filled.' : 'Available to sign once the reservation is on hire.'}
-                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>{r?.status === 'ACTIVE' ? 'Ready to sign — customer details pre-filled.' : 'Available to sign once the reservation is on hire.'}</div>
               </div>
-              {r?.status === 'ACTIVE' && (
-                <button style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Sign now</button>
-              )}
+              {r?.status === 'ACTIVE' && <button style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Sign now</button>}
             </div>
           </SectionBlock>
           <SectionBlock title="Rental Agreement">
@@ -972,13 +981,9 @@ export default function ReservationDetail({
               <span style={{ fontSize: '28px' }}>📝</span>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginBottom: '3px' }}>Rental Agreement</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                  {r?.status === 'ACTIVE' ? 'Ready to sign — vehicle and hire details pre-filled.' : 'Available to sign once the reservation is on hire.'}
-                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>{r?.status === 'ACTIVE' ? 'Ready to sign — vehicle and hire details pre-filled.' : 'Available to sign once the reservation is on hire.'}</div>
               </div>
-              {r?.status === 'ACTIVE' && (
-                <button style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Sign now</button>
-              )}
+              {r?.status === 'ACTIVE' && <button style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Sign now</button>}
             </div>
           </SectionBlock>
         </>
