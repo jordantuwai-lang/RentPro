@@ -107,6 +107,20 @@ export class ClaimsController {
     return this.claimsService.deleteRepairerDocument(docId);
   }
 
+  // ─── INVOICING / RECOVERIES ──────────────────────────────────────────────────
+
+  @Get('invoicing')
+  @Roles(...OPS_ROLES)
+  findInvoicing(@Query('branchId') branchId?: string) {
+    return this.claimsService.findInvoicing(branchId);
+  }
+
+  @Get('recoveries')
+  @Roles(...OPS_ROLES)
+  findRecoveries(@Query('branchId') branchId?: string) {
+    return this.claimsService.findRecoveries(branchId);
+  }
+
   // ─── CLAIMS LIST & CREATE ────────────────────────────────────────────────────
 
   @Get()
@@ -184,5 +198,10 @@ export class ClaimsController {
   createInvoice(@Param('id') id: string, @Body() body: CreateInvoiceDto) {
     return this.claimsService.createInvoice(id, body);
   }
-}
 
+  @Patch('invoices/:invoiceId/paid')
+  @Roles('ADMIN','LEADERSHIP','OPS_MANAGER','FINANCE_MANAGER','CLAIMS_MANAGER')
+  markInvoicePaid(@Param('invoiceId') invoiceId: string) {
+    return this.claimsService.markInvoicePaid(invoiceId);
+  }
+}

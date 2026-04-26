@@ -63,6 +63,7 @@ enum ReservationStatus {
 enum ClaimStatus {
   OPEN
   IN_PROGRESS
+  INVOICING
   CLOSED
 }
 
@@ -167,6 +168,8 @@ model Customer {
   email          String?
   phone          String
   address        String?
+  insuranceProvider String?
+  claimNumber       String?
   suburb         String?
   postcode       String?
   state          String?
@@ -469,15 +472,16 @@ model ClaimDocument {
 // ─────────────────────────────────────────
 
 model Invoice {
-  id        String    @id @default(cuid())
-  claim     Claim     @relation(fields: [claimId], references: [id])
-  claimId   String
-  amount    Float
-  dueDate   DateTime?
-  paidAt    DateTime?
-  notes     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  claim         Claim     @relation(fields: [claimId], references: [id])
+  claimId       String
+  invoiceNumber String?
+  amount        Float
+  dueDate       DateTime?
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 // ─────────────────────────────────────────

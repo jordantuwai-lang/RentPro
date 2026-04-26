@@ -269,12 +269,12 @@ export class AddClaimDocumentDto {
 
 // ─── Invoices ─────────────────────────────────────────────────────────────────
 
-export class CreateInvoiceDto {
+export class CreateInvoiceDto { 
   @IsNumber() @Type(() => Number) amount: number;
   @IsString() @IsOptional() dueDate?: string;
   @IsString() @IsOptional() notes?: string;
+  @IsString() @IsOptional() invoiceNumber?: string;
 }
-
 // ─── Insurers ─────────────────────────────────────────────────────────────────
 // Prisma's Insurer model requires `code` as well as `name`.
 

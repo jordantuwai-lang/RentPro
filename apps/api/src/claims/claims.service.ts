@@ -271,16 +271,85 @@ export class ClaimsService {
 
   // ─── INVOICES ────────────────────────────────────────────────────────────────
 
-  createInvoice(claimId: string, data: CreateInvoiceDto): Promise<Invoice> {
-    return this.prisma.invoice.create({
+  async findInvoicing(branchId?: string) {
+    const claims = await this.prisma.claim.findMany({
+      where: { status: 'INVOICING' },
+      include: {
+        reservation: {
+          include: {
+            customer: true,
+            vehicle: { include: { branch: true } },
+          },
+        },
+        insurer: true,
+        repairer: true,
+        invoices: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    if (!branchId) return claims;
+    return claims.filter(
+      (c) => c.reservation?.vehicle?.branch?.id === branchId,
+    );
+  }
+
+  // Returns claims in CLOSED status (invoiced and recovered)
+  async findRecoveries(branchId?: string) {
+    const claims = await this.prisma.claim.findMany({
+      where: { status: 'CLOSED' },
+      include: {
+        reservation: {
+          include: {
+            customer: true,
+            vehicle: { include: { branch: true } },
+          },
+        },
+        insurer: true,
+        repairer: true,
+        invoices: { orderBy: { createdAt: 'desc' } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    if (!branchId) return claims;
+    return claims.filter(
+      (c) => c.reservation?.vehicle?.branch?.id === branchId,
+    );
+  }
+
+  // Create invoice — also moves claim to CLOSED
+  async createInvoice(claimId: string, data: CreateInvoiceDto): Promise<Invoice> {
+    const count = await this.prisma.invoice.count({ where: { claimId } });
+    const invoiceNumber = data.invoiceNumber || `INV-${claimId.slice(-6).toUpperCase()}-${String(count + 1).padStart(3, '0')}`;
+
+    const invoice = await this.prisma.invoice.create({
       data: {
         claim: { connect: { id: claimId } },
+        invoiceNumber,
         amount: data.amount,
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        notes: data.notes ?? null,
+        notes: data.notes,
       },
     });
+
+    // Move claim to CLOSED once invoiced — it will appear in Recoveries
+    await this.prisma.claim.update({
+      where: { id: claimId },
+      data: { status: 'CLOSED' },
+    });
+
+    return invoice;
   }
+
+  // Mark an invoice as paid
+  async markInvoicePaid(invoiceId: string) {
+    return this.prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { paidAt: new Date() },
+    });
+  }
+
 
   // ─── INSURERS ────────────────────────────────────────────────────────────────
 

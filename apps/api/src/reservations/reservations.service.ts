@@ -167,6 +167,20 @@ export class ReservationsService {
       });
     }
 
+        // ── Off-hire: move linked claim to INVOICING ──────────────────────────────
+
+if (data.status === 'COMPLETED') {
+  const linkedClaim = await this.prisma.claim.findUnique({
+    where: { reservationId: id },
+  });
+  if (linkedClaim && linkedClaim.status !== 'CLOSED') {
+    await this.prisma.claim.update({
+      where: { id: linkedClaim.id },
+      data: { status: 'INVOICING' },
+    });
+  }
+}
+
     if (data.vehicleId && data.vehicleId !== reservation.vehicleId) {
       const vehicle = await this.prisma.vehicle.findUnique({ where: { id: data.vehicleId } });
       if (!vehicle) throw new NotFoundException('Vehicle not found');
@@ -394,29 +408,51 @@ export class ReservationsService {
     return result;
   }
 
-  async markOnHire(id: string, data: any) {
-    const reservation = await this.prisma.reservation.findUnique({
-      where: { id },
-      include: { vehicle: { include: { branch: true } } },
-    });
-    if (!reservation) throw new Error('Reservation not found');
+ // REPLACE the markOnHire method in apps/api/src/reservations/reservations.service.ts
 
-    const branchCode = reservation.vehicle?.branch?.code || 'KPK';
-    const fileNumber = await this.generateFileNumber(branchCode);
+ async markOnHire(id: string, data: any) {
+  const reservation = await this.prisma.reservation.findUnique({
+    where: { id },
+    include: { vehicle: { include: { branch: true } } },
+  });
+  if (!reservation) throw new Error('Reservation not found');
 
-    if (reservation.vehicleId) {
-      await this.prisma.vehicle.update({
-        where: { id: reservation.vehicleId },
-        data: { status: 'ON_HIRE' },
-      });
-    }
+  const branchCode = reservation.vehicle?.branch?.code || 'KPK';
+  const fileNumber = await this.generateFileNumber(branchCode);
 
-    return this.prisma.reservation.update({
-      where: { id },
-      data: { status: 'ACTIVE', fileNumber },
-      include: { customer: true, vehicle: { include: { branch: true } } },
+  if (reservation.vehicleId) {
+    await this.prisma.vehicle.update({
+      where: { id: reservation.vehicleId },
+      data: { status: 'ON_HIRE' },
     });
   }
+
+  const updated = await this.prisma.reservation.update({
+    where: { id },
+    data: { status: 'ACTIVE', fileNumber },
+    include: { customer: true, vehicle: { include: { branch: true } } },
+  });
+
+  // Auto-create a Claim for this reservation if one doesn't exist
+  const existingClaim = await this.prisma.claim.findUnique({
+    where: { reservationId: id },
+  });
+
+  if (!existingClaim) {
+    const count = await this.prisma.claim.count();
+    const claimNumber = `CLM-${String(count + 1).padStart(6, '0')}`;
+    await this.prisma.claim.create({
+      data: {
+        reservation: { connect: { id } },
+        claimNumber,
+        sourceOfBusiness: reservation.sourceOfBusiness || undefined,
+        status: 'OPEN',
+      },
+    });
+  }
+
+  return updated;
+}
 
   addNote(reservationId: string, data: any) {
     return this.prisma.reservationNote.create({
@@ -520,10 +556,9 @@ export class ReservationsService {
     jobType: string;
     address: string;
     suburb: string;
-    postcode?: string;
     driverId?: string;
   }) {
-    const { scheduledAt, jobType, address, suburb, postcode, driverId } = body;
+    const { scheduledAt, jobType, address, suburb, driverId } = body;
   
     return this.prisma.delivery.upsert({
       where: { reservationId },
@@ -533,7 +568,6 @@ export class ReservationsService {
         jobType: jobType as any,
         address,
         suburb,
-        postcode: postcode || '',
         status: 'SCHEDULED',
         driverId: driverId || null,
       },
@@ -542,7 +576,6 @@ export class ReservationsService {
         jobType: jobType as any,
         address,
         suburb,
-        postcode: postcode || '',
         status: 'SCHEDULED',
         driverId: driverId || null,
       },
