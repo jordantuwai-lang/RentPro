@@ -496,6 +496,7 @@ model Delivery {
   driverId      String?
   address       String
   suburb        String
+  postcode      String?
   scheduledAt   DateTime
   deliveredAt   DateTime?
   status        DeliveryStatus @default(SCHEDULED)

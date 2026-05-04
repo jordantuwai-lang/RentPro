@@ -858,13 +858,15 @@ const { data: drivers = [] } = useQuery({
     },
   });
 
+  const [submitError, setSubmitError] = useState('');
+
   const mutation = useMutation({
     mutationFn: async (status: string) => {
       const token = await getToken();
       const authorName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Staff';
       const res = await api.post('/reservations', {
         status, authorName, hireType: 'Credit Hire', sourceOfBusiness, startDate, partnerName,
-        customer: driver,
+        driver,
         nafVehicle: { registration: nafVehicleRego, make: nafVehicleMake, model: nafVehicleModel, year: nafVehicleYear, bodyType: nafVehicleBodyType },
         registeredOwner: owner, atFault,
         otherParties: [{ ...tp1, role: 'Third Party 1' }, ...(showTp2 ? [{ ...tp2, role: 'Third Party 2' }] : [])],
@@ -876,7 +878,11 @@ const { data: drivers = [] } = useQuery({
       }, { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['reservations'] }); router.push('/dashboard/reservations'); },
+    onSuccess: () => { setSubmitError(''); queryClient.invalidateQueries({ queryKey: ['reservations'] }); router.push('/dashboard/reservations'); },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
+      setSubmitError(Array.isArray(msg) ? msg.join(', ') : msg);
+    },
   });
   const addNote = useMutation({
     mutationFn: async (reservationId: string) => {
@@ -1493,39 +1499,61 @@ const { data: drivers = [] } = useQuery({
         </div>
       )}
 
-      {/* ── Action buttons ── */}
-      <div style={{ display: 'flex', gap: '10px', paddingBottom: '40px', marginTop: '20px', flexWrap: 'wrap' }}>
-        <button onClick={() => router.push('/dashboard/reservations')}
-          style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>
-          Cancel
-        </button>
+      {/* ── Submit error ── */}
+      {submitError && (
+        <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', marginTop: '16px', fontSize: '13px', color: '#dc2626' }}>
+          ⚠️ {submitError}
+        </div>
+      )}
 
-        <div style={{ flex: 1 }} />
+ {/* ── Action buttons ── */}
+ <div style={{ marginTop: '20px', paddingBottom: '40px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-        <button onClick={() => setShowNotesModal(true)}
-          style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          📝 Notes
-        </button>
+{/* Row 1 — secondary tools */}
+<div style={{ display: 'flex', gap: '6px', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+  <span style={{ fontSize: '11px', color: '#94a3b8', marginRight: '4px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Actions</span>
+  <button
+    onClick={() => setShowNotesModal(true)}
+    style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>
+    Notes
+  </button>
+  <button
+    onClick={() => {
+      console.log('Send email — Resend not configured yet');
+      alert('Email sending will be available once Resend is configured.');
+    }}
+    style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #bfdbfe', background: '#fff', color: '#1d4ed8', fontSize: '12px', cursor: 'pointer' }}>
+    Send email
+  </button>
+  <button
+    onClick={() => setShowScheduleModal(true)}
+    style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: '12px', cursor: 'pointer' }}>
+    Add to schedule
+  </button>
+</div>
 
-        <button
-          onClick={() => {
-            console.log('Send email — Resend not configured yet');
-            alert('Email sending will be available once Resend is configured.');
-          }}
-          style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid #3b82f6', background: '#eff6ff', color: '#3b82f6', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          ✉️ Send Email
-        </button>
+{/* Row 2 — primary actions */}
+<div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+  <button
+    onClick={() => router.push('/dashboard/reservations')}
+    style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer', marginRight: 'auto' }}>
+    Cancel
+  </button>
+  <button
+    onClick={() => mutation.mutate('DRAFT')}
+    disabled={mutation.isPending}
+    style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 500, cursor: 'pointer', opacity: mutation.isPending ? 0.6 : 1 }}>
+    Save draft
+  </button>
+  <button
+    onClick={() => mutation.mutate('PENDING')}
+    disabled={mutation.isPending}
+    style={{ padding: '9px 22px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: mutation.isPending ? 0.7 : 1 }}>
+    {mutation.isPending ? 'Saving...' : 'Create reservation'}
+  </button>
+</div>
 
-        <button onClick={() => setShowScheduleModal(true)}
-          style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#d97706', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          🗓 Add to Schedule
-        </button>
-
-        <button onClick={() => mutation.mutate('PENDING')} disabled={mutation.isPending}
-          style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: mutation.isPending ? 0.7 : 1 }}>
-          {mutation.isPending ? 'Saving...' : 'Create Reservation'}
-        </button>
-      </div>
+</div>
     </div>
   );
 }

@@ -3,6 +3,10 @@ import { BranchesService } from './branches.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { CreateBranchDto, UpdateBranchDto } from './branches.dto';
+
+create(@Body() body: CreateBranchDto)
+update(@Param('id') id: string, @Body() body: UpdateBranchDto)
 
 const ALL_STAFF = [
   'ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_MANAGER',
