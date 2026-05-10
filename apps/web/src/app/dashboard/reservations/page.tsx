@@ -93,7 +93,7 @@ export default function ReservationsPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              {['File #', 'Customer', 'Vehicle', 'Status', 'Start Date'].map((h) => (
+              {['Reservation #', 'Customer', 'Vehicle', 'Status', 'Start Date'].map((h) => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
@@ -106,7 +106,7 @@ export default function ReservationsPage() {
             ) : (
               filteredReservations.map((res: any) => (
                 <tr key={res.id} onClick={() => router.push(`/dashboard/reservations/${res.id}`)} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
-                  <td style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 700, color: '#01ae42' }}>{res.fileNumber || '—'}</td>
+                  <td style={{ padding: '8px 16px', fontSize: '12px', fontWeight: 700, color: '#01ae42' }}>{res.reservationNumber || '—'}</td>
                   <td style={{ padding: '8px 16px', fontSize: '13px', color: '#0f172a' }}>{res.customer?.firstName} {res.customer?.lastName}</td>
                   <td style={{ padding: '8px 16px', fontSize: '12px', color: '#64748b' }}>{res.vehicle?.registration || 'TBA'}</td>
                   <td style={{ padding: '8px 16px' }}>
