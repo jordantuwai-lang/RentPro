@@ -2,7 +2,15 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { $Enums } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { isBranchFiltered } from '../common/branch-filter';
-import { AddPaymentCardDto, AddAdditionalDriverDto } from './reservations.dto';
+import {
+  AddPaymentCardDto,
+  AddAdditionalDriverDto,
+  AddReservationNoteDto,
+  CreateReservationDto,
+  UpdateReservationDto,
+  AddToScheduleDto,
+  MarkOnHireDto,
+} from './reservations.dto';
 
 @Injectable()
 export class ReservationsService {
@@ -60,7 +68,7 @@ export class ReservationsService {
     });
   }
 
-  async create(data: any) {
+  async create(data: CreateReservationDto) {
     const reservationNumber = await this.generateReservationNumber();
 
     // Support both data.customer (old edit form) and data.driver (new intake form)
@@ -92,11 +100,9 @@ export class ReservationsService {
       });
     }
 
-    // Build accident details from intake form
-    const accidentData = data.accident || {};
-    const atFaultData = data.atFault || {};
-    const additionalData = data.additional || {};
-    const nafVehicle = data.nafVehicle || {};
+    const accidentData = data.accident ?? {};
+    const atFaultData = data.atFault ?? {};
+    const additionalData = data.additional ?? {};
 
     // Create linked Claim with child models
     await this.prisma.claim.create({
@@ -145,7 +151,7 @@ export class ReservationsService {
     return reservation;
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: UpdateReservationDto) {
     const reservation = await this.prisma.reservation.findUnique({
       where: { id },
       include: {
@@ -344,7 +350,7 @@ if (data.status === 'COMPLETED') {
     return result;
   }
 
-  async markOnHire(id: string, data: any) {
+  async markOnHire(id: string, _data: MarkOnHireDto) {
     const reservation = await this.prisma.reservation.findUnique({
       where: { id },
       include: { vehicle: { include: { branch: true } } },
@@ -395,7 +401,7 @@ if (data.status === 'COMPLETED') {
     });
   }
 
-  addNote(reservationId: string, data: any) {
+  addNote(reservationId: string, data: AddReservationNoteDto) {
     return this.prisma.reservationNote.create({
       data: {
         reservation: { connect: { id: reservationId } },
@@ -492,13 +498,7 @@ if (data.status === 'COMPLETED') {
     });
     return { licencePhotoUrl: reservation?.licencePhotoUrl || null };
   }
-  async addToSchedule(reservationId: string, body: {
-    scheduledAt: string;
-    jobType: string;
-    address: string;
-    suburb: string;
-    driverId?: string;
-  }) {
+  async addToSchedule(reservationId: string, body: AddToScheduleDto) {
     const { scheduledAt, jobType, address, suburb, driverId } = body;
   
     return this.prisma.delivery.upsert({

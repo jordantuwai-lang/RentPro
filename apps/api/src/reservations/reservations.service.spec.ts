@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReservationStatus } from './reservations.dto';
 
 const mockPrisma = {
   $transaction: jest.fn(),
@@ -219,7 +220,7 @@ describe('ReservationsService', () => {
       mockPrisma.claim.create.mockResolvedValue({});
 
       await expect(
-        service.create({ vehicleId: 'veh-1', driver: { firstName: 'Jane' } }),
+        service.create({ vehicleId: 'veh-1', driver: { firstName: 'Jane' } as any }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -229,7 +230,7 @@ describe('ReservationsService', () => {
       mockPrisma.vehicle.update.mockResolvedValue({});
       mockPrisma.claim.create.mockResolvedValue({});
 
-      await service.create({ vehicleId: 'veh-1', status: 'PENDING', driver: { firstName: 'Jane' } });
+      await service.create({ vehicleId: 'veh-1', status: ReservationStatus.PENDING, driver: { firstName: 'Jane' } as any });
 
       expect(mockPrisma.vehicle.update).toHaveBeenCalledWith({
         where: { id: 'veh-1' },
@@ -241,7 +242,7 @@ describe('ReservationsService', () => {
       mockPrisma.reservation.create.mockResolvedValue({ id: 'res-1', vehicleId: 'veh-1' });
       mockPrisma.claim.create.mockResolvedValue({});
 
-      await service.create({ vehicleId: 'veh-1', status: 'DRAFT', driver: {} });
+      await service.create({ vehicleId: 'veh-1', status: ReservationStatus.DRAFT, driver: {} as any });
 
       expect(mockPrisma.vehicle.update).not.toHaveBeenCalled();
     });
@@ -265,7 +266,7 @@ describe('ReservationsService', () => {
       mockPrisma.claim.update.mockResolvedValue({});
       mockPrisma.reservation.update.mockResolvedValue({ ...baseReservation, status: 'COMPLETED' });
 
-      await service.update('res-1', { status: 'COMPLETED' });
+      await service.update('res-1', { status: ReservationStatus.COMPLETED });
 
       expect(mockPrisma.vehicle.update).toHaveBeenCalledWith({
         where: { id: 'veh-1' },
@@ -280,7 +281,7 @@ describe('ReservationsService', () => {
       mockPrisma.claim.update.mockResolvedValue({});
       mockPrisma.reservation.update.mockResolvedValue({ ...baseReservation, status: 'COMPLETED' });
 
-      await service.update('res-1', { status: 'COMPLETED' });
+      await service.update('res-1', { status: ReservationStatus.COMPLETED });
 
       expect(mockPrisma.claim.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ status: 'INVOICING' }) }),
@@ -296,14 +297,14 @@ describe('ReservationsService', () => {
       mockPrisma.claim.findUnique.mockResolvedValue({ id: 'clm-1', status: 'CLOSED' });
       mockPrisma.reservation.update.mockResolvedValue({ ...baseReservation, status: 'COMPLETED' });
 
-      await service.update('res-1', { status: 'COMPLETED' });
+      await service.update('res-1', { status: ReservationStatus.COMPLETED });
 
       expect(mockPrisma.claim.update).not.toHaveBeenCalled();
     });
 
     it('throws NotFoundException when reservation does not exist', async () => {
       mockPrisma.reservation.findUnique.mockResolvedValue(null);
-      await expect(service.update('bad-id', { status: 'COMPLETED' })).rejects.toThrow(NotFoundException);
+      await expect(service.update('bad-id', { status: ReservationStatus.COMPLETED })).rejects.toThrow(NotFoundException);
     });
   });
 

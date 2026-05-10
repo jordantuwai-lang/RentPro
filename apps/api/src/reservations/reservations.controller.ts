@@ -5,11 +5,13 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { OPS_ROLES, ALL_STAFF } from '../auth/roles.constants';
 import {
+  CreateReservationDto,
   UpdateReservationDto,
   MarkOnHireDto,
   AddReservationNoteDto,
   AddPaymentCardDto,
   AddAdditionalDriverDto,
+  AddToScheduleDto,
 } from './reservations.dto';
 
 @Controller('reservations')
@@ -53,7 +55,7 @@ export class ReservationsController {
 
   @Post()
   @Roles('ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_TEAM_IN','SALES_REP','FLEET_COORDINATOR')
-  create(@Body() body: any) {
+  create(@Body() body: CreateReservationDto) {
     return this.reservationsService.create(body);
   }
 
@@ -124,8 +126,8 @@ export class ReservationsController {
   }
 
   @Post(':id/schedule')
-addToSchedule(@Param('id') id: string, @Body() body: any) {
-  return this.reservationsService.addToSchedule(id, body);
-}
+  addToSchedule(@Param('id') id: string, @Body() body: AddToScheduleDto) {
+    return this.reservationsService.addToSchedule(id, body);
+  }
 }
 

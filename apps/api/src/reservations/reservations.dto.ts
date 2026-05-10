@@ -4,6 +4,7 @@ import {
   IsEmail,
   IsEnum,
   ValidateNested,
+  IsNumberString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -71,7 +72,163 @@ export class CustomerInputDto {
   dob?: string;
 }
 
+// ─── Intake-form nested DTOs ──────────────────────────────────────────────────
+
+export class AccidentInputDto {
+  @IsString()
+  @IsOptional()
+  date?: string;
+
+  @IsString()
+  @IsOptional()
+  location?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+}
+
+export class AdditionalInputDto {
+  @IsString()
+  @IsOptional()
+  policeReportNo?: string;
+
+  @IsString()
+  @IsOptional()
+  policeStation?: string;
+
+  @IsString()
+  @IsOptional()
+  policeOfficerName?: string;
+
+  @IsString()
+  @IsOptional()
+  policeOfficerPhone?: string;
+
+  @IsString()
+  @IsOptional()
+  witnessName?: string;
+
+  @IsString()
+  @IsOptional()
+  witnessPhone?: string;
+}
+
+export class AtFaultInputDto {
+  @IsString()
+  @IsOptional()
+  firstName?: string;
+
+  @IsString()
+  @IsOptional()
+  lastName?: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  suburb?: string;
+
+  @IsString()
+  @IsOptional()
+  postcode?: string;
+
+  @IsString()
+  @IsOptional()
+  state?: string;
+
+  @IsString()
+  @IsOptional()
+  vehicleRegistration?: string;
+
+  @IsString()
+  @IsOptional()
+  vehicleMake?: string;
+
+  @IsString()
+  @IsOptional()
+  vehicleModel?: string;
+
+  @IsNumberString()
+  @IsOptional()
+  vehicleYear?: string;
+
+  @IsString()
+  @IsOptional()
+  insuranceProvider?: string;
+
+  @IsString()
+  @IsOptional()
+  claimNumber?: string;
+}
+
 // ─── Reservation CRUD ─────────────────────────────────────────────────────────
+
+export class CreateReservationDto {
+  /** New intake form sends driver; legacy edit form sends customer */
+  @ValidateNested()
+  @Type(() => CustomerInputDto)
+  @IsOptional()
+  driver?: CustomerInputDto;
+
+  @ValidateNested()
+  @Type(() => CustomerInputDto)
+  @IsOptional()
+  customer?: CustomerInputDto;
+
+  @IsString()
+  @IsOptional()
+  vehicleId?: string;
+
+  @IsString()
+  @IsOptional()
+  startDate?: string;
+
+  @IsString()
+  @IsOptional()
+  endDate?: string;
+
+  @IsEnum(ReservationStatus)
+  @IsOptional()
+  status?: ReservationStatus;
+
+  @IsString()
+  @IsOptional()
+  sourceOfBusiness?: string;
+
+  @IsString()
+  @IsOptional()
+  partnerName?: string;
+
+  @IsString()
+  @IsOptional()
+  hireType?: string;
+
+  @ValidateNested()
+  @Type(() => AccidentInputDto)
+  @IsOptional()
+  accident?: AccidentInputDto;
+
+  @ValidateNested()
+  @Type(() => AtFaultInputDto)
+  @IsOptional()
+  atFault?: AtFaultInputDto;
+
+  @ValidateNested()
+  @Type(() => AdditionalInputDto)
+  @IsOptional()
+  additional?: AdditionalInputDto;
+}
 
 export class UpdateReservationDto {
   @IsEnum(ReservationStatus)
@@ -90,6 +247,14 @@ export class UpdateReservationDto {
   @IsOptional()
   vehicleId?: string;
 
+  @IsString()
+  @IsOptional()
+  sourceOfBusiness?: string;
+
+  @IsString()
+  @IsOptional()
+  hireType?: string;
+
   /** Edit form sends `customer`; new intake form sends `driver` — both accepted */
   @ValidateNested()
   @Type(() => CustomerInputDto)
@@ -100,6 +265,21 @@ export class UpdateReservationDto {
   @Type(() => CustomerInputDto)
   @IsOptional()
   driver?: CustomerInputDto;
+
+  @ValidateNested()
+  @Type(() => AccidentInputDto)
+  @IsOptional()
+  accident?: AccidentInputDto;
+
+  @ValidateNested()
+  @Type(() => AtFaultInputDto)
+  @IsOptional()
+  atFault?: AtFaultInputDto;
+
+  @ValidateNested()
+  @Type(() => AdditionalInputDto)
+  @IsOptional()
+  additional?: AdditionalInputDto;
 }
 
 // ─── markOnHire ───────────────────────────────────────────────────────────────
@@ -162,6 +342,26 @@ export class AddAdditionalDriverDto {
   @IsString()
   @IsOptional()
   phone?: string;
+}
+
+// ─── Schedule ─────────────────────────────────────────────────────────────────
+
+export class AddToScheduleDto {
+  @IsString()
+  scheduledAt: string;
+
+  @IsString()
+  jobType: string;
+
+  @IsString()
+  address: string;
+
+  @IsString()
+  suburb: string;
+
+  @IsString()
+  @IsOptional()
+  driverId?: string;
 }
 
 // ─── Cancellation / Reports ───────────────────────────────────────────────────
