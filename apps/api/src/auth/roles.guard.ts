@@ -36,6 +36,8 @@ export class RolesGuard implements CanActivate {
       select: { role: true },
     });
 
+    console.log('[RolesGuard] clerkId:', user.sub, '| dbUser:', dbUser, '| required:', requiredRoles);
+
     if (!dbUser || !requiredRoles.includes(dbUser.role)) {
       throw new ForbiddenException('Insufficient permissions');
     }
