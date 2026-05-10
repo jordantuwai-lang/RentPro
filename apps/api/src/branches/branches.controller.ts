@@ -3,14 +3,8 @@ import { BranchesService } from './branches.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { ALL_STAFF } from '../auth/roles.constants';
 import { CreateBranchDto, UpdateBranchDto } from './branches.dto';
-
-const ALL_STAFF = [
-  'ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_MANAGER',
-  'SALES_MANAGER','FLEET_MANAGER','FINANCE_MANAGER','RECOVERY_MANAGER',
-  'CLAIMS_TEAM_IN','CLAIMS_TEAM_OUT','CLAIMS_TEAM_LIABILITY','SALES_REP',
-  'FLEET_COORDINATOR','CSE_DRIVER','RECOVERY_AGENT',
-];
 
 @Controller('branches')
 @UseGuards(ClerkAuthGuard, RolesGuard)

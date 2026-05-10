@@ -14,6 +14,7 @@ import { ClaimsService } from './claims.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { OPS_ROLES, CLAIMS_ROLES } from '../auth/roles.constants';
 import {
   CreateClaimDto,
   UpdateClaimDto,
@@ -27,18 +28,6 @@ import {
   CreateRepairerDto,
   UpdateRepairerDto,
 } from './claims.dto';
-
-const OPS_ROLES = [
-  'ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_MANAGER',
-  'SALES_MANAGER','FLEET_MANAGER','FINANCE_MANAGER','RECOVERY_MANAGER',
-  'CLAIMS_TEAM_IN','CLAIMS_TEAM_OUT','CLAIMS_TEAM_LIABILITY','SALES_REP',
-  'FLEET_COORDINATOR',
-];
-
-const CLAIMS_ROLES = [
-  'ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_MANAGER',
-  'CLAIMS_TEAM_IN','CLAIMS_TEAM_OUT','CLAIMS_TEAM_LIABILITY','RECOVERY_MANAGER',
-];
 
 @Controller('claims')
 @UseGuards(ClerkAuthGuard, RolesGuard)

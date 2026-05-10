@@ -3,13 +3,7 @@ import { UsersService } from './users.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-
-const OPS_ROLES = [
-  'ADMIN', 'LEADERSHIP', 'OPS_MANAGER', 'BRANCH_MANAGER', 'CLAIMS_MANAGER',
-  'SALES_MANAGER', 'FLEET_MANAGER', 'FINANCE_MANAGER', 'RECOVERY_MANAGER',
-  'CLAIMS_TEAM_IN', 'CLAIMS_TEAM_OUT', 'CLAIMS_TEAM_LIABILITY', 'SALES_REP',
-  'FLEET_COORDINATOR',
-];
+import { OPS_ROLES } from '../auth/roles.constants';
 
 @Controller('users')
 @UseGuards(ClerkAuthGuard)

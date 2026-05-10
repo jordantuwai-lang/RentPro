@@ -3,16 +3,8 @@ import { PaymentsService } from './payments.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { OPS_ROLES, FINANCE_ROLES } from '../auth/roles.constants';
 import { CreateChargeTypeDto, UpdateChargeTypeDto, CreatePaymentDto, ProcessPaymentDto } from './payments.dto';
-
-const FINANCE_ROLES = ['ADMIN','LEADERSHIP','FINANCE_MANAGER','OPS_MANAGER','BRANCH_MANAGER'];
-
-const OPS_ROLES = [
-  'ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_MANAGER',
-  'SALES_MANAGER','FLEET_MANAGER','FINANCE_MANAGER','RECOVERY_MANAGER',
-  'CLAIMS_TEAM_IN','CLAIMS_TEAM_OUT','CLAIMS_TEAM_LIABILITY','SALES_REP',
-  'FLEET_COORDINATOR',
-];
 
 @Controller('payments')
 @UseGuards(ClerkAuthGuard, RolesGuard)

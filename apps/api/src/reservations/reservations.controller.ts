@@ -3,6 +3,7 @@ import { ReservationsService } from './reservations.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { OPS_ROLES, ALL_STAFF } from '../auth/roles.constants';
 import {
   UpdateReservationDto,
   MarkOnHireDto,
@@ -10,15 +11,6 @@ import {
   AddPaymentCardDto,
   AddAdditionalDriverDto,
 } from './reservations.dto';
-
-const OPS_ROLES = [
-  'ADMIN','LEADERSHIP','OPS_MANAGER','BRANCH_MANAGER','CLAIMS_MANAGER',
-  'SALES_MANAGER','FLEET_MANAGER','FINANCE_MANAGER','RECOVERY_MANAGER',
-  'CLAIMS_TEAM_IN','CLAIMS_TEAM_OUT','CLAIMS_TEAM_LIABILITY','SALES_REP',
-  'FLEET_COORDINATOR',
-];
-
-const ALL_STAFF = [...OPS_ROLES, 'CSE_DRIVER', 'RECOVERY_AGENT'];
 
 @Controller('reservations')
 @UseGuards(ClerkAuthGuard, RolesGuard)
