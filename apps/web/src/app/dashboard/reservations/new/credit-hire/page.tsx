@@ -48,6 +48,13 @@ function SectionBlock({ title, children }: { title: string; children: React.Reac
   );
 }
 
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 10);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
+}
+
 const STATES = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'];
 const LICENCE_STATES = ['International', ...STATES];
 const BODY_TYPES = ['Sedan', 'Hatchback', 'SUV', 'Ute', 'Van', 'Wagon', 'Coupe', 'Convertible', 'Truck', 'Other'];
@@ -1025,7 +1032,7 @@ const { data: drivers = [] } = useQuery({
   <div style={grid3}>
               <F label="First name *"><input style={inp} value={driver.firstName} onChange={e => updDriver('firstName', e.target.value)} /></F>
               <F label="Last name *"><input style={inp} value={driver.lastName} onChange={e => updDriver('lastName', e.target.value)} /></F>
-              <F label="Phone *"><input style={inp} value={driver.phone} onChange={e => updDriver('phone', e.target.value)} /></F>
+              <F label="Phone *"><input style={inp} placeholder="0400-000-000" value={driver.phone} onChange={e => updDriver('phone', formatPhone(e.target.value))} /></F>
               <F label="Email" span2><input style={inp} value={driver.email} onChange={e => updDriver('email', e.target.value)} /></F>
               <F label="Date of birth"><input type="date" style={inp} value={driver.dob} onChange={e => updDriver('dob', e.target.value)} /></F>
               <F label="Address" full>
@@ -1050,7 +1057,7 @@ const { data: drivers = [] } = useQuery({
             <div style={grid3}>
               <F label="First name"><input style={inp} value={owner.firstName} onChange={e => updOwner('firstName', e.target.value)} /></F>
               <F label="Last name"><input style={inp} value={owner.lastName} onChange={e => updOwner('lastName', e.target.value)} /></F>
-              <F label="Phone"><input style={inp} value={owner.phone} onChange={e => updOwner('phone', e.target.value)} /></F>
+              <F label="Phone"><input style={inp} placeholder="0400-000-000" value={owner.phone} onChange={e => updOwner('phone', formatPhone(e.target.value))} /></F>
               <F label="Email" span2><input style={inp} value={owner.email} onChange={e => updOwner('email', e.target.value)} /></F>
               <F label="Date of birth"><input type="date" style={inp} value={owner.dob} onChange={e => updOwner('dob', e.target.value)} /></F>
               <F label="Address" full>
@@ -1097,7 +1104,7 @@ const { data: drivers = [] } = useQuery({
             <div style={grid3}>
               <F label="First name"><input style={inp} value={atFault.firstName} onChange={e => updAtFault('firstName', e.target.value)} /></F>
               <F label="Last name"><input style={inp} value={atFault.lastName} onChange={e => updAtFault('lastName', e.target.value)} /></F>
-              <F label="Phone"><input style={inp} value={atFault.phone} onChange={e => updAtFault('phone', e.target.value)} /></F>
+              <F label="Phone"><input style={inp} placeholder="0400-000-000" value={atFault.phone} onChange={e => updAtFault('phone', formatPhone(e.target.value))} /></F>
               <F label="Email"><input style={inp} value={atFault.email} onChange={e => updAtFault('email', e.target.value)} /></F>
               <F label="Insurance provider"><input style={inp} value={atFault.insuranceProvider} onChange={e => updAtFault('insuranceProvider', e.target.value)} /></F>
               <F label="Claim number"><input style={inp} value={atFault.claimNumber} onChange={e => updAtFault('claimNumber', e.target.value)} /></F>
@@ -1129,7 +1136,7 @@ const { data: drivers = [] } = useQuery({
             <div style={grid3}>
               <F label="First name"><input style={inp} value={tp1.firstName} onChange={e => updTp1('firstName', e.target.value)} /></F>
               <F label="Last name"><input style={inp} value={tp1.lastName} onChange={e => updTp1('lastName', e.target.value)} /></F>
-              <F label="Phone"><input style={inp} value={tp1.phone} onChange={e => updTp1('phone', e.target.value)} /></F>
+              <F label="Phone"><input style={inp} placeholder="0400-000-000" value={tp1.phone} onChange={e => updTp1('phone', formatPhone(e.target.value))} /></F>
               <F label="Email"><input style={inp} value={tp1.email} onChange={e => updTp1('email', e.target.value)} /></F>
               <F label="Insurance provider"><input style={inp} value={tp1.insuranceProvider} onChange={e => updTp1('insuranceProvider', e.target.value)} /></F>
               <F label="Address" full>
@@ -1165,7 +1172,7 @@ const { data: drivers = [] } = useQuery({
                 <div style={grid3}>
                   <F label="First name"><input style={inp} value={tp2.firstName} onChange={e => updTp2('firstName', e.target.value)} /></F>
                   <F label="Last name"><input style={inp} value={tp2.lastName} onChange={e => updTp2('lastName', e.target.value)} /></F>
-                  <F label="Phone"><input style={inp} value={tp2.phone} onChange={e => updTp2('phone', e.target.value)} /></F>
+                  <F label="Phone"><input style={inp} placeholder="0400-000-000" value={tp2.phone} onChange={e => updTp2('phone', formatPhone(e.target.value))} /></F>
                   <F label="Email"><input style={inp} value={tp2.email} onChange={e => updTp2('email', e.target.value)} /></F>
                   <F label="Insurance provider"><input style={inp} value={tp2.insuranceProvider} onChange={e => updTp2('insuranceProvider', e.target.value)} /></F>
                   <F label="Address" full>
@@ -1301,7 +1308,7 @@ const { data: drivers = [] } = useQuery({
                 <input style={inp} value={policeOfficerName} onChange={e => setPoliceOfficerName(e.target.value)} />
               </F>
               <F label="Officer phone">
-                <input style={inp} value={policeOfficerPhone} onChange={e => setPoliceOfficerPhone(e.target.value)} />
+                <input style={inp} placeholder="0400-000-000" value={policeOfficerPhone} onChange={e => setPoliceOfficerPhone(formatPhone(e.target.value))} />
               </F>
             </div>
           </SectionBlock>
@@ -1312,7 +1319,7 @@ const { data: drivers = [] } = useQuery({
                 <input style={inp} value={witnessName} onChange={e => setWitnessName(e.target.value)} />
               </F>
               <F label="Witness phone">
-                <input style={inp} value={witnessPhone} onChange={e => setWitnessPhone(e.target.value)} />
+                <input style={inp} placeholder="0400-000-000" value={witnessPhone} onChange={e => setWitnessPhone(formatPhone(e.target.value))} />
               </F>
               <F label="Witness email">
                 <input style={inp} value={witnessEmail} onChange={e => setWitnessEmail(e.target.value)} />
