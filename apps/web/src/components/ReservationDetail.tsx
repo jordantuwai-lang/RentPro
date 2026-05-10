@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
@@ -403,6 +403,72 @@ function SaveIndicator({ state }: { state: 'idle' | 'saving' | 'saved' | 'error'
   return <span style={{ fontSize: '12px', fontWeight: 500, color: config.color }}>{config.text}</span>;
 }
 
+function NotesTab({ reservationId, authorName }: { reservationId: string; authorName: string }) {
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+  const [noteText, setNoteText] = useState('');
+
+  const { data: notes = [], isLoading } = useQuery({
+    queryKey: ['reservation-notes', reservationId],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get(`/reservations/${reservationId}/notes`, { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
+
+  const addNote = useMutation({
+    mutationFn: async () => {
+      const token = await getToken();
+      return api.post(`/reservations/${reservationId}/notes`, { note: noteText, authorName }, { headers: { Authorization: `Bearer ${token}` } });
+    },
+    onSuccess: () => {
+      setNoteText('');
+      queryClient.invalidateQueries({ queryKey: ['reservation-notes', reservationId] });
+    },
+  });
+
+  return (
+    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '16px', marginBottom: '16px' }}>
+      <h3 style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Notes</h3>
+
+      {/* Add note */}
+      <div style={{ marginBottom: '20px' }}>
+        <textarea
+          value={noteText}
+          onChange={e => setNoteText(e.target.value)}
+          placeholder="Log a call attempt, update, or any relevant note..."
+          style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', color: '#0f172a', background: '#fff', boxSizing: 'border-box', height: '90px', resize: 'vertical' }}
+        />
+        <button
+          onClick={() => { if (noteText.trim()) addNote.mutate(); }}
+          disabled={!noteText.trim() || addNote.isPending}
+          style={{ marginTop: '8px', padding: '8px 20px', borderRadius: '8px', border: 'none', background: noteText.trim() ? '#01ae42' : '#e2e8f0', color: noteText.trim() ? '#fff' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: noteText.trim() ? 'pointer' : 'not-allowed' }}>
+          {addNote.isPending ? 'Saving...' : 'Add Note'}
+        </button>
+      </div>
+
+      {/* Existing notes */}
+      {isLoading ? (
+        <div style={{ color: '#94a3b8', fontSize: '13px' }}>Loading notes...</div>
+      ) : notes.length === 0 ? (
+        <div style={{ color: '#94a3b8', fontSize: '13px' }}>No notes yet.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {notes.map((n: any) => (
+            <div key={n.id} style={{ background: '#f8fafc', borderRadius: '8px', padding: '12px 14px', borderLeft: '3px solid #01ae42' }}>
+              <div style={{ fontSize: '13px', color: '#0f172a', lineHeight: 1.5, marginBottom: '6px' }}>{n.note}</div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                {n.authorName} · {new Date(n.createdAt).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export interface ReservationDetailProps {
   reservationId: string;
   reservation: any;
@@ -411,7 +477,7 @@ export interface ReservationDetailProps {
   onSaveSuccess?: () => void;
 }
 
-const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Documents'];
+const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Notes', 'Documents'];
 
 export default function ReservationDetail({
   reservationId,
@@ -421,6 +487,7 @@ export default function ReservationDetail({
   onSaveSuccess,
 }: ReservationDetailProps) {
   const { getToken } = useAuth();
+  const { user } = useUser();
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState(0);
@@ -961,8 +1028,11 @@ export default function ReservationDetail({
         </>
       )}
 
-      {/* ── Tab 8+: Extra or Documents ── */}
-      {activeTab >= 8 && extraTabContent && extraTabContent(activeTab)}
+      {/* ── Tab 8: Notes ── */}
+      {activeTab === 8 && <NotesTab reservationId={reservationId} authorName={user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Staff'} />}
+
+      {/* ── Tab 9+: Extra or Documents ── */}
+      {activeTab >= 9 && extraTabContent && extraTabContent(activeTab)}
 
       {activeTab === tabs.length - 1 && !extraTabContent && (
         <>
