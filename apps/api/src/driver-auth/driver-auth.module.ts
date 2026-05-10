@@ -7,9 +7,12 @@ import { PrismaModule } from '../prisma/prisma.module';
 @Module({
   imports: [
     PrismaModule,
-    JwtModule.register({
-      secret: process.env.DRIVER_JWT_SECRET || 'driver-secret-change-in-prod',
-      signOptions: { expiresIn: '30d' },
+    JwtModule.registerAsync({
+      useFactory: () => {
+        const secret = process.env.DRIVER_JWT_SECRET;
+        if (!secret) throw new Error('DRIVER_JWT_SECRET environment variable is not set');
+        return { secret, signOptions: { expiresIn: '30d' } };
+      },
     }),
   ],
   controllers: [DriverAuthController],

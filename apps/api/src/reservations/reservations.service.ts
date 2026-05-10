@@ -351,7 +351,10 @@ if (data.status === 'COMPLETED') {
     });
     if (!reservation) throw new Error('Reservation not found');
 
-    const branchCode = reservation.vehicle?.branch?.code || 'KPK';
+    const branchCode = reservation.vehicle?.branch?.code;
+    if (!branchCode) {
+      throw new BadRequestException('Cannot generate file number: reservation vehicle has no branch assigned');
+    }
     const fileNumber = await this.generateFileNumber(branchCode);
 
     if (reservation.vehicleId) {
