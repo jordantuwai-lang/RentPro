@@ -5,14 +5,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PrismaClient } from '@prisma/client';
 import { ROLES_KEY } from './roles.decorator';
-
-const prisma = new PrismaClient();
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private prisma: PrismaService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(
@@ -30,7 +31,7 @@ export class RolesGuard implements CanActivate {
     }
 
     // Look up the user's role from our DB using their Clerk ID
-    const dbUser = await prisma.user.findUnique({
+    const dbUser = await this.prisma.user.findUnique({
       where: { clerkId: user.sub },
       select: { role: true },
     });
