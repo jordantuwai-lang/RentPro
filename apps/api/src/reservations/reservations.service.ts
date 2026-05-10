@@ -229,22 +229,13 @@ if (data.status === 'COMPLETED') {
     const atFaultData = data.atFault || {};
     const additionalData = data.additional || {};
 
+    const accidentPayload = this.buildAccidentPayload(accidentData, additionalData);
+    const atFaultPayload = this.buildAtFaultPayload(atFaultData);
+
     if (reservation.claim) {
       const claimId = reservation.claim.id;
 
       // Update or create AccidentDetails
-      const accidentPayload = {
-        accidentDate: accidentData.date ? new Date(accidentData.date) : undefined,
-        accidentLocation: accidentData.location || undefined,
-        accidentDescription: accidentData.description || undefined,
-        policeEventNo: additionalData.policeReportNo || undefined,
-        policeStation: additionalData.policeStation || undefined,
-        policeContactName: additionalData.policeOfficerName || undefined,
-        policePhone: additionalData.policeOfficerPhone || undefined,
-        witnessName: additionalData.witnessName || undefined,
-        witnessPhone: additionalData.witnessPhone || undefined,
-      };
-
       if (reservation.claim.accidentDetails) {
         await this.prisma.accidentDetails.update({
           where: { claimId },
@@ -257,23 +248,6 @@ if (data.status === 'COMPLETED') {
       }
 
       // Update or create AtFaultParty
-      const atFaultPayload = {
-        firstName: atFaultData.firstName || undefined,
-        lastName: atFaultData.lastName || undefined,
-        phone: atFaultData.phone || undefined,
-        email: atFaultData.email || undefined,
-        streetAddress: atFaultData.address || undefined,
-        suburb: atFaultData.suburb || undefined,
-        postcode: atFaultData.postcode || undefined,
-        state: atFaultData.state || undefined,
-        vehicleRego: atFaultData.vehicleRegistration || undefined,
-        vehicleMake: atFaultData.vehicleMake || undefined,
-        vehicleModel: atFaultData.vehicleModel || undefined,
-        vehicleYear: atFaultData.vehicleYear ? parseInt(atFaultData.vehicleYear) : undefined,
-        theirInsurer: atFaultData.insuranceProvider || undefined,
-        theirClaimNo: atFaultData.claimNumber || undefined,
-      };
-
       if (reservation.claim.atFaultParty) {
         await this.prisma.atFaultParty.update({
           where: { claimId },
@@ -297,35 +271,6 @@ if (data.status === 'COMPLETED') {
       }
     } else if (data.accident || data.atFault || data.additional) {
       // No claim exists yet — create one with child models
-      const accidentPayload = {
-        accidentDate: accidentData.date ? new Date(accidentData.date) : undefined,
-        accidentLocation: accidentData.location || undefined,
-        accidentDescription: accidentData.description || undefined,
-        policeEventNo: additionalData.policeReportNo || undefined,
-        policeStation: additionalData.policeStation || undefined,
-        policeContactName: additionalData.policeOfficerName || undefined,
-        policePhone: additionalData.policeOfficerPhone || undefined,
-        witnessName: additionalData.witnessName || undefined,
-        witnessPhone: additionalData.witnessPhone || undefined,
-      };
-
-      const atFaultPayload = {
-        firstName: atFaultData.firstName || undefined,
-        lastName: atFaultData.lastName || undefined,
-        phone: atFaultData.phone || undefined,
-        email: atFaultData.email || undefined,
-        streetAddress: atFaultData.address || undefined,
-        suburb: atFaultData.suburb || undefined,
-        postcode: atFaultData.postcode || undefined,
-        state: atFaultData.state || undefined,
-        vehicleRego: atFaultData.vehicleRegistration || undefined,
-        vehicleMake: atFaultData.vehicleMake || undefined,
-        vehicleModel: atFaultData.vehicleModel || undefined,
-        vehicleYear: atFaultData.vehicleYear ? parseInt(atFaultData.vehicleYear) : undefined,
-        theirInsurer: atFaultData.insuranceProvider || undefined,
-        theirClaimNo: atFaultData.claimNumber || undefined,
-      };
-
       await this.prisma.claim.create({
         data: {
           reservation: { connect: { id } },
@@ -580,5 +525,38 @@ if (data.status === 'COMPLETED') {
         driverId: driverId || null,
       },
     });
+  }
+
+  private buildAccidentPayload(accidentData: any, additionalData: any) {
+    return {
+      accidentDate: accidentData.date ? new Date(accidentData.date) : undefined,
+      accidentLocation: accidentData.location || undefined,
+      accidentDescription: accidentData.description || undefined,
+      policeEventNo: additionalData.policeReportNo || undefined,
+      policeStation: additionalData.policeStation || undefined,
+      policeContactName: additionalData.policeOfficerName || undefined,
+      policePhone: additionalData.policeOfficerPhone || undefined,
+      witnessName: additionalData.witnessName || undefined,
+      witnessPhone: additionalData.witnessPhone || undefined,
+    };
+  }
+
+  private buildAtFaultPayload(atFaultData: any) {
+    return {
+      firstName: atFaultData.firstName || undefined,
+      lastName: atFaultData.lastName || undefined,
+      phone: atFaultData.phone || undefined,
+      email: atFaultData.email || undefined,
+      streetAddress: atFaultData.address || undefined,
+      suburb: atFaultData.suburb || undefined,
+      postcode: atFaultData.postcode || undefined,
+      state: atFaultData.state || undefined,
+      vehicleRego: atFaultData.vehicleRegistration || undefined,
+      vehicleMake: atFaultData.vehicleMake || undefined,
+      vehicleModel: atFaultData.vehicleModel || undefined,
+      vehicleYear: atFaultData.vehicleYear ? parseInt(atFaultData.vehicleYear) : undefined,
+      theirInsurer: atFaultData.insuranceProvider || undefined,
+      theirClaimNo: atFaultData.claimNumber || undefined,
+    };
   }
 }
