@@ -159,7 +159,7 @@ export class AtFaultInputDto {
   @IsOptional()
   vehicleModel?: string;
 
-  @IsNumberString()
+  @IsString()
   @IsOptional()
   vehicleYear?: string;
 
