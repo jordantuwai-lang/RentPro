@@ -4,28 +4,11 @@ import { createClerkClient } from '@clerk/clerk-sdk-node';
 import { $Enums } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './admin.dto';
+import { ClerkUserRecord, UserListItem } from './admin.types';
+
+export type { ClerkUserRecord, UserListItem };
 
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-
-export interface ClerkUserRecord {
-  id: string;
-  firstName: string | null;
-  lastName: string | null;
-  emailAddresses: Array<{ emailAddress: string }>;
-  publicMetadata: Record<string, unknown>;
-  createdAt: number;
-}
-
-export interface UserListItem {
-  clerkId: string;
-  firstName: string | null;
-  lastName: string | null;
-  email: string | undefined;
-  role: string;
-  branch: string;
-  branchId: string;
-  createdAt: number;
-}
 
 @Injectable()
 export class AdminService {

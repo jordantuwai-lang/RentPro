@@ -42,7 +42,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
           clearInterval(interval);
         }
       }, 100);
-      return;
+      return () => clearInterval(interval);
     }
 
     window.initGooglePlaces = () => setLoaded(true);

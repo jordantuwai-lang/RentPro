@@ -9,19 +9,9 @@ import {
   UpdateVehicleStatusDto,
   AddPhotoDto,
 } from './fleet.dto';
+import { VehicleWithPhotos, FleetSummary } from './fleet.types';
 
-type VehicleWithPhotos = Vehicle & {
-  photos: (VehiclePhoto & { url: string })[];
-};
-
-export interface FleetSummary {
-  total: number;
-  available: number;
-  onHire: number;
-  inRepair: number;
-  inService: number;
-  notAvailable: number;
-}
+export type { VehicleWithPhotos, FleetSummary };
 
 @Injectable()
 export class FleetService {

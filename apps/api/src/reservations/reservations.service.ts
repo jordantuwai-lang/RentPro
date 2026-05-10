@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { $Enums } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { isBranchFiltered } from '../common/branch-filter';
 import { AddPaymentCardDto, AddAdditionalDriverDto } from './reservations.dto';
@@ -163,10 +164,7 @@ export class ReservationsService {
     // ── Vehicle status management ─────────────────────────────────────────────
 
     if (data.status === 'COMPLETED' && reservation.vehicleId) {
-      await this.prisma.vehicle.update({
-        where: { id: reservation.vehicleId },
-        data: { status: 'AVAILABLE' },
-      });
+      await this.setVehicleStatus(reservation.vehicleId, $Enums.VehicleStatus.AVAILABLE);
     }
 
         // ── Off-hire: move linked claim to INVOICING ──────────────────────────────
@@ -188,17 +186,11 @@ if (data.status === 'COMPLETED') {
       if (!vehicle) throw new NotFoundException('Vehicle not found');
 
       if (reservation.vehicleId) {
-        await this.prisma.vehicle.update({
-          where: { id: reservation.vehicleId },
-          data: { status: 'AVAILABLE' },
-        });
+        await this.setVehicleStatus(reservation.vehicleId, $Enums.VehicleStatus.AVAILABLE);
       }
 
       if (data.status !== 'DRAFT') {
-        await this.prisma.vehicle.update({
-          where: { id: data.vehicleId },
-          data: { status: 'ON_HIRE' },
-        });
+        await this.setVehicleStatus(data.vehicleId, $Enums.VehicleStatus.ON_HIRE);
       }
     }
 
@@ -314,10 +306,7 @@ if (data.status === 'COMPLETED') {
     if (!reservation) throw new NotFoundException('Reservation not found');
 
     if (reservation.vehicleId) {
-      await this.prisma.vehicle.update({
-        where: { id: reservation.vehicleId },
-        data: { status: 'AVAILABLE' },
-      });
+      await this.setVehicleStatus(reservation.vehicleId, $Enums.VehicleStatus.AVAILABLE);
     }
 
     return this.prisma.reservation.update({
@@ -355,51 +344,53 @@ if (data.status === 'COMPLETED') {
     return result;
   }
 
- // REPLACE the markOnHire method in apps/api/src/reservations/reservations.service.ts
+  async markOnHire(id: string, data: any) {
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id },
+      include: { vehicle: { include: { branch: true } } },
+    });
+    if (!reservation) throw new Error('Reservation not found');
 
- async markOnHire(id: string, data: any) {
-  const reservation = await this.prisma.reservation.findUnique({
-    where: { id },
-    include: { vehicle: { include: { branch: true } } },
-  });
-  if (!reservation) throw new Error('Reservation not found');
+    const branchCode = reservation.vehicle?.branch?.code || 'KPK';
+    const fileNumber = await this.generateFileNumber(branchCode);
 
-  const branchCode = reservation.vehicle?.branch?.code || 'KPK';
-  const fileNumber = await this.generateFileNumber(branchCode);
+    if (reservation.vehicleId) {
+      await this.setVehicleStatus(reservation.vehicleId, $Enums.VehicleStatus.ON_HIRE);
+    }
 
-  if (reservation.vehicleId) {
+    const updated = await this.prisma.reservation.update({
+      where: { id },
+      data: { status: 'ACTIVE', fileNumber },
+      include: { customer: true, vehicle: { include: { branch: true } } },
+    });
+
+    await this.ensureClaimExists(id, reservation.sourceOfBusiness);
+
+    return updated;
+  }
+
+  private async setVehicleStatus(vehicleId: string, status: $Enums.VehicleStatus): Promise<void> {
     await this.prisma.vehicle.update({
-      where: { id: reservation.vehicleId },
-      data: { status: 'ON_HIRE' },
+      where: { id: vehicleId },
+      data: { status },
     });
   }
 
-  const updated = await this.prisma.reservation.update({
-    where: { id },
-    data: { status: 'ACTIVE', fileNumber },
-    include: { customer: true, vehicle: { include: { branch: true } } },
-  });
+  private async ensureClaimExists(reservationId: string, sourceOfBusiness?: string | null): Promise<void> {
+    const existing = await this.prisma.claim.findUnique({ where: { reservationId } });
+    if (existing) return;
 
-  // Auto-create a Claim for this reservation if one doesn't exist
-  const existingClaim = await this.prisma.claim.findUnique({
-    where: { reservationId: id },
-  });
-
-  if (!existingClaim) {
     const count = await this.prisma.claim.count();
     const claimNumber = `CLM-${String(count + 1).padStart(6, '0')}`;
     await this.prisma.claim.create({
       data: {
-        reservation: { connect: { id } },
+        reservation: { connect: { id: reservationId } },
         claimNumber,
-        sourceOfBusiness: reservation.sourceOfBusiness || undefined,
+        sourceOfBusiness: sourceOfBusiness || undefined,
         status: 'OPEN',
       },
     });
   }
-
-  return updated;
-}
 
   addNote(reservationId: string, data: any) {
     return this.prisma.reservationNote.create({
