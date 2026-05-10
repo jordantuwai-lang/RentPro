@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateVehicleClassDto, UpdateVehicleClassDto, SetRateDto } from './rates.dto';
 
 @Injectable()
 export class RatesService {
@@ -12,30 +13,33 @@ export class RatesService {
     });
   }
 
-  createClass(data: { code: string; description: string; example?: string; sortOrder?: number }) {
+  createClass(data: CreateVehicleClassDto) {
     return this.prisma.vehicleClass.create({ data });
   }
 
-  updateClass(id: string, data: any) {
+  updateClass(id: string, data: UpdateVehicleClassDto) {
     return this.prisma.vehicleClass.update({ where: { id }, data });
   }
 
   async getCurrentRates(branchId: string) {
-    const classes = await this.prisma.vehicleClass.findMany({
-      where: { active: true },
-      orderBy: { sortOrder: 'asc' },
-    });
     const now = new Date();
-    const rates = await Promise.all(
-      classes.map(async (vc) => {
-        const rate = await this.prisma.hireRate.findFirst({
-          where: { vehicleClassId: vc.id, branchId, effectiveFrom: { lte: now } },
-          orderBy: { effectiveFrom: 'desc' },
-        });
-        return { vehicleClass: vc, rate: rate ?? null };
+
+    const [classes, allRates] = await Promise.all([
+      this.prisma.vehicleClass.findMany({
+        where: { active: true },
+        orderBy: { sortOrder: 'asc' },
       }),
-    );
-    return rates;
+      this.prisma.hireRate.findMany({
+        where: { branchId, effectiveFrom: { lte: now } },
+        orderBy: { effectiveFrom: 'desc' },
+      }),
+    ]);
+
+    // For each class, pick the most recent rate (first match after ordering desc)
+    return classes.map((vc) => ({
+      vehicleClass: vc,
+      rate: allRates.find((r) => r.vehicleClassId === vc.id) ?? null,
+    }));
   }
 
   getRateHistory(branchId: string, vehicleClassId: string) {
@@ -46,15 +50,7 @@ export class RatesService {
     });
   }
 
-  setRate(data: {
-    vehicleClassId: string;
-    branchId: string;
-    daily?: number;
-    weekly?: number;
-    monthly?: number;
-    effectiveFrom?: string;
-    createdBy?: string;
-  }) {
+  setRate(data: SetRateDto) {
     return this.prisma.hireRate.create({
       data: {
         vehicleClassId: data.vehicleClassId,

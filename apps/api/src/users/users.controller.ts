@@ -4,6 +4,7 @@ import { ClerkAuthGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { OPS_ROLES } from '../auth/roles.constants';
+import { CreateUserDto, UpdateUserDto } from './users.dto';
 
 @Controller('users')
 @UseGuards(ClerkAuthGuard)
@@ -21,12 +22,12 @@ export class UsersController {
   }
 
   @Post()
-  create(@Body() body: any) {
+  create(@Body() body: CreateUserDto) {
     return this.usersService.create(body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: UpdateUserDto) {
     return this.usersService.update(id, body);
   }
 

@@ -8,6 +8,7 @@ import {
   UpdateDeliveryStatusDto,
   AddDeliveryPhotoDto,
 } from './logistics.dto';
+import { isBranchFiltered } from '../common/branch-filter';
 
 const DELIVERY_INCLUDE = {
   reservation: {
@@ -22,10 +23,7 @@ const DELIVERY_INCLUDE = {
 } as const;
 
 function branchFilter(branchId?: string) {
-  if (branchId && branchId !== 'null' && branchId !== 'all') {
-    return { reservation: { vehicle: { branchId } } };
-  }
-  return undefined;
+  return isBranchFiltered(branchId) ? { reservation: { vehicle: { branchId } } } : undefined;
 }
 
 @Injectable()

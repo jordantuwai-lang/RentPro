@@ -25,13 +25,13 @@ export class BranchesController {
 
   @Post()
   @Roles('ADMIN')
-  create(@Body() body: any) {
+  create(@Body() body: CreateBranchDto) {
     return this.branchesService.create(body);
   }
 
   @Patch(':id')
   @Roles('ADMIN','LEADERSHIP','OPS_MANAGER')
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: UpdateBranchDto) {
     return this.branchesService.update(id, body);
   }
 }

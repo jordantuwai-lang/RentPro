@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { isBranchFiltered } from '../common/branch-filter';
+import { AddPaymentCardDto, AddAdditionalDriverDto } from './reservations.dto';
 
 @Injectable()
 export class ReservationsService {
@@ -20,7 +22,7 @@ export class ReservationsService {
 
   findAll(branchId?: string) {
     return this.prisma.reservation.findMany({
-      where: (branchId && branchId !== 'null' && branchId !== 'all') ? { vehicle: { branchId } } : undefined,
+      where: isBranchFiltered(branchId) ? { vehicle: { branchId } } : undefined,
       include: {
         customer: true,
         vehicle: { include: { branch: true } },
@@ -416,7 +418,7 @@ if (data.status === 'COMPLETED') {
     });
   }
 
-  async addPaymentCard(reservationId: string, data: any) {
+  async addPaymentCard(reservationId: string, data: AddPaymentCardDto) {
     let referenceCode = this.generateCardReference();
     let exists = await this.prisma.paymentCard.findFirst({ where: { referenceCode } });
     while (exists) {
@@ -439,7 +441,7 @@ if (data.status === 'COMPLETED') {
     return this.prisma.paymentCard.delete({ where: { id } });
   }
 
-  addAdditionalDriver(reservationId: string, data: any) {
+  addAdditionalDriver(reservationId: string, data: AddAdditionalDriverDto) {
     return this.prisma.additionalDriver.create({
       data: {
         reservation: { connect: { id: reservationId } },

@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { isBranchFiltered } from '../common/branch-filter';
 import { $Enums, Vehicle, VehiclePhoto } from '@prisma/client';
 import {
   CreateVehicleDto,
@@ -32,9 +33,9 @@ export class FleetService {
   ) {}
 
   findAll(branchId?: string): Promise<Vehicle[]> {
-    const isBranchFiltered = branchId && branchId !== 'null' && branchId !== 'all';
+    const filtered = isBranchFiltered(branchId);
     return this.prisma.vehicle.findMany({
-      where: isBranchFiltered ? { branchId } : undefined,
+      where: filtered ? { branchId } : undefined,
       include: { branch: true, photos: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -101,9 +102,9 @@ export class FleetService {
   }
 
   async getFleetSummary(branchId?: string): Promise<FleetSummary> {
-    const isBranchFiltered = branchId && branchId !== 'null' && branchId !== 'all';
+    const filtered = isBranchFiltered(branchId);
     const vehicles = await this.prisma.vehicle.findMany({
-      where: isBranchFiltered ? { branchId } : undefined,
+      where: filtered ? { branchId } : undefined,
     });
     return {
       total: vehicles.length,

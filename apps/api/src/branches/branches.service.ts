@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateBranchDto, UpdateBranchDto } from './branches.dto';
 
 @Injectable()
 export class BranchesService {
@@ -18,11 +19,11 @@ export class BranchesService {
     });
   }
 
-  create(data: any) {
+  create(data: CreateBranchDto) {
     return this.prisma.branch.create({ data });
   }
 
-  update(id: string, data: any) {
+  update(id: string, data: UpdateBranchDto) {
     return this.prisma.branch.update({
       where: { id },
       data,

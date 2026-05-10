@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { RatesService } from './rates.service';
 import { ClerkAuthGuard } from '../auth/clerk.guard';
+import { CreateVehicleClassDto, UpdateVehicleClassDto, SetRateDto } from './rates.dto';
 
 @Controller('rates')
 @UseGuards(ClerkAuthGuard)
@@ -13,12 +14,12 @@ export class RatesController {
   }
 
   @Post('classes')
-  createClass(@Body() body: any) {
+  createClass(@Body() body: CreateVehicleClassDto) {
     return this.ratesService.createClass(body);
   }
 
   @Patch('classes/:id')
-  updateClass(@Param('id') id: string, @Body() body: any) {
+  updateClass(@Param('id') id: string, @Body() body: UpdateVehicleClassDto) {
     return this.ratesService.updateClass(id, body);
   }
 
@@ -36,7 +37,7 @@ export class RatesController {
   }
 
   @Post()
-  setRate(@Body() body: any) {
+  setRate(@Body() body: SetRateDto) {
     return this.ratesService.setRate(body);
   }
 }
