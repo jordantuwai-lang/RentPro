@@ -10,6 +10,9 @@ import {
   UpdateReservationDto,
   AddToScheduleDto,
   MarkOnHireDto,
+  AccidentInputDto,
+  AdditionalInputDto,
+  AtFaultInputDto,
 } from './reservations.dto';
 
 @Injectable()
@@ -523,7 +526,7 @@ if (data.status === 'COMPLETED') {
     });
   }
 
-  private buildAccidentPayload(accidentData: any, additionalData: any) {
+  private buildAccidentPayload(accidentData: AccidentInputDto, additionalData: AdditionalInputDto) {
     return {
       accidentDate: accidentData.date ? new Date(accidentData.date) : undefined,
       accidentLocation: accidentData.location || undefined,
@@ -537,7 +540,7 @@ if (data.status === 'COMPLETED') {
     };
   }
 
-  private buildAtFaultPayload(atFaultData: any) {
+  private buildAtFaultPayload(atFaultData: AtFaultInputDto) {
     return {
       firstName: atFaultData.firstName || undefined,
       lastName: atFaultData.lastName || undefined,
