@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
+import * as XLSX from 'xlsx';
 import api from '@/lib/api';
 
 // ─── Column Definitions ──────────────────────────────────────────────────────
@@ -108,7 +109,7 @@ function getCellValue(r: any, key: string): string {
   }
 }
 
-// ─── CSV Export ──────────────────────────────────────────────────────────────
+// ─── Export Helpers ───────────────────────────────────────────────────────────
 
 function exportToCSV(rows: any[], columns: { key: string; label: string }[], filename: string) {
   const headers = columns.map(c => c.label);
@@ -125,6 +126,33 @@ function exportToCSV(rows: any[], columns: { key: string; label: string }[], fil
   a.download = `${filename}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function exportToExcel(rows: any[], columns: { key: string; label: string }[], filename: string) {
+  const data = [
+    columns.map(c => c.label),
+    ...rows.map(row => columns.map(c => getCellValue(row, c.key))),
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+
+  // Bold header row
+  columns.forEach((_, i) => {
+    const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })];
+    if (cell) cell.s = { font: { bold: true } };
+  });
+
+  // Auto column widths based on content
+  ws['!cols'] = columns.map((col, i) => {
+    const maxLen = Math.max(
+      col.label.length,
+      ...rows.map(row => getCellValue(row, col.key).length)
+    );
+    return { wch: Math.min(maxLen + 2, 40) };
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  XLSX.writeFile(wb, `${filename}.xlsx`);
 }
 
 // ─── Toggle helpers ───────────────────────────────────────────────────────────
@@ -669,23 +697,42 @@ export default function ReportsPage() {
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
               {results.length} record{results.length !== 1 ? 's' : ''} found
             </span>
-            <button
-              onClick={() => exportToCSV(results, activeColumns, 'rentpro-report')}
-              disabled={results.length === 0 || activeColumns.length === 0}
-              style={{
-                padding: '7px 16px',
-                borderRadius: '6px',
-                border: '1px solid #01ae42',
-                background: '#fff',
-                color: '#01ae42',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: results.length > 0 && activeColumns.length > 0 ? 'pointer' : 'not-allowed',
-                opacity: results.length > 0 && activeColumns.length > 0 ? 1 : 0.5,
-              }}
-            >
-              Export to CSV
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => exportToExcel(results, activeColumns, 'rentpro-report')}
+                disabled={results.length === 0 || activeColumns.length === 0}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '6px',
+                  border: '1px solid #1d6f42',
+                  background: '#1d6f42',
+                  color: '#fff',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: results.length > 0 && activeColumns.length > 0 ? 'pointer' : 'not-allowed',
+                  opacity: results.length > 0 && activeColumns.length > 0 ? 1 : 0.5,
+                }}
+              >
+                Export to Excel
+              </button>
+              <button
+                onClick={() => exportToCSV(results, activeColumns, 'rentpro-report')}
+                disabled={results.length === 0 || activeColumns.length === 0}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '6px',
+                  border: '1px solid #01ae42',
+                  background: '#fff',
+                  color: '#01ae42',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: results.length > 0 && activeColumns.length > 0 ? 'pointer' : 'not-allowed',
+                  opacity: results.length > 0 && activeColumns.length > 0 ? 1 : 0.5,
+                }}
+              >
+                Export to CSV
+              </button>
+            </div>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
