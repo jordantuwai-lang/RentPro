@@ -1,18 +1,122 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import api from '@/lib/api';
 
-const section: React.CSSProperties = { background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', marginBottom: '16px' };
-const heading: React.CSSProperties = { fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: 0, marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' };
-const statCard = (color: string): React.CSSProperties => ({ background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #e2e8f0', borderTop: `3px solid ${color}` });
+// ─── Column Definitions ──────────────────────────────────────────────────────
 
-function exportToExcel(data: any[], filename: string) {
-  const headers = Object.keys(data[0] || {});
+const RA_COLUMNS = [
+  { key: 'raNumber', label: 'R/A Number' },
+  { key: 'fileNumber', label: 'File Number' },
+  { key: 'firstName', label: 'First Name' },
+  { key: 'lastName', label: 'Last Name' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'email', label: 'Email' },
+  { key: 'address', label: 'Address' },
+  { key: 'suburb', label: 'Suburb' },
+  { key: 'state', label: 'State' },
+  { key: 'postcode', label: 'Postcode' },
+  { key: 'licenceNumber', label: 'Licence Number' },
+  { key: 'licenceState', label: 'Licence State' },
+  { key: 'licenceExpiry', label: 'Licence Expiry' },
+  { key: 'dob', label: 'Date of Birth' },
+  { key: 'startDate', label: 'Start Date' },
+  { key: 'endDate', label: 'End Date' },
+  { key: 'status', label: 'Status' },
+  { key: 'sourceOfBusiness', label: 'Source of Business' },
+  { key: 'partnerName', label: 'Partner Name' },
+  { key: 'cancellationReason', label: 'Cancellation Reason' },
+];
+
+const CLAIM_COLUMNS = [
+  { key: 'claimNumber', label: 'Claim Number' },
+  { key: 'claimReference', label: 'Claim Reference' },
+  { key: 'claimStatus', label: 'Claim Status' },
+  { key: 'hireType', label: 'Hire Type' },
+  { key: 'typeOfCover', label: 'Type of Cover' },
+  { key: 'policyNumber', label: 'Policy Number' },
+  { key: 'excessAmount', label: 'Excess Amount' },
+  { key: 'liabilityStatus', label: 'Liability Status' },
+  { key: 'insurer', label: 'Insurer' },
+  { key: 'repairer', label: 'Repairer' },
+  { key: 'totalLoss', label: 'Total Loss' },
+  { key: 'towIn', label: 'Tow In' },
+];
+
+const VEHICLE_COLUMNS = [
+  { key: 'registration', label: 'Registration' },
+  { key: 'make', label: 'Make' },
+  { key: 'model', label: 'Model' },
+  { key: 'year', label: 'Year' },
+  { key: 'colour', label: 'Colour' },
+  { key: 'category', label: 'Category' },
+  { key: 'vehicleStatus', label: 'Vehicle Status' },
+  { key: 'branch', label: 'Branch' },
+];
+
+const ALL_COLUMNS = [...RA_COLUMNS, ...CLAIM_COLUMNS, ...VEHICLE_COLUMNS];
+
+// ─── Cell Value Extractor ────────────────────────────────────────────────────
+
+function getCellValue(r: any, key: string): string {
+  const c = r.claim;
+  const v = r.vehicle;
+  const cust = r.customer;
+  switch (key) {
+    case 'raNumber':          return r.reservationNumber || '';
+    case 'fileNumber':        return r.fileNumber || '';
+    case 'firstName':         return cust?.firstName || '';
+    case 'lastName':          return cust?.lastName || '';
+    case 'phone':             return cust?.phone || '';
+    case 'email':             return cust?.email || '';
+    case 'address':           return cust?.address || '';
+    case 'suburb':            return cust?.suburb || '';
+    case 'state':             return cust?.state || '';
+    case 'postcode':          return cust?.postcode || '';
+    case 'licenceNumber':     return cust?.licenceNumber || '';
+    case 'licenceState':      return cust?.licenceState || '';
+    case 'licenceExpiry':     return cust?.licenceExpiry || '';
+    case 'dob':               return cust?.dob || '';
+    case 'startDate':         return r.startDate ? new Date(r.startDate).toLocaleDateString('en-AU') : '';
+    case 'endDate':           return r.endDate ? new Date(r.endDate).toLocaleDateString('en-AU') : '';
+    case 'status':            return r.status || '';
+    case 'sourceOfBusiness':  return r.sourceOfBusiness || '';
+    case 'partnerName':       return r.partnerName || '';
+    case 'cancellationReason': return r.cancellationReason || '';
+    case 'claimNumber':       return c?.claimNumber || '';
+    case 'claimReference':    return c?.claimReference || '';
+    case 'claimStatus':       return c?.status || '';
+    case 'hireType':          return c?.hireType === 'CREDIT_HIRE' ? 'Credit Hire' : c?.hireType === 'DIRECT_HIRE' ? 'Direct Hire' : '';
+    case 'typeOfCover':       return c?.typeOfCover || '';
+    case 'policyNumber':      return c?.policyNumber || '';
+    case 'excessAmount':      return c?.excessAmount != null ? `$${c.excessAmount}` : '';
+    case 'liabilityStatus':   return c?.liabilityStatus || '';
+    case 'insurer':           return c?.insurer?.name || '';
+    case 'repairer':          return c?.repairer?.name || '';
+    case 'totalLoss':         return c?.totalLoss ? 'Yes' : '';
+    case 'towIn':             return c?.towIn ? 'Yes' : '';
+    case 'registration':      return v?.registration || '';
+    case 'make':              return v?.make || '';
+    case 'model':             return v?.model || '';
+    case 'year':              return v?.year?.toString() || '';
+    case 'colour':            return v?.colour || '';
+    case 'category':          return v?.category || '';
+    case 'vehicleStatus':     return v?.status || '';
+    case 'branch':            return v?.branch?.code ? `${v.branch.code} — ${v.branch.name}` : '';
+    default:                  return '';
+  }
+}
+
+// ─── CSV Export ──────────────────────────────────────────────────────────────
+
+function exportToCSV(rows: any[], columns: { key: string; label: string }[], filename: string) {
+  const headers = columns.map(c => c.label);
   const csvRows = [
     headers.join(','),
-    ...data.map(row => headers.map(h => `"${(row[h] ?? '').toString().replace(/"/g, '""')}"`).join(','))
+    ...rows.map(row =>
+      columns.map(c => `"${getCellValue(row, c.key).replace(/"/g, '""')}"`).join(',')
+    ),
   ];
   const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -23,15 +127,49 @@ function exportToExcel(data: any[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
+// ─── Toggle helpers ───────────────────────────────────────────────────────────
+
+function toggle(list: string[], val: string) {
+  return list.includes(val) ? list.filter(x => x !== val) : [...list, val];
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
+
 export default function ReportsPage() {
   const { getToken, isLoaded } = useAuth();
-  const today = new Date();
-  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const [fromDate, setFromDate] = useState(firstOfMonth.toISOString().split('T')[0]);
-  const [toDate, setToDate] = useState(today.toISOString().split('T')[0]);
+  const [activeTab, setActiveTab] = useState<'search' | 'columns'>('search');
+  const [hasSearched, setHasSearched] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+
+  // Search criteria
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  const [selectedClaimStatuses, setSelectedClaimStatuses] = useState<string[]>([]);
+  const [selectedHireTypes, setSelectedHireTypes] = useState<string[]>([]);
+  const [selectedLiabilityStatuses, setSelectedLiabilityStatuses] = useState<string[]>([]);
+  const [raNumber, setRaNumber] = useState('');
+  const [fileNumber, setFileNumber] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [licenceNumber, setLicenceNumber] = useState('');
+  const [registration, setRegistration] = useState('');
+  const [claimNumber, setClaimNumber] = useState('');
+  const [selectedInsurerId, setSelectedInsurerId] = useState('');
+  const [selectedRepairerId, setSelectedRepairerId] = useState('');
+  const [sourceOfBusiness, setSourceOfBusiness] = useState('');
+  const [dateOutFrom, setDateOutFrom] = useState('');
+  const [dateOutTo, setDateOutTo] = useState('');
+  const [dateInFrom, setDateInFrom] = useState('');
+  const [dateInTo, setDateInTo] = useState('');
+
+  // Column selection
+  const [selectedColumnKeys, setSelectedColumnKeys] = useState<Set<string>>(
+    new Set(['raNumber', 'fileNumber', 'firstName', 'lastName', 'phone', 'status', 'startDate', 'endDate', 'registration', 'make', 'model', 'branch'])
+  );
+
+  // ─── Data fetching ────────────────────────────────────────────────────────
 
   const { data: reservations } = useQuery({
-    queryKey: ['reservations'],
+    queryKey: ['reservations-report'],
     enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
@@ -40,18 +178,8 @@ export default function ReportsPage() {
     },
   });
 
-  const { data: fleet } = useQuery({
-    queryKey: ['fleet'],
-    enabled: isLoaded,
-    queryFn: async () => {
-      const token = await getToken();
-      const res = await api.get('/fleet', { headers: { Authorization: `Bearer ${token}` } });
-      return res.data;
-    },
-  });
-
   const { data: claims } = useQuery({
-    queryKey: ['claims'],
+    queryKey: ['claims-report'],
     enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
@@ -60,28 +188,18 @@ export default function ReportsPage() {
     },
   });
 
-  const { data: deliveries } = useQuery({
-    queryKey: ['logistics'],
+  const { data: insurers } = useQuery({
+    queryKey: ['insurers-report'],
     enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
-      const res = await api.get('/logistics', { headers: { Authorization: `Bearer ${token}` } });
-      return res.data;
-    },
-  });
-
-  const { data: cancellations } = useQuery({
-    queryKey: ['cancellations', fromDate, toDate],
-    enabled: isLoaded,
-    queryFn: async () => {
-      const token = await getToken();
-      const res = await api.get(`/reservations/cancellations?from=${fromDate}&to=${toDate}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get('/claims/insurers', { headers: { Authorization: `Bearer ${token}` } });
       return res.data;
     },
   });
 
   const { data: repairers } = useQuery({
-    queryKey: ['repairers'],
+    queryKey: ['repairers-report'],
     enabled: isLoaded,
     queryFn: async () => {
       const token = await getToken();
@@ -90,289 +208,543 @@ export default function ReportsPage() {
     },
   });
 
-  const from = new Date(fromDate);
-  const to = new Date(toDate);
-  to.setHours(23, 59, 59);
+  const { data: branches } = useQuery({
+    queryKey: ['branches-report'],
+    enabled: isLoaded,
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/branches', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
 
-  const filteredReservations = reservations?.filter((r: any) => {
-    const d = new Date(r.createdAt);
-    return d >= from && d <= to;
-  }) || [];
-
-  const filteredDeliveries = deliveries?.filter((d: any) => {
-    const date = new Date(d.scheduledAt);
-    return date >= from && date <= to;
-  }) || [];
-
-  const activeHires = filteredReservations.filter((r: any) => r.status === 'ACTIVE');
-  const kpkHires = activeHires.filter((r: any) => r.vehicle?.branch?.code === 'KPK');
-  const cobHires = activeHires.filter((r: any) => r.vehicle?.branch?.code === 'COB');
-
-  const totalVehicles = fleet?.length || 0;
-  const onHire = fleet?.filter((v: any) => v.status === 'ON_HIRE').length || 0;
-  const utilisationRate = totalVehicles > 0 ? Math.round((onHire / totalVehicles) * 100) : 0;
-
-  const completedReservations = filteredReservations.filter((r: any) => r.status === 'COMPLETED' && r.endDate);
-  const avgDuration = completedReservations.length > 0
-    ? Math.round(completedReservations.reduce((acc: number, r: any) => {
-        const days = (new Date(r.endDate).getTime() - new Date(r.startDate).getTime()) / (1000 * 60 * 60 * 24);
-        return acc + days;
-      }, 0) / completedReservations.length)
-    : 0;
-
-  const reservationsByStatus = ['DRAFT', 'PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED'].map(status => ({
-    status,
-    count: filteredReservations.filter((r: any) => r.status === status).length,
-  }));
-
-  const claimsByInsurer = claims?.reduce((acc: any, c: any) => {
-    const name = c.insurer?.name || 'Unknown';
-    acc[name] = (acc[name] || 0) + 1;
-    return acc;
-  }, {}) || {};
-
-  const claimsByRepairerData = claims?.reduce((acc: any, c: any) => {
-    const name = c.repairer?.name || 'Unassigned';
-    acc[name] = (acc[name] || 0) + 1;
-    return acc;
-  }, {}) || {};
-
-  const completedDeliveries = filteredDeliveries.filter((d: any) => d.status === 'DELIVERED').length;
-
-  const statusColors: Record<string, string> = {
-    DRAFT: '#94a3b8', PENDING: '#f59e0b', ACTIVE: '#01ae42', COMPLETED: '#64748b', CANCELLED: '#ef4444',
-  };
-
-  const inputStyle: React.CSSProperties = { padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#fff' };
-
-  const handleExportReservations = () => {
-    const data = filteredReservations.map((r: any) => ({
-      'Rez #': r.reservationNumber,
-      'Customer': `${r.customer?.firstName} ${r.customer?.lastName}`,
-      'Phone': r.customer?.phone || '',
-      'Vehicle': r.vehicle ? `${r.vehicle.make} ${r.vehicle.model}` : '',
-      'Registration': r.vehicle?.registration || '',
-      'Branch': r.vehicle?.branch?.code || '',
-      'Start Date': new Date(r.startDate).toLocaleDateString('en-AU'),
-      'End Date': r.endDate ? new Date(r.endDate).toLocaleDateString('en-AU') : '',
-      'Status': r.status,
-      'Created': new Date(r.createdAt).toLocaleDateString('en-AU'),
+  // Enrich reservations with full claim data (insurer/repairer objects) from /claims
+  const enrichedReservations = useMemo(() => {
+    if (!reservations) return [];
+    const claimsMap = new Map((claims || []).map((c: any) => [c.reservationId, c]));
+    return reservations.map((r: any) => ({
+      ...r,
+      claim: claimsMap.get(r.id) ?? r.claim,
     }));
-    exportToExcel(data, `rentpro-reservations-${fromDate}-to-${toDate}`);
+  }, [reservations, claims]);
+
+  // ─── Column selection handlers ─────────────────────────────────────────────
+
+  const toggleColumn = (key: string) => {
+    setSelectedColumnKeys(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
   };
 
-  const handleExportClaims = () => {
-    const data = (claims || []).map((c: any) => ({
-      'Claim #': c.claimNumber || '',
-      'Customer': `${c.reservation?.customer?.firstName} ${c.reservation?.customer?.lastName}`,
-      'Insurer': c.insurer?.name || '',
-      'Repairer': c.repairer?.name || '',
-      'Status': c.status,
-      'Created': new Date(c.createdAt).toLocaleDateString('en-AU'),
-    }));
-    exportToExcel(data, `rentpro-claims-${fromDate}-to-${toDate}`);
+  const toggleColumnGroup = (group: { key: string }[], checked: boolean) => {
+    setSelectedColumnKeys(prev => {
+      const next = new Set(prev);
+      group.forEach(c => (checked ? next.add(c.key) : next.delete(c.key)));
+      return next;
+    });
   };
 
-  const handleExportDeliveries = () => {
-    const data = filteredDeliveries.map((d: any) => ({
-      'Customer': `${d.reservation?.customer?.firstName} ${d.reservation?.customer?.lastName}`,
-      'Vehicle': d.reservation?.vehicle ? `${d.reservation.vehicle.make} ${d.reservation.vehicle.model}` : '',
-      'Address': `${d.address}, ${d.suburb}`,
-      'Driver': `${d.driver?.firstName} ${d.driver?.lastName}`,
-      'Scheduled': new Date(d.scheduledAt).toLocaleString('en-AU'),
-      'Status': d.status,
-    }));
-    exportToExcel(data, `rentpro-deliveries-${fromDate}-to-${toDate}`);
+  // ─── Search ───────────────────────────────────────────────────────────────
+
+  const handleSearch = () => {
+    let filtered = enrichedReservations as any[];
+
+    if (selectedStatuses.length > 0)
+      filtered = filtered.filter(r => selectedStatuses.includes(r.status));
+
+    if (selectedBranches.length > 0)
+      filtered = filtered.filter(r => selectedBranches.includes(r.vehicle?.branch?.code));
+
+    if (selectedClaimStatuses.length > 0)
+      filtered = filtered.filter(r => selectedClaimStatuses.includes(r.claim?.status));
+
+    if (selectedHireTypes.length > 0)
+      filtered = filtered.filter(r => selectedHireTypes.includes(r.claim?.hireType));
+
+    if (selectedLiabilityStatuses.length > 0)
+      filtered = filtered.filter(r => selectedLiabilityStatuses.includes(r.claim?.liabilityStatus));
+
+    if (selectedInsurerId)
+      filtered = filtered.filter(r => r.claim?.insurerId === selectedInsurerId);
+
+    if (selectedRepairerId)
+      filtered = filtered.filter(r => r.claim?.repairerId === selectedRepairerId);
+
+    if (sourceOfBusiness)
+      filtered = filtered.filter(r => r.sourceOfBusiness === sourceOfBusiness);
+
+    if (raNumber.trim())
+      filtered = filtered.filter(r => r.reservationNumber?.toLowerCase().includes(raNumber.trim().toLowerCase()));
+
+    if (fileNumber.trim())
+      filtered = filtered.filter(r => r.fileNumber?.toLowerCase().includes(fileNumber.trim().toLowerCase()));
+
+    if (lastName.trim())
+      filtered = filtered.filter(r => r.customer?.lastName?.toLowerCase().includes(lastName.trim().toLowerCase()));
+
+    if (licenceNumber.trim())
+      filtered = filtered.filter(r => r.customer?.licenceNumber?.toLowerCase().includes(licenceNumber.trim().toLowerCase()));
+
+    if (registration.trim())
+      filtered = filtered.filter(r => r.vehicle?.registration?.toLowerCase().includes(registration.trim().toLowerCase()));
+
+    if (claimNumber.trim())
+      filtered = filtered.filter(r => r.claim?.claimNumber?.toLowerCase().includes(claimNumber.trim().toLowerCase()));
+
+    if (dateOutFrom) {
+      const from = new Date(dateOutFrom);
+      filtered = filtered.filter(r => r.startDate && new Date(r.startDate) >= from);
+    }
+    if (dateOutTo) {
+      const to = new Date(dateOutTo);
+      to.setHours(23, 59, 59);
+      filtered = filtered.filter(r => r.startDate && new Date(r.startDate) <= to);
+    }
+    if (dateInFrom) {
+      const from = new Date(dateInFrom);
+      filtered = filtered.filter(r => r.endDate && new Date(r.endDate) >= from);
+    }
+    if (dateInTo) {
+      const to = new Date(dateInTo);
+      to.setHours(23, 59, 59);
+      filtered = filtered.filter(r => r.endDate && new Date(r.endDate) <= to);
+    }
+
+    setResults(filtered);
+    setHasSearched(true);
   };
+
+  const handleClear = () => {
+    setSelectedStatuses([]);
+    setSelectedBranches([]);
+    setSelectedClaimStatuses([]);
+    setSelectedHireTypes([]);
+    setSelectedLiabilityStatuses([]);
+    setRaNumber('');
+    setFileNumber('');
+    setLastName('');
+    setLicenceNumber('');
+    setRegistration('');
+    setClaimNumber('');
+    setSelectedInsurerId('');
+    setSelectedRepairerId('');
+    setSourceOfBusiness('');
+    setDateOutFrom('');
+    setDateOutTo('');
+    setDateInFrom('');
+    setDateInTo('');
+    setHasSearched(false);
+    setResults([]);
+  };
+
+  const activeColumns = ALL_COLUMNS.filter(c => selectedColumnKeys.has(c.key));
+
+  // ─── Shared Styles ─────────────────────────────────────────────────────────
+
+  const inputStyle: React.CSSProperties = {
+    padding: '5px 8px',
+    borderRadius: '4px',
+    border: '1px solid #a0aec0',
+    fontSize: '13px',
+    color: '#0f172a',
+    background: '#fff',
+    width: '100%',
+    boxSizing: 'border-box',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: '12px',
+    color: '#374151',
+    fontWeight: 500,
+    marginBottom: '3px',
+    display: 'block',
+  };
+
+  const listBoxStyle: React.CSSProperties = {
+    border: '1px solid #a0aec0',
+    borderRadius: '4px',
+    overflowY: 'auto',
+    background: '#fff',
+    fontSize: '13px',
+  };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Reports</h1>
-          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>RentPro performance overview</p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontSize: '13px', color: '#64748b' }}>From</label>
-          <input type="date" style={inputStyle} value={fromDate} onChange={e => setFromDate(e.target.value)} />
-          <label style={{ fontSize: '13px', color: '#64748b' }}>To</label>
-          <input type="date" style={inputStyle} value={toDate} onChange={e => setToDate(e.target.value)} />
-        </div>
+    <div style={{ maxWidth: '1400px' }}>
+      <div style={{ marginBottom: '16px' }}>
+        <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+          Rental Agreement Reporting
+        </h1>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        {[
-          { label: 'Total reservations', value: filteredReservations.length, color: '#01ae42' },
-          { label: 'Active hires', value: activeHires.length, color: '#01ae42' },
-          { label: 'Fleet utilisation', value: `${utilisationRate}%`, color: '#f59e0b' },
-          { label: 'Avg hire duration', value: `${avgDuration} days`, color: '#8b5cf6' },
-        ].map(s => (
-          <div key={s.label} style={statCard(s.color)}>
-            <div style={{ fontSize: '26px', fontWeight: 700, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>{s.label}</div>
-          </div>
+      {/* ── Tabs ───────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', borderBottom: '2px solid #d1d5db' }}>
+        {(['search', 'columns'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              padding: '7px 20px',
+              fontSize: '13px',
+              fontWeight: 500,
+              border: '1px solid #d1d5db',
+              borderBottom: activeTab === tab ? '2px solid #fff' : '1px solid #d1d5db',
+              borderRadius: '4px 4px 0 0',
+              marginBottom: activeTab === tab ? '-2px' : '0',
+              marginRight: '4px',
+              background: activeTab === tab ? '#fff' : '#f3f4f6',
+              color: activeTab === tab ? '#0f172a' : '#6b7280',
+              cursor: 'pointer',
+            }}
+          >
+            {tab === 'search' ? 'Search' : 'Report Columns'}
+          </button>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-        <div style={section}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ ...heading, marginBottom: 0 }}>Active hires by branch</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {[
-              { branch: 'KPK — Keilor Park', count: kpkHires.length },
-              { branch: 'COB — Coburg', count: cobHires.length },
-            ].map(b => (
-              <div key={b.branch} style={{ padding: '16px', background: '#f8fdf9', borderRadius: '8px', border: '1px solid #dcfce7' }}>
-                <div style={{ fontSize: '28px', fontWeight: 700, color: '#01ae42' }}>{b.count}</div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>{b.branch}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* ── Tab Panel ──────────────────────────────────────────────────────── */}
+      <div style={{ border: '1px solid #d1d5db', borderTop: 'none', background: '#fff', padding: '20px' }}>
 
-        <div style={section}>
-          <h2 style={heading}>Reservations by status</h2>
-          {reservationsByStatus.map(s => (
-            <div key={s.status} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: statusColors[s.status], display: 'inline-block' }} />
-                <span style={{ fontSize: '13px', color: '#0f172a' }}>{s.status}</span>
-              </span>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{s.count}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+        {/* ══ SEARCH TAB ══════════════════════════════════════════════════ */}
+        {activeTab === 'search' && (
+          <div>
+            {/* Top 3-column section */}
+            <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr 220px', gap: '20px', marginBottom: '16px' }}>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-        <div style={section}>
-          <h2 style={heading}>Claims by insurer</h2>
-          {Object.keys(claimsByInsurer).length === 0 ? (
-            <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No claims yet.</p>
-          ) : Object.entries(claimsByInsurer).map(([insurer, count]: any) => (
-            <div key={insurer} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <span style={{ fontSize: '13px', color: '#0f172a' }}>{insurer}</span>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{count}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={section}>
-          <h2 style={heading}>Claims by repairer</h2>
-          {Object.keys(claimsByRepairerData).length === 0 ? (
-            <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No claims yet.</p>
-          ) : Object.entries(claimsByRepairerData).map(([repairer, count]: any) => (
-            <div key={repairer} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <span style={{ fontSize: '13px', color: '#0f172a' }}>{repairer}</span>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{count}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={section}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ ...heading, marginBottom: 0 }}>Deliveries</h2>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-          {[
-            { label: 'Total scheduled', value: filteredDeliveries.length },
-            { label: 'Completed', value: completedDeliveries },
-            { label: 'Completion rate', value: filteredDeliveries.length > 0 ? `${Math.round((completedDeliveries / filteredDeliveries.length) * 100)}%` : '—' },
-          ].map(s => (
-            <div key={s.label} style={{ padding: '16px', background: '#f8fdf9', borderRadius: '8px', border: '1px solid #dcfce7' }}>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#01ae42' }}>{s.value}</div>
-              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={section}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ ...heading, marginBottom: 0 }}>Cancellation reasons</h2>
-          {cancellations && cancellations.length > 0 && (
-            <button
-              onClick={() => {
-                const data = cancellations.map((c: any) => ({
-                  'Rez #': c.reservationNumber,
-                  'File #': c.fileNumber || '',
-                  'Customer': c.customer,
-                  'Phone': c.phone || '',
-                  'Branch': c.branch || '',
-                  'Reason': c.reason,
-                  'Cancelled': new Date(c.cancelledAt).toLocaleDateString('en-AU'),
-                }));
-                exportToExcel(data, `rentpro-cancellations-${fromDate}-to-${toDate}`);
-              }}
-              style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
-            >
-              Export cancellations
-            </button>
-          )}
-        </div>
-        {!cancellations || cancellations.length === 0 ? (
-          <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>No cancellations in this period.</p>
-        ) : (
-          <>
-            <div style={{ marginBottom: '16px' }}>
-              {(() => {
-                const reasonCounts: Record<string, number> = {};
-                cancellations.forEach((c: any) => {
-                  reasonCounts[c.reason] = (reasonCounts[c.reason] || 0) + 1;
-                });
-                return Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]).map(([reason, count]) => (
-                  <div key={reason} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                    <span style={{ fontSize: '13px', color: '#0f172a' }}>{reason}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: `${Math.min((count / cancellations.length) * 150, 150)}px`, height: '6px', background: '#ef4444', borderRadius: '3px' }} />
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#ef4444', minWidth: '20px' }}>{count}</span>
-                    </div>
+              {/* Left: R/A Status + Hire Type */}
+              <div>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={labelStyle}>R/A Status</label>
+                  <div style={{ ...listBoxStyle, height: '128px' }}>
+                    {['DRAFT', 'PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED'].map(s => (
+                      <div
+                        key={s}
+                        onClick={() => setSelectedStatuses(prev => toggle(prev, s))}
+                        style={{
+                          padding: '5px 10px',
+                          cursor: 'pointer',
+                          background: selectedStatuses.includes(s) ? '#bfdbfe' : 'transparent',
+                          userSelect: 'none',
+                        }}
+                      >
+                        {s.charAt(0) + s.slice(1).toLowerCase()}
+                      </div>
+                    ))}
                   </div>
-                ));
-              })()}
-            </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  {['Rez #', 'Customer', 'Branch', 'Reason', 'Date'].map(h => (
-                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>{h}</th>
+                  <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '3px' }}>Click to select. Leave blank for all.</div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Hire Type</label>
+                  {[['CREDIT_HIRE', 'Credit Hire'], ['DIRECT_HIRE', 'Direct Hire']].map(([val, label]) => (
+                    <label key={val} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', marginBottom: '4px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedHireTypes.includes(val)}
+                        onChange={() => setSelectedHireTypes(prev => toggle(prev, val))}
+                      />
+                      {label}
+                    </label>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {cancellations.map((c: any, i: number) => (
-                  <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 12px', fontSize: '13px', color: '#01ae42', fontWeight: 600 }}>{c.reservationNumber}</td>
-                    <td style={{ padding: '10px 12px', fontSize: '13px', color: '#0f172a' }}>{c.customer}</td>
-                    <td style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b' }}>{c.branch || '—'}</td>
-                    <td style={{ padding: '10px 12px', fontSize: '13px', color: '#0f172a' }}>{c.reason}</td>
-                    <td style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>{new Date(c.cancelledAt).toLocaleDateString('en-AU')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
+                </div>
+              </div>
+
+              {/* Middle: Branch, Source, Insurer, Repairer */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={labelStyle}>Branch</label>
+                  <div style={{ ...listBoxStyle, height: '70px' }}>
+                    {(branches || []).map((b: any) => (
+                      <div
+                        key={b.id}
+                        onClick={() => setSelectedBranches(prev => toggle(prev, b.code))}
+                        style={{
+                          padding: '5px 10px',
+                          cursor: 'pointer',
+                          background: selectedBranches.includes(b.code) ? '#bfdbfe' : 'transparent',
+                          userSelect: 'none',
+                        }}
+                      >
+                        {b.code} — {b.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Source of Business</label>
+                  <select style={inputStyle} value={sourceOfBusiness} onChange={e => setSourceOfBusiness(e.target.value)}>
+                    <option value="">— All —</option>
+                    {['Repairer', 'Tow Operator', 'Corporate', 'Marketing', 'Direct'].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Insurer</label>
+                  <select style={inputStyle} value={selectedInsurerId} onChange={e => setSelectedInsurerId(e.target.value)}>
+                    <option value="">— All —</option>
+                    {(insurers || []).map((ins: any) => (
+                      <option key={ins.id} value={ins.id}>{ins.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Repairer</label>
+                  <select style={inputStyle} value={selectedRepairerId} onChange={e => setSelectedRepairerId(e.target.value)}>
+                    <option value="">— All —</option>
+                    {(repairers || []).map((rep: any) => (
+                      <option key={rep.id} value={rep.id}>{rep.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Right: Claim Status + Liability Status */}
+              <div>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={labelStyle}>Claim Status</label>
+                  {[['OPEN', 'Open'], ['IN_PROGRESS', 'In Progress'], ['INVOICING', 'Invoicing'], ['CLOSED', 'Closed']].map(([val, label]) => (
+                    <label key={val} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', marginBottom: '5px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedClaimStatuses.includes(val)}
+                        onChange={() => setSelectedClaimStatuses(prev => toggle(prev, val))}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Liability Status</label>
+                  {['PENDING', 'ACCEPTED', 'DISPUTED', 'DENIED'].map(s => (
+                    <label key={s} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', marginBottom: '5px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedLiabilityStatuses.includes(s)}
+                        onChange={() => setSelectedLiabilityStatuses(prev => toggle(prev, s))}
+                      />
+                      {s.charAt(0) + s.slice(1).toLowerCase()}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '0 0 16px' }} />
+
+            {/* Text search fields */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={labelStyle}>R/A Number</label>
+                <input style={inputStyle} value={raNumber} onChange={e => setRaNumber(e.target.value)} placeholder="e.g. REZ1001" />
+              </div>
+              <div>
+                <label style={labelStyle}>File Number</label>
+                <input style={inputStyle} value={fileNumber} onChange={e => setFileNumber(e.target.value)} placeholder="e.g. KPKRP-1001" />
+              </div>
+              <div>
+                <label style={labelStyle}>Renter Last Name</label>
+                <input style={inputStyle} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name contains..." />
+              </div>
+              <div>
+                <label style={labelStyle}>Licence Number</label>
+                <input style={inputStyle} value={licenceNumber} onChange={e => setLicenceNumber(e.target.value)} />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+              <div>
+                <label style={labelStyle}>Vehicle Registration</label>
+                <input style={inputStyle} value={registration} onChange={e => setRegistration(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Claim #</label>
+                <input style={inputStyle} value={claimNumber} onChange={e => setClaimNumber(e.target.value)} placeholder="e.g. CLM-000001" />
+              </div>
+              <div />
+              <div />
+            </div>
+
+            {/* Date ranges */}
+            <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-end', marginBottom: '20px', flexWrap: 'wrap' }}>
+              <div>
+                <label style={labelStyle}>Date Out Range</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input type="date" style={{ ...inputStyle, width: '150px' }} value={dateOutFrom} onChange={e => setDateOutFrom(e.target.value)} />
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>to</span>
+                  <input type="date" style={{ ...inputStyle, width: '150px' }} value={dateOutTo} onChange={e => setDateOutTo(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Date In Range</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input type="date" style={{ ...inputStyle, width: '150px' }} value={dateInFrom} onChange={e => setDateInFrom(e.target.value)} />
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>to</span>
+                  <input type="date" style={{ ...inputStyle, width: '150px' }} value={dateInTo} onChange={e => setDateInTo(e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleSearch}
+                style={{ padding: '8px 28px', borderRadius: '5px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Search
+              </button>
+              <button
+                onClick={handleClear}
+                style={{ padding: '8px 20px', borderRadius: '5px', border: '1px solid #d1d5db', background: '#f9fafb', color: '#374151', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ══ REPORT COLUMNS TAB ══════════════════════════════════════════ */}
+        {activeTab === 'columns' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px' }}>
+            {(
+              [
+                { title: 'Rental Agreement Columns', group: RA_COLUMNS },
+                { title: 'Claim / Financial Columns', group: CLAIM_COLUMNS },
+                { title: 'Vehicle Columns', group: VEHICLE_COLUMNS },
+              ] as const
+            ).map(({ title, group }) => {
+              const allChecked = group.every(c => selectedColumnKeys.has(c.key));
+              const someChecked = group.some(c => selectedColumnKeys.has(c.key));
+              return (
+                <div key={title}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', paddingBottom: '6px', borderBottom: '1px solid #e5e7eb' }}>
+                    <input
+                      type="checkbox"
+                      checked={allChecked}
+                      ref={el => { if (el) el.indeterminate = someChecked && !allChecked; }}
+                      onChange={e => toggleColumnGroup(group as any, e.target.checked)}
+                    />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{title}</span>
+                  </div>
+                  <div style={{ ...listBoxStyle, height: '380px' }}>
+                    {(group as { key: string; label: string }[]).map(col => (
+                      <label
+                        key={col.key}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '5px 8px',
+                          cursor: 'pointer',
+                          background: selectedColumnKeys.has(col.key) ? '#f0fdf4' : 'transparent',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedColumnKeys.has(col.key)}
+                          onChange={() => toggleColumn(col.key)}
+                        />
+                        <span style={{ fontSize: '13px', color: '#0f172a' }}>{col.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      <div style={section}>
-        <h2 style={heading}>Export data</h2>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button onClick={handleExportReservations} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
-            Export reservations
-          </button>
-          <button onClick={handleExportClaims} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
-            Export claims
-          </button>
-          <button onClick={handleExportDeliveries} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
-            Export deliveries
-          </button>
+      {/* ── Results Table ───────────────────────────────────────────────────── */}
+      {hasSearched && (
+        <div style={{ marginTop: '24px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
+              {results.length} record{results.length !== 1 ? 's' : ''} found
+            </span>
+            <button
+              onClick={() => exportToCSV(results, activeColumns, 'rentpro-report')}
+              disabled={results.length === 0 || activeColumns.length === 0}
+              style={{
+                padding: '7px 16px',
+                borderRadius: '6px',
+                border: '1px solid #01ae42',
+                background: '#fff',
+                color: '#01ae42',
+                fontSize: '13px',
+                fontWeight: 500,
+                cursor: results.length > 0 && activeColumns.length > 0 ? 'pointer' : 'not-allowed',
+                opacity: results.length > 0 && activeColumns.length > 0 ? 1 : 0.5,
+              }}
+            >
+              Export to CSV
+            </button>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            {activeColumns.length === 0 ? (
+              <p style={{ padding: '20px', color: '#94a3b8', fontSize: '14px', margin: 0 }}>
+                No columns selected. Go to <strong>Report Columns</strong> to choose what to display.
+              </p>
+            ) : results.length === 0 ? (
+              <p style={{ padding: '20px', color: '#94a3b8', fontSize: '14px', margin: 0 }}>
+                No records match your search criteria.
+              </p>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc' }}>
+                    {activeColumns.map(col => (
+                      <th
+                        key={col.key}
+                        style={{
+                          padding: '10px 12px',
+                          textAlign: 'left',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color: '#64748b',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          whiteSpace: 'nowrap',
+                          borderBottom: '1px solid #e2e8f0',
+                        }}
+                      >
+                        {col.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((row: any, i: number) => (
+                    <tr key={row.id ?? i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      {activeColumns.map(col => (
+                        <td
+                          key={col.key}
+                          style={{
+                            padding: '9px 12px',
+                            color: col.key === 'raNumber' ? '#01ae42' : '#0f172a',
+                            fontWeight: col.key === 'raNumber' ? 600 : 400,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {getCellValue(row, col.key) || '—'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-        <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '12px', marginBottom: 0 }}>Files are exported as CSV which can be opened directly in Microsoft Excel.</p>
-      </div>
+      )}
     </div>
   );
 }
