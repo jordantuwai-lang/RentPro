@@ -1,8 +1,11 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/Sidebar';
+import dynamic from 'next/dynamic';
 import AuthSync from '@/components/AuthSync';
 import { useBranch } from '@/context/BranchContext';
+
+const Sidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false });
+
 
 export default function DashboardLayout({
   children,
