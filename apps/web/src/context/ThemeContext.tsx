@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 export type Theme = 'green' | 'blue' | 'amber' | 'purple' | 'r2d';
 
@@ -88,12 +88,11 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('green');
-
-  useEffect(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'green';
     const saved = localStorage.getItem('rentpro-theme') as Theme;
-    if (saved && themes[saved]) setThemeState(saved);
-  }, []);
+    return saved && themes[saved] ? saved : 'green';
+  });
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
