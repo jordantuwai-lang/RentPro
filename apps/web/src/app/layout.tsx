@@ -18,6 +18,9 @@ export default function RootLayout({
         <BranchProvider>
           <ThemeProvider>
             <html lang="en" suppressHydrationWarning>
+              <head>
+                <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+              </head>
               <body>{children}</body>
             </html>
           </ThemeProvider>
