@@ -784,6 +784,8 @@ const startScanner = async () => {
   const [validatingAtFault, setValidatingAtFault] = useState(false);
   const [atFaultOwner, setAtFaultOwner] = useState({ firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '' });
   const updAtFaultOwner = (f: string, v: string) => setAtFaultOwner(p => ({ ...p, [f]: v }));
+  const [atFaultInsurance, setAtFaultInsurance] = useState({ insuranceProvider: '', claimNumber: '' });
+  const updAtFaultInsurance = (f: string, v: string) => setAtFaultInsurance(p => ({ ...p, [f]: v }));
 
   // Tab 3 — Other Party
   const [tp1, setTp1] = useState({ ...emptyOtherParty });
@@ -1108,8 +1110,6 @@ const { data: drivers = [] } = useQuery({
               <F label="Last name"><input style={inp} value={atFault.lastName} onChange={e => updAtFault('lastName', e.target.value)} /></F>
               <F label="Phone"><input style={inp} placeholder="0400-000-000" value={atFault.phone} onChange={e => updAtFault('phone', formatPhone(e.target.value))} /></F>
               <F label="Email"><input style={inp} value={atFault.email} onChange={e => updAtFault('email', e.target.value)} /></F>
-              <F label="Insurance provider"><input style={inp} value={atFault.insuranceProvider} onChange={e => updAtFault('insuranceProvider', e.target.value)} /></F>
-              <F label="Claim number"><input style={inp} value={atFault.claimNumber} onChange={e => updAtFault('claimNumber', e.target.value)} /></F>
               <F label="Address" full>
                 <AddressAutocomplete value={atFault.address} onChange={(v: string) => updAtFault('address', v)} onSelect={(r: any) => { updAtFault('address', r.address); updAtFault('suburb', r.suburb); updAtFault('postcode', r.postcode); if (r.state) updAtFault('state', r.state); }} style={inp} placeholder="Start typing address..." />
               </F>
@@ -1130,6 +1130,12 @@ const { data: drivers = [] } = useQuery({
               <F label="Suburb"><input style={inp} value={atFaultOwner.suburb} onChange={e => updAtFaultOwner('suburb', e.target.value)} /></F>
               <F label="Postcode"><input style={inp} value={atFaultOwner.postcode} onChange={e => updAtFaultOwner('postcode', e.target.value)} /></F>
               <F label="State"><select style={inp} value={atFaultOwner.state} onChange={e => updAtFaultOwner('state', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+            </div>
+          </SectionBlock>
+          <SectionBlock title="Insurance Details">
+            <div style={grid3}>
+              <F label="Insurance provider"><input style={inp} value={atFaultInsurance.insuranceProvider} onChange={e => updAtFaultInsurance('insuranceProvider', e.target.value)} /></F>
+              <F label="Claim number"><input style={inp} value={atFaultInsurance.claimNumber} onChange={e => updAtFaultInsurance('claimNumber', e.target.value)} /></F>
             </div>
           </SectionBlock>
         </>
