@@ -911,16 +911,16 @@ const { data: drivers = [] } = useQuery({
     <div style={{ maxWidth: '860px' }}>
 
       {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+        <div>
           <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>New Reservation</h1>
-          {rezNumber && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '6px', padding: '3px 10px', fontSize: '13px', fontWeight: 600, color: '#01ae42', fontFamily: 'monospace' }}>
-              {rezNumber}
-            </span>
-          )}
+          <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>Credit hire intake form</p>
         </div>
-        <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>Credit hire intake form</p>
+        {rezNumber && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '6px', padding: '5px 14px', fontSize: '14px', fontWeight: 700, color: '#01ae42', fontFamily: 'monospace', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {rezNumber}
+          </span>
+        )}
       </div>
 
       <TabBar active={activeTab} onChange={setActiveTab} />
