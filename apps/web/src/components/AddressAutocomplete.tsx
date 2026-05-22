@@ -29,29 +29,10 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (window.google) {
-      setLoaded(true);
-      return;
-    }
-
-    const scriptId = 'google-places-script';
-    if (document.getElementById(scriptId)) {
-      const interval = setInterval(() => {
-        if (window.google) {
-          setLoaded(true);
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => clearInterval(interval);
-    }
-
-    window.initGooglePlaces = () => setLoaded(true);
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGooglePlaces`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
+    if (window.google?.maps) { setLoaded(true); return; }
+    const onLoad = () => setLoaded(true);
+    document.addEventListener('googlemapsloaded', onLoad);
+    return () => document.removeEventListener('googlemapsloaded', onLoad);
   }, []);
 
   useEffect(() => {

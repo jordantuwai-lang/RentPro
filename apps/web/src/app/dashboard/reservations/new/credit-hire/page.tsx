@@ -505,17 +505,9 @@ function AccidentMap({ onUpdate, nafRego, faultRego, tp1Rego, tp2Rego }: {
 
   useEffect(() => {
     if (window.google?.maps) { setMapsReady(true); return; }
-    const scriptId = 'google-places-script';
-    if (document.getElementById(scriptId)) {
-      const interval = setInterval(() => { if (window.google?.maps) { setMapsReady(true); clearInterval(interval); } }, 100);
-      return () => clearInterval(interval);
-    }
-    window.initGooglePlaces = () => setMapsReady(true);
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGooglePlaces`;
-    script.async = true; script.defer = true;
-    document.head.appendChild(script);
+    const onLoad = () => setMapsReady(true);
+    document.addEventListener('googlemapsloaded', onLoad);
+    return () => document.removeEventListener('googlemapsloaded', onLoad);
   }, []);
 
   useEffect(() => {
