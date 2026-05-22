@@ -1268,21 +1268,18 @@ const { data: drivers = [] } = useQuery({
             )}
             {photos.length > 0 && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {photos.map((photo, i) => (
-                    <div key={i} style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                      <div style={{ position: 'relative' }}>
-                        <img src={photo.dataUrl} alt={`Photo ${i + 1}`} style={{ width: '100%', height: '130px', objectFit: 'cover', display: 'block' }} />
-                        <button type="button" onClick={() => removePhoto(i)}
-                          style={{ position: 'absolute', top: '6px', right: '6px', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                        <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.5)', borderRadius: '4px', padding: '2px 7px', fontSize: '10px', color: '#fff', fontWeight: 500 }}>{photo.category}</div>
-                      </div>
-                      <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <select value={photo.category} onChange={e => updatePhotoField(i, 'category', e.target.value)} style={{ ...inp, fontSize: '11px', padding: '5px 8px' }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                      <img src={photo.dataUrl} alt={`Photo ${i + 1}`} style={{ width: '72px', height: '56px', objectFit: 'cover', borderRadius: '6px', flexShrink: 0, display: 'block' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                        <select value={photo.category} onChange={e => updatePhotoField(i, 'category', e.target.value)} style={{ ...inp, fontSize: '12px', padding: '6px 8px', width: '140px', flexShrink: 0 }}>
                           {PHOTO_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
-                        <input style={{ ...inp, fontSize: '11px', padding: '5px 8px' }} placeholder="Caption (optional)" value={photo.caption} onChange={e => updatePhotoField(i, 'caption', e.target.value)} />
+                        <input style={{ ...inp, fontSize: '12px', padding: '6px 8px', flex: 1, minWidth: 0 }} placeholder="Caption (optional)" value={photo.caption} onChange={e => updatePhotoField(i, 'caption', e.target.value)} />
                       </div>
+                      <button type="button" onClick={() => removePhoto(i)}
+                        style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
                     </div>
                   ))}
                 </div>
