@@ -12,8 +12,19 @@ const heading: React.CSSProperties = { fontSize: '11px', fontWeight: 600, color:
 const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
 const full: React.CSSProperties = { gridColumn: '1 / -1' };
 
+const STATES = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'];
+
 function F({ label: l, children, full: f }: { label: string; children: React.ReactNode; full?: boolean }) {
   return <div style={f ? full : {}}><label style={labelStyle}>{l}</label>{children}</div>;
+}
+
+function StateSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <select style={input} value={value} onChange={e => onChange(e.target.value)}>
+      <option value="">Select state...</option>
+      {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+    </select>
+  );
 }
 
 export default function BranchesPage() {
@@ -21,14 +32,14 @@ export default function BranchesPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({ name: '', code: '', address: '', suburb: '', postcode: '', state: '' });
   const [success, setSuccess] = useState(false);
+  const [editSuccess, setEditSuccess] = useState(false);
   const upd = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }));
   const [editBranch, setEditBranch] = useState<any>(null);
   const [editForm, setEditForm] = useState({ name: '', code: '', address: '', suburb: '', postcode: '', state: '' });
   const updEdit = (f: string, v: string) => setEditForm(p => ({ ...p, [f]: v }));
-  const [editSuccess, setEditSuccess] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
 
-  const { data: branches } = useQuery({
+  const { data: branches, isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: async () => {
       const token = await getToken();
@@ -119,18 +130,7 @@ export default function BranchesPage() {
             <div style={grid2}>
               <F label="Branch name *" full><input style={input} value={editForm.name} onChange={e => updEdit('name', e.target.value)} /></F>
               <F label="Branch code *"><input style={input} value={editForm.code} onChange={e => updEdit('code', e.target.value.toUpperCase())} /></F>
-              <F label="State">
-                <select style={input} value={editForm.state} onChange={e => updEdit('state', e.target.value)}>
-                  <option value="">Select state...</option>
-                  <option value="NSW">NSW</option>
-                  <option value="NT">NT</option>
-                  <option value="QLD">QLD</option>
-                  <option value="SA">SA</option>
-                  <option value="TAS">TAS</option>
-                  <option value="VIC">VIC</option>
-                  <option value="WA">WA</option>
-                </select>
-              </F>
+              <F label="State"><StateSelect value={editForm.state} onChange={v => updEdit('state', v)} /></F>
               <F label="Address *" full>
                 <AddressAutocomplete
                   value={editForm.address}
@@ -167,36 +167,55 @@ export default function BranchesPage() {
           </div>
         </div>
       )}
+
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Branches</h1>
         <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Manage Right2Drive branch locations</p>
       </div>
 
+      {editSuccess && (
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#065f46', fontSize: '14px' }}>
+          Branch updated successfully!
+        </div>
+      )}
+
       <div style={section}>
         <h2 style={heading}>Current branches</h2>
-        {branches?.map((b: any) => (
-          <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8fdf9', borderRadius: '8px', border: '1px solid #dcfce7', marginBottom: '8px' }}>
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>{b.name}</div>
-              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{b.code} · {b.address}{b.suburb ? `, ${b.suburb}` : ''}{b.state ? ` ${b.state}` : ''}{b.postcode ? ` ${b.postcode}` : ''}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ background: '#01ae42' + '20', color: '#01ae42', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>{b.code}</span>
-              <button
-                onClick={() => { setEditBranch(b); setEditForm({ name: b.name, code: b.code, address: b.address || '', suburb: b.suburb || '', postcode: b.postcode || '', state: b.state || '' }); }}
-                style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#374151', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => setConfirmDelete(b)}
-                style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
-              >
-                Remove
-              </button>
-            </div>
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '14px' }}>Loading...</div>
+        ) : branches?.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '24px', border: '1.5px dashed #e2e8f0', borderRadius: '10px', color: '#94a3b8' }}>
+            <div style={{ fontSize: '28px', marginBottom: '6px' }}>🏢</div>
+            <div style={{ fontSize: '14px', fontWeight: 500, color: '#64748b', marginBottom: '3px' }}>No branches yet</div>
+            <div style={{ fontSize: '12px' }}>Add your first branch using the form below</div>
           </div>
-        ))}
+        ) : (
+          branches?.map((b: any) => (
+            <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8fdf9', borderRadius: '8px', border: '1px solid #dcfce7', marginBottom: '8px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>{b.name}</span>
+                  <span style={{ background: '#01ae4220', color: '#01ae42', padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>{b.code}</span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{b.address}{b.suburb ? `, ${b.suburb}` : ''}{b.state ? ` ${b.state}` : ''}{b.postcode ? ` ${b.postcode}` : ''}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => { setEditBranch(b); setEditForm({ name: b.name, code: b.code, address: b.address || '', suburb: b.suburb || '', postcode: b.postcode || '', state: b.state || '' }); }}
+                  style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#374151', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(b)}
+                  style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <div style={section}>
@@ -204,19 +223,20 @@ export default function BranchesPage() {
         <div style={grid2}>
           <F label="Branch name *" full><input style={input} value={form.name} onChange={e => upd('name', e.target.value)} placeholder="Keilor Park" /></F>
           <F label="Branch code *"><input style={input} value={form.code} onChange={e => upd('code', e.target.value.toUpperCase())} placeholder="KPK" /></F>
-          <F label="State">
-            <select style={input} value={form.state} onChange={e => upd('state', e.target.value)}>
-              <option value="">Select state...</option>
-              <option value="NSW">NSW</option>
-              <option value="NT">NT</option>
-              <option value="QLD">QLD</option>
-              <option value="SA">SA</option>
-              <option value="TAS">TAS</option>
-              <option value="VIC">VIC</option>
-              <option value="WA">WA</option>
-            </select>
+          <F label="State"><StateSelect value={form.state} onChange={v => upd('state', v)} /></F>
+          <F label="Address *" full>
+            <AddressAutocomplete
+              value={form.address}
+              onChange={v => upd('address', v)}
+              onSelect={result => {
+                upd('address', result.address);
+                upd('suburb', result.suburb);
+                upd('postcode', result.postcode);
+              }}
+              style={input}
+              placeholder="2 Trantara Court"
+            />
           </F>
-          <F label="Address *" full><input style={input} value={form.address} onChange={e => upd('address', e.target.value)} placeholder="2 Trantara Court" /></F>
           <F label="Suburb *"><input style={input} value={form.suburb} onChange={e => upd('suburb', e.target.value)} placeholder="Keilor Park" /></F>
           <F label="Postcode"><input style={input} value={form.postcode} onChange={e => upd('postcode', e.target.value)} placeholder="3042" /></F>
         </div>
