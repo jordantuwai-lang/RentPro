@@ -669,9 +669,12 @@ export default function CreditHirePage() {
   const [nafVehicleBodyType, setNafVehicleBodyType] = useState('');
   const [validating, setValidating] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [scanningOwner, setScanningOwner] = useState(false);
 const [scanError, setScanError] = useState('');
 const videoRef = useRef<HTMLVideoElement>(null);
 const scannerRef = useRef<any>(null);
+const ownerVideoRef = useRef<HTMLVideoElement>(null);
+const ownerScannerRef = useRef<any>(null);
 
 const stopScanner = () => {
   if (scannerRef.current) {
@@ -1000,24 +1003,54 @@ const { data: drivers = [] } = useQuery({
     </div>
   </div>
 )}
+          {scanningOwner && (
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+    <div style={{ width: '100%', maxWidth: '500px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div>
+          <div style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>Scan Owner's Licence</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8' }}>Point the camera at the barcode on the back of the licence</div>
+        </div>
+        <button type="button" onClick={() => { if (ownerScannerRef.current) { ownerScannerRef.current.reset(); ownerScannerRef.current = null; } setScanningOwner(false); setScanError(''); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '20px', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+      </div>
+      <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
+        <video ref={ownerVideoRef} style={{ width: '100%', height: '280px', objectFit: 'cover', display: 'block' }} />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{ width: '80%', height: '80px', border: '2px solid #01ae42', borderRadius: '8px', boxShadow: '0 0 0 1000px rgba(0,0,0,0.4)' }} />
+        </div>
+        <div style={{ position: 'absolute', left: '10%', right: '10%', height: '2px', background: '#01ae42', opacity: 0.8, animation: 'scan 2s linear infinite', top: '50%' }} />
+      </div>
+      {scanError && (
+        <div style={{ marginTop: '12px', padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '13px', color: '#ef4444' }}>
+          {scanError}
+        </div>
+      )}
+      <p style={{ textAlign: 'center', fontSize: '12px', color: '#64748b', marginTop: '12px' }}>
+        Scanning automatically — no need to tap anything
+      </p>
+    </div>
+  </div>
+)}
           <SectionBlock title="NAF Vehicle">
-            <div style={grid3}>
+            <div style={grid2}>
               <F label="Registration"><input style={inp} value={nafVehicleRego} onChange={e => setNafVehicleRego(e.target.value)} placeholder="e.g. ABC123" /></F>
-              <F label="Make"><input style={inp} value={nafVehicleMake} onChange={e => setNafVehicleMake(e.target.value)} placeholder="e.g. Toyota" /></F>
-              <F label="Model"><input style={inp} value={nafVehicleModel} onChange={e => setNafVehicleModel(e.target.value)} placeholder="e.g. Corolla" /></F>
-              <F label="Year"><input style={inp} value={nafVehicleYear} onChange={e => setNafVehicleYear(e.target.value)} placeholder="e.g. 2021" /></F>
-              <F label="Body type">
-                <select style={inp} value={nafVehicleBodyType} onChange={e => setNafVehicleBodyType(e.target.value)}>
-                  <option value="">Select...</option>
-                  {BODY_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
-              </F>
               <F label=" ">
                 <button type="button"
                   onClick={() => { if (!nafVehicleRego || validating) return; setValidating(true); console.log('Validate rego:', nafVehicleRego); setTimeout(() => setValidating(false), 1000); }}
                   style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: `1.5px solid ${nafVehicleRego ? '#01ae42' : '#e2e8f0'}`, background: nafVehicleRego ? '#f0fdf4' : '#f8fafc', color: nafVehicleRego ? '#01ae42' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: nafVehicleRego ? 'pointer' : 'not-allowed' }}>
                   {validating ? 'Checking...' : 'Validate'}
                 </button>
+              </F>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+              <F label="Year"><input style={inp} value={nafVehicleYear} onChange={e => setNafVehicleYear(e.target.value)} placeholder="e.g. 2021" /></F>
+              <F label="Make"><input style={inp} value={nafVehicleMake} onChange={e => setNafVehicleMake(e.target.value)} placeholder="e.g. Toyota" /></F>
+              <F label="Model"><input style={inp} value={nafVehicleModel} onChange={e => setNafVehicleModel(e.target.value)} placeholder="e.g. Corolla" /></F>
+              <F label="Body type">
+                <select style={inp} value={nafVehicleBodyType} onChange={e => setNafVehicleBodyType(e.target.value)}>
+                  <option value="">Select...</option>
+                  {BODY_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
               </F>
             </div>
           </SectionBlock>
@@ -1032,23 +1065,66 @@ const { data: drivers = [] } = useQuery({
   <div style={grid3}>
               <F label="First name *"><input style={inp} value={driver.firstName} onChange={e => updDriver('firstName', e.target.value)} /></F>
               <F label="Last name *"><input style={inp} value={driver.lastName} onChange={e => updDriver('lastName', e.target.value)} /></F>
-              <F label="Phone *"><input style={inp} placeholder="0400-000-000" value={driver.phone} onChange={e => updDriver('phone', formatPhone(e.target.value))} /></F>
-              <F label="Email" span2><input style={inp} value={driver.email} onChange={e => updDriver('email', e.target.value)} /></F>
               <F label="Date of birth"><input type="date" style={inp} value={driver.dob} onChange={e => updDriver('dob', e.target.value)} /></F>
+            </div>
+            <div style={{ ...grid2, marginTop: '10px' }}>
+              <F label="Phone *"><input style={inp} placeholder="0400-000-000" value={driver.phone} onChange={e => updDriver('phone', formatPhone(e.target.value))} /></F>
+              <F label="Email"><input style={inp} value={driver.email} onChange={e => updDriver('email', e.target.value)} /></F>
+            </div>
+            <div style={{ marginTop: '10px' }}>
               <F label="Address" full>
                 <AddressAutocomplete value={driver.address} onChange={(v: string) => updDriver('address', v)} onSelect={(r: any) => { updDriver('address', r.address); updDriver('suburb', r.suburb); updDriver('postcode', r.postcode); if (r.state) updDriver('state', r.state); }} style={inp} placeholder="Start typing address..." />
               </F>
+            </div>
+            <div style={grid3}>
               <F label="Suburb"><input style={inp} value={driver.suburb} onChange={e => updDriver('suburb', e.target.value)} /></F>
               <F label="Postcode"><input style={inp} value={driver.postcode} onChange={e => updDriver('postcode', e.target.value)} /></F>
               <F label="State"><select style={inp} value={driver.state} onChange={e => updDriver('state', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
               <F label="Licence number"><input style={inp} value={driver.licenceNumber} onChange={e => updDriver('licenceNumber', e.target.value)} /></F>
-              <F label="Licence state"><select style={inp} value={driver.licenceState} onChange={e => updDriver('licenceState', e.target.value)}><option value="">Select...</option>{LICENCE_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
               <F label="Licence expiry"><input type="date" style={inp} value={driver.licenceExpiry} onChange={e => updDriver('licenceExpiry', e.target.value)} /></F>
+              <F label="Licence state"><select style={inp} value={driver.licenceState} onChange={e => updDriver('licenceState', e.target.value)}><option value="">Select...</option>{LICENCE_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
             </div>
           </SectionBlock>
 
           <SectionBlock title="Registered Owner">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <button type="button" onClick={() => {
+                  setScanningOwner(true);
+                  setScanError('');
+                  new Promise(r => setTimeout(r, 300)).then(() => {
+                    if (!ownerVideoRef.current) return;
+                    const hints = new Map();
+                    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.PDF_417]);
+                    hints.set(DecodeHintType.TRY_HARDER, true);
+                    const reader = new BrowserMultiFormatReader(hints);
+                    ownerScannerRef.current = reader;
+                    BrowserMultiFormatReader.listVideoInputDevices().then(devices => {
+                      const rearCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment')) || devices[devices.length - 1];
+                      reader.decodeFromVideoDevice(rearCamera?.deviceId || null, ownerVideoRef.current!, (result, err) => {
+                        if (result) {
+                          const parsed = parseAusLicence(result.getText());
+                          if (parsed.licenceNumber || parsed.firstName) {
+                            if (parsed.firstName) updOwner('firstName', parsed.firstName);
+                            if (parsed.lastName) updOwner('lastName', parsed.lastName);
+                            if (parsed.dob) updOwner('dob', parsed.dob);
+                            if (parsed.licenceNumber) updOwner('licenceNumber', parsed.licenceNumber);
+                            if (parsed.licenceState) updOwner('licenceState', parsed.licenceState);
+                            if (parsed.licenceExpiry) updOwner('licenceExpiry', parsed.licenceExpiry);
+                            if (parsed.address) updOwner('address', parsed.address);
+                            if (parsed.suburb) updOwner('suburb', parsed.suburb);
+                            if (parsed.postcode) updOwner('postcode', parsed.postcode);
+                            if (parsed.state) updOwner('state', parsed.state);
+                            if (ownerScannerRef.current) { ownerScannerRef.current.reset(); ownerScannerRef.current = null; }
+                            setScanningOwner(false);
+                          }
+                        }
+                      });
+                    }).catch(() => { setScanError('Could not access camera. Please check permissions.'); setScanningOwner(false); });
+                  });
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '7px', border: '1.5px solid #01ae42', background: '#f0fdf4', color: '#01ae42', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+                <span style={{ fontSize: '13px' }}>🪪</span> Scan Licence
+              </button>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#64748b', cursor: 'pointer' }}>
                 <input type="checkbox" checked={sameAsDriver} onChange={e => handleSameAsDriver(e.target.checked)} />
                 Same as driver
@@ -1057,15 +1133,24 @@ const { data: drivers = [] } = useQuery({
             <div style={grid3}>
               <F label="First name"><input style={inp} value={owner.firstName} onChange={e => updOwner('firstName', e.target.value)} /></F>
               <F label="Last name"><input style={inp} value={owner.lastName} onChange={e => updOwner('lastName', e.target.value)} /></F>
-              <F label="Phone"><input style={inp} placeholder="0400-000-000" value={owner.phone} onChange={e => updOwner('phone', formatPhone(e.target.value))} /></F>
-              <F label="Email" span2><input style={inp} value={owner.email} onChange={e => updOwner('email', e.target.value)} /></F>
               <F label="Date of birth"><input type="date" style={inp} value={owner.dob} onChange={e => updOwner('dob', e.target.value)} /></F>
+            </div>
+            <div style={{ ...grid2, marginTop: '10px' }}>
+              <F label="Phone"><input style={inp} placeholder="0400-000-000" value={owner.phone} onChange={e => updOwner('phone', formatPhone(e.target.value))} /></F>
+              <F label="Email"><input style={inp} value={owner.email} onChange={e => updOwner('email', e.target.value)} /></F>
+            </div>
+            <div style={{ marginTop: '10px' }}>
               <F label="Address" full>
                 <AddressAutocomplete value={owner.address} onChange={(v: string) => updOwner('address', v)} onSelect={(r: any) => { updOwner('address', r.address); updOwner('suburb', r.suburb); updOwner('postcode', r.postcode); if (r.state) updOwner('state', r.state); }} style={inp} placeholder="Start typing address..." />
               </F>
+            </div>
+            <div style={grid3}>
               <F label="Suburb"><input style={inp} value={owner.suburb} onChange={e => updOwner('suburb', e.target.value)} /></F>
               <F label="Postcode"><input style={inp} value={owner.postcode} onChange={e => updOwner('postcode', e.target.value)} /></F>
               <F label="State"><select style={inp} value={owner.state} onChange={e => updOwner('state', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+              <F label="Licence number"><input style={inp} value={owner.licenceNumber || ''} onChange={e => updOwner('licenceNumber', e.target.value)} /></F>
+              <F label="Licence expiry"><input type="date" style={inp} value={owner.licenceExpiry || ''} onChange={e => updOwner('licenceExpiry', e.target.value)} /></F>
+              <F label="Licence state"><select style={inp} value={owner.licenceState || ''} onChange={e => updOwner('licenceState', e.target.value)}><option value="">Select...</option>{LICENCE_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
             </div>
           </SectionBlock>
           <SectionBlock title="Insurance Details">
