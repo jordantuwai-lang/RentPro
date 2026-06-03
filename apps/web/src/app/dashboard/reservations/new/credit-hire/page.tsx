@@ -640,7 +640,7 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 const emptyPerson = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', licenceNumber: '', licenceState: '', licenceExpiry: '', dob: '', insuranceProvider: '', claimNumber: '' };
-const emptyAtFault = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', vehicleRegistration: '', vehicleState: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' };
+const emptyAtFault = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', dob: '', vehicleRegistration: '', vehicleState: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' };
 const emptyOtherParty = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', vehicleRegistration: '', vehicleState: '', vehicleYear: '', vehicleMake: '', vehicleModel: '', insuranceProvider: '', claimNumber: '' };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -785,6 +785,9 @@ const startScanner = async () => {
   const [atFault, setAtFault] = useState({ ...emptyAtFault });
   const updAtFault = (f: string, v: string) => setAtFault(p => ({ ...p, [f]: v }));
   const [validatingAtFault, setValidatingAtFault] = useState(false);
+  const [scanningAtFault, setScanningAtFault] = useState(false);
+  const atFaultVideoRef = useRef<HTMLVideoElement>(null);
+  const atFaultScannerRef = useRef<any>(null);
 
   // Tab 3 — Other Party
   const [tp1, setTp1] = useState({ ...emptyOtherParty });
@@ -1169,36 +1172,111 @@ const { data: drivers = [] } = useQuery({
       {/* ── Tab 2: At Fault ── */}
       {activeTab === 2 && (
         <>
+          {scanningAtFault && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+              <div style={{ width: '100%', maxWidth: '500px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>Scan At Fault Licence</div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>Point the camera at the barcode on the back of the licence</div>
+                  </div>
+                  <button type="button" onClick={() => { if (atFaultScannerRef.current) { atFaultScannerRef.current.reset(); atFaultScannerRef.current = null; } setScanningAtFault(false); setScanError(''); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '20px', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                </div>
+                <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
+                  <video ref={atFaultVideoRef} style={{ width: '100%', height: '280px', objectFit: 'cover', display: 'block' }} />
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                    <div style={{ width: '80%', height: '80px', border: '2px solid #01ae42', borderRadius: '8px', boxShadow: '0 0 0 1000px rgba(0,0,0,0.4)' }} />
+                  </div>
+                  <div style={{ position: 'absolute', left: '10%', right: '10%', height: '2px', background: '#01ae42', opacity: 0.8, animation: 'scan 2s linear infinite', top: '50%' }} />
+                </div>
+                {scanError && (
+                  <div style={{ marginTop: '12px', padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '13px', color: '#ef4444' }}>{scanError}</div>
+                )}
+                <p style={{ textAlign: 'center', fontSize: '12px', color: '#64748b', marginTop: '12px' }}>Scanning automatically — no need to tap anything</p>
+              </div>
+            </div>
+          )}
+
           <SectionBlock title="At Fault Vehicle">
-            <div style={grid3}>
+            <div style={grid2}>
               <F label="Registration"><input style={inp} value={atFault.vehicleRegistration} onChange={e => updAtFault('vehicleRegistration', e.target.value)} /></F>
-              <F label="State"><select style={inp} value={atFault.vehicleState} onChange={e => updAtFault('vehicleState', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
-              <F label="Year"><input style={inp} value={atFault.vehicleYear} onChange={e => updAtFault('vehicleYear', e.target.value)} placeholder="e.g. 2021" /></F>
-              <F label="Make"><input style={inp} value={atFault.vehicleMake} onChange={e => updAtFault('vehicleMake', e.target.value)} /></F>
-              <F label="Model"><input style={inp} value={atFault.vehicleModel} onChange={e => updAtFault('vehicleModel', e.target.value)} /></F>
               <F label=" ">
                 <button type="button"
-                  onClick={() => { if (!atFault.vehicleRegistration || validatingAtFault) return; setValidatingAtFault(true); console.log('Validate at fault rego:', atFault.vehicleRegistration); setTimeout(() => setValidatingAtFault(false), 1000); }}
+                  onClick={() => { if (!atFault.vehicleRegistration || validatingAtFault) return; setValidatingAtFault(true); setTimeout(() => setValidatingAtFault(false), 1000); }}
                   style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: `1.5px solid ${atFault.vehicleRegistration ? '#01ae42' : '#e2e8f0'}`, background: atFault.vehicleRegistration ? '#f0fdf4' : '#f8fafc', color: atFault.vehicleRegistration ? '#01ae42' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: atFault.vehicleRegistration ? 'pointer' : 'not-allowed' }}>
                   {validatingAtFault ? 'Checking...' : 'Validate'}
                 </button>
               </F>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+              <F label="Year"><input style={inp} value={atFault.vehicleYear} onChange={e => updAtFault('vehicleYear', e.target.value)} placeholder="e.g. 2021" /></F>
+              <F label="Make"><input style={inp} value={atFault.vehicleMake} onChange={e => updAtFault('vehicleMake', e.target.value)} /></F>
+              <F label="Model"><input style={inp} value={atFault.vehicleModel} onChange={e => updAtFault('vehicleModel', e.target.value)} /></F>
+              <F label="State"><select style={inp} value={atFault.vehicleState} onChange={e => updAtFault('vehicleState', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+            </div>
           </SectionBlock>
+
           <SectionBlock title="At Fault Party">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+              <button type="button" onClick={() => {
+                setScanningAtFault(true); setScanError('');
+                new Promise(r => setTimeout(r, 300)).then(() => {
+                  if (!atFaultVideoRef.current) return;
+                  const hints = new Map();
+                  hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.PDF_417]);
+                  hints.set(DecodeHintType.TRY_HARDER, true);
+                  const reader = new BrowserMultiFormatReader(hints);
+                  atFaultScannerRef.current = reader;
+                  BrowserMultiFormatReader.listVideoInputDevices().then(devices => {
+                    const rearCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment')) || devices[devices.length - 1];
+                    reader.decodeFromVideoDevice(rearCamera?.deviceId || null, atFaultVideoRef.current!, (result) => {
+                      if (result) {
+                        const parsed = parseAusLicence(result.getText());
+                        if (parsed.licenceNumber || parsed.firstName) {
+                          if (parsed.firstName) updAtFault('firstName', parsed.firstName);
+                          if (parsed.lastName) updAtFault('lastName', parsed.lastName);
+                          if (parsed.dob) updAtFault('dob', parsed.dob);
+                          if (parsed.address) updAtFault('address', parsed.address);
+                          if (parsed.suburb) updAtFault('suburb', parsed.suburb);
+                          if (parsed.postcode) updAtFault('postcode', parsed.postcode);
+                          if (parsed.state) updAtFault('state', parsed.state);
+                          if (atFaultScannerRef.current) { atFaultScannerRef.current.reset(); atFaultScannerRef.current = null; }
+                          setScanningAtFault(false);
+                        }
+                      }
+                    });
+                  }).catch(() => { setScanError('Could not access camera. Please check permissions.'); setScanningAtFault(false); });
+                });
+              }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '7px', border: '1.5px solid #01ae42', background: '#f0fdf4', color: '#01ae42', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+                <span style={{ fontSize: '13px' }}>🪪</span> Scan Licence
+              </button>
+            </div>
             <div style={grid3}>
               <F label="First name"><input style={inp} value={atFault.firstName} onChange={e => updAtFault('firstName', e.target.value)} /></F>
               <F label="Last name"><input style={inp} value={atFault.lastName} onChange={e => updAtFault('lastName', e.target.value)} /></F>
+              <F label="Date of birth"><input type="date" style={inp} value={atFault.dob} onChange={e => updAtFault('dob', e.target.value)} /></F>
+            </div>
+            <div style={{ ...grid2, marginTop: '10px' }}>
               <F label="Phone"><input style={inp} placeholder="0400-000-000" value={atFault.phone} onChange={e => updAtFault('phone', formatPhone(e.target.value))} /></F>
               <F label="Email"><input style={inp} value={atFault.email} onChange={e => updAtFault('email', e.target.value)} /></F>
-              <F label="Insurance provider"><input style={inp} value={atFault.insuranceProvider} onChange={e => updAtFault('insuranceProvider', e.target.value)} /></F>
-              <F label="Claim number"><input style={inp} value={atFault.claimNumber} onChange={e => updAtFault('claimNumber', e.target.value)} /></F>
+            </div>
+            <div style={{ marginTop: '10px' }}>
               <F label="Address" full>
                 <AddressAutocomplete value={atFault.address} onChange={(v: string) => updAtFault('address', v)} onSelect={(r: any) => { updAtFault('address', r.address); updAtFault('suburb', r.suburb); updAtFault('postcode', r.postcode); if (r.state) updAtFault('state', r.state); }} style={inp} placeholder="Start typing address..." />
               </F>
+            </div>
+            <div style={grid3}>
               <F label="Suburb"><input style={inp} value={atFault.suburb} onChange={e => updAtFault('suburb', e.target.value)} /></F>
               <F label="Postcode"><input style={inp} value={atFault.postcode} onChange={e => updAtFault('postcode', e.target.value)} /></F>
               <F label="State"><select style={inp} value={atFault.state} onChange={e => updAtFault('state', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+            </div>
+          </SectionBlock>
+
+          <SectionBlock title="Insurance Details">
+            <div style={grid2}>
+              <F label="Insurance provider"><input style={inp} value={atFault.insuranceProvider} onChange={e => updAtFault('insuranceProvider', e.target.value)} placeholder="e.g. AAMI, NRMA, Allianz" /></F>
+              <F label="Claim number"><input style={inp} value={atFault.claimNumber} onChange={e => updAtFault('claimNumber', e.target.value)} placeholder="e.g. CLM-123456" /></F>
             </div>
           </SectionBlock>
         </>
