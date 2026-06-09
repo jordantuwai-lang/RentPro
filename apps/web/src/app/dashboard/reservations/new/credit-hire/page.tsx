@@ -835,6 +835,7 @@ const startScanner = async () => {
 const [showNotesModal, setShowNotesModal] = useState(false);
 const [showScheduleModal, setShowScheduleModal] = useState(false);
 const [noteText, setNoteText] = useState('');
+const [noteModalError, setNoteModalError] = useState('');
 const [scheduleForm, setScheduleForm] = useState({
   date: '', time: '', jobType: 'DELIVERY', addressType: 'customer',
   customAddress: '', customSuburb: '', customPostcode: '', driverId: '',
@@ -1379,16 +1380,27 @@ const { data: drivers = [] } = useQuery({
               placeholder="Log a call attempt, update, or any relevant note..."
               style={{ ...inp, height: '120px', resize: 'vertical', marginBottom: '16px' }}
             />
+            {noteModalError && (
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '13px', color: '#dc2626', marginBottom: '12px' }}>
+                ⚠️ {noteModalError}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setShowNotesModal(false)}
+              <button onClick={() => { setShowNotesModal(false); setNoteModalError(''); }}
                 style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>
                 Cancel
               </button>
               <button
                 onClick={async () => {
                   if (!noteText.trim()) return;
-                  const result = await mutation.mutateAsync('PENDING');
-                  if (result?.id) await addNote.mutateAsync(result.id);
+                  setNoteModalError('');
+                  try {
+                    const result = await mutation.mutateAsync('PENDING');
+                    if (result?.id) await addNote.mutateAsync(result.id);
+                  } catch (err: any) {
+                    const msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please check all required fields.';
+                    setNoteModalError(Array.isArray(msg) ? msg.join(', ') : msg);
+                  }
                 }}
                 disabled={!noteText.trim() || mutation.isPending || addNote.isPending}
                 style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: noteText.trim() ? '#01ae42' : '#e2e8f0', color: noteText.trim() ? '#fff' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: noteText.trim() ? 'pointer' : 'not-allowed' }}>
