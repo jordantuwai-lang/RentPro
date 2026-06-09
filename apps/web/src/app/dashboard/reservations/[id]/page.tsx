@@ -42,7 +42,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
   const status = r.status;
 
   return (
-    <div>
+    <div style={{ maxWidth: '860px' }}>
       {/* Header */}
       <div style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -68,13 +68,8 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
         onSaveSuccess={() => queryClient.invalidateQueries({ queryKey: ['reservations'] })}
       />
 
-      {/* Sticky bottom action bar */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: '#fff', borderTop: '1px solid #e2e8f0',
-        padding: '12px 24px', display: 'flex', alignItems: 'center',
-        gap: '10px', zIndex: 50,
-      }}>
+      {/* Inline action bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
         <button onClick={() => router.push('/dashboard/reservations')}
           style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '13px', cursor: 'pointer' }}>
           ← Back

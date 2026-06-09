@@ -655,7 +655,7 @@ export default function ReservationDetail({
   ]);
 
   return (
-    <div style={{ maxWidth: '860px', paddingBottom: '80px' }}>
+    <div style={{ maxWidth: '860px' }}>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', minHeight: '20px' }}>
         <SaveIndicator state={saveState} />
