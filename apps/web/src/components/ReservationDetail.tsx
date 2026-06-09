@@ -501,13 +501,18 @@ function NotesTab({ reservationId, authorName }: { reservationId: string; author
       ) : notes.length === 0 ? (
         <div style={{ color: '#94a3b8', fontSize: '13px' }}>No notes yet.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+          {/* Table header */}
+          <div style={{ display: 'grid', gridTemplateColumns: '160px 160px 1fr', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            {['User', 'Date & Time', 'Note'].map(h => (
+              <div key={h} style={{ padding: '8px 14px', fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</div>
           {notes.map((n: any) => (
-            <div key={n.id} style={{ background: '#f8fafc', borderRadius: '8px', padding: '12px 14px', borderLeft: '3px solid #01ae42' }}>
-              <div style={{ fontSize: '13px', color: '#0f172a', lineHeight: 1.5, marginBottom: '6px' }}>{n.note}</div>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                {n.authorName} · {new Date(n.createdAt).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            <div key={n.id} style={{ display: 'grid', gridTemplateColumns: '160px 160px 1fr', borderBottom: '1px solid #f1f5f9', borderLeft: '3px solid #01ae42' }}>
+              <div style={{ padding: '10px 14px', fontSize: '13px', fontWeight: 500, color: '#0f172a' }}>{n.authorName}</div>
+              <div style={{ padding: '10px 14px', fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                {new Date(n.createdAt).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </div>
+              <div style={{ padding: '10px 14px', fontSize: '13px', color: '#0f172a', lineHeight: 1.5 }}>{n.note}</div>
             </div>
           ))}
         </div>
