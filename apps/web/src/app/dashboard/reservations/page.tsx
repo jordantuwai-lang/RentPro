@@ -19,7 +19,7 @@ const ALL_COLUMNS = [
   { key: 'customer',          label: 'Customer',        required: false },
   { key: 'fileNumber',        label: 'File Number',     required: false },
   { key: 'hireType',          label: 'Hire Type',       required: false },
-  { key: 'vehicle',           label: 'Vehicle',         required: false },
+  { key: 'vehicle',           label: 'Customer Vehicle', required: false },
   { key: 'source',            label: 'Source',          required: false },
   { key: 'partnerName',       label: 'Partner',         required: false },
   { key: 'status',            label: 'Status',          required: false },
@@ -143,7 +143,7 @@ function CellValue({ col, res }: { col: ColumnKey; res: any }) {
     case 'hireType':
       return <span style={{ fontSize: '12px', color: '#64748b' }}>{res.hireType || '—'}</span>;
     case 'vehicle':
-      return <span style={{ fontSize: '12px', color: '#64748b' }}>{res.vehicle?.registration || 'TBA'}</span>;
+      return <span style={{ fontSize: '12px', color: '#64748b' }}>{res.nafVehicle?.registration || '—'}</span>;
     case 'source':
       return <span style={{ fontSize: '12px', color: '#64748b' }}>{res.sourceOfBusiness || '—'}</span>;
     case 'partnerName':
