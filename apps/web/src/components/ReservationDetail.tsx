@@ -506,6 +506,9 @@ function NotesTab({ reservationId, authorName }: { reservationId: string; author
           <div style={{ display: 'grid', gridTemplateColumns: '160px 160px 1fr', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
             {['User', 'Date & Time', 'Note'].map(h => (
               <div key={h} style={{ padding: '8px 14px', fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</div>
+            ))}
+          </div>
+          {/* Table rows */}
           {notes.map((n: any) => (
             <div key={n.id} style={{ display: 'grid', gridTemplateColumns: '160px 160px 1fr', borderBottom: '1px solid #f1f5f9', borderLeft: '3px solid #01ae42' }}>
               <div style={{ padding: '10px 14px', fontSize: '13px', fontWeight: 500, color: '#0f172a' }}>{n.authorName}</div>
