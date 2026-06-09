@@ -667,6 +667,7 @@ export default function ReservationDetail({
     sourceOfBusiness,
     partnerName,
     startDate,
+    hireType: r?.hireType,
     customer: driver,
     nafVehicle: { registration: nafRego, make: nafMake, model: nafModel, year: nafYear, bodyType: nafBodyType },
     atFault,
