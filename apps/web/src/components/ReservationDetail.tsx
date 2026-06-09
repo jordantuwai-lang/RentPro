@@ -564,11 +564,11 @@ export default function ReservationDetail({
   const [startDate, setStartDate] = useState(r?.startDate ? r.startDate.split('T')[0] : '');
 
   // Tab 1 — Customer / NAF Vehicle
-  const [nafRego, setNafRego] = useState('');
-  const [nafMake, setNafMake] = useState('');
-  const [nafModel, setNafModel] = useState('');
-  const [nafYear, setNafYear] = useState('');
-  const [nafBodyType, setNafBodyType] = useState('');
+  const [nafRego, setNafRego] = useState(r?.nafVehicle?.registration || '');
+  const [nafMake, setNafMake] = useState(r?.nafVehicle?.make || '');
+  const [nafModel, setNafModel] = useState(r?.nafVehicle?.model || '');
+  const [nafYear, setNafYear] = useState(r?.nafVehicle?.year?.toString() || '');
+  const [nafBodyType, setNafBodyType] = useState(r?.nafVehicle?.bodyType || '');
   const [driver, setDriver] = useState({
     firstName: customer.firstName || '',
     lastName: customer.lastName || '',
