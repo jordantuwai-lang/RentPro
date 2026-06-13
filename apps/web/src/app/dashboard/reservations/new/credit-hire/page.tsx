@@ -637,6 +637,34 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
   );
 }
 
+// ─── Accordion section ────────────────────────────────────────────────────────
+
+function AccordionSection({ title, icon, summary, open, onToggle, children }: {
+  title: string; icon: string; summary: string; open: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '10px', overflow: 'hidden' }}>
+      <button type="button" onClick={onToggle} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#f0fdf4', border: '1.5px solid #86efac', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '16px' }}>
+          {icon}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{title}</div>
+          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{summary}</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: '#94a3b8' }}>
+          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div style={{ borderTop: '1px solid #f1f5f9', padding: '16px' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 const emptyPerson = { firstName: '', lastName: '', phone: '', email: '', address: '', suburb: '', postcode: '', state: '', licenceNumber: '', licenceState: '', licenceExpiry: '', dob: '', insuranceProvider: '', claimNumber: '' };
@@ -652,6 +680,15 @@ export default function CreditHirePage() {
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState(0);
+  const [layoutMode, setLayoutMode] = useState<'tabs' | 'single'>('tabs');
+  const [openSections, setOpenSections] = useState([true, false, false, false, false, false, false, false, false]);
+  const toggleSection = (i: number) => setOpenSections(prev => prev.map((v, idx) => idx === i ? !v : v));
+  const updateLayoutPref = async (mode: 'tabs' | 'single') => {
+    setLayoutMode(mode);
+    try {
+      await fetch('/api/user/preferences', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ creditHireLayout: mode }) });
+    } catch {}
+  };
   const [rezNumber, setRezNumber] = useState('');
 
   // Tab 0 — Main
@@ -856,6 +893,11 @@ const { data: drivers = [] } = useQuery({
     });
   }, []);
 
+  useEffect(() => {
+    const saved = user?.publicMetadata?.creditHireLayout as 'tabs' | 'single' | undefined;
+    if (saved === 'tabs' || saved === 'single') setLayoutMode(saved);
+  }, [user?.id]);
+
   const { data: repairers = [] } = useQuery({
     queryKey: ['repairers'],
     queryFn: async () => {
@@ -919,13 +961,45 @@ const { data: drivers = [] } = useQuery({
               {rezNumber}
             </span>
           )}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', background: '#f1f5f9', borderRadius: '8px', padding: '3px', gap: '2px' }}>
+            {([
+              { value: 'tabs' as const, label: 'Tabs', icon: (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="12" rx="1" stroke="currentColor" strokeWidth="1.4"/><rect x="8" y="1" width="5" height="12" rx="1" stroke="currentColor" strokeWidth="1.4"/></svg>
+              )},
+              { value: 'single' as const, label: 'Single page', icon: (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="3" rx="1" stroke="currentColor" strokeWidth="1.4"/><rect x="1" y="5.5" width="12" height="3" rx="1" stroke="currentColor" strokeWidth="1.4"/><rect x="1" y="10" width="12" height="3" rx="1" stroke="currentColor" strokeWidth="1.4"/></svg>
+              )},
+            ] as const).map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => updateLayoutPref(opt.value)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '5px 10px', borderRadius: '6px', border: 'none',
+                  background: layoutMode === opt.value ? '#fff' : 'transparent',
+                  color: layoutMode === opt.value ? '#0f172a' : '#64748b',
+                  fontSize: '12px', fontWeight: layoutMode === opt.value ? 600 : 500,
+                  cursor: 'pointer',
+                  boxShadow: layoutMode === opt.value ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {opt.icon}
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>Credit hire intake form</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+          <p style={{ color: '#64748b', fontSize: '13px', margin: 0 }}>Credit hire intake form</p>
+          <span style={{ fontSize: '11px', color: '#94a3b8' }}>Saved to your profile</span>
+        </div>
       </div>
 
-      <TabBar active={activeTab} onChange={setActiveTab} />
+      {layoutMode === 'tabs' && <TabBar active={activeTab} onChange={setActiveTab} />}
 
-      {activeTab === 0 && (
+      {layoutMode === 'tabs' && activeTab === 0 && (
   <SectionBlock title="Booking Details">
     <div style={grid2}>
       <F label="Source *">
@@ -962,7 +1036,7 @@ const { data: drivers = [] } = useQuery({
 )}
 
       {/* ── Tab 1: Customer ── */}
-      {activeTab === 1 && (
+      {layoutMode === 'tabs' && activeTab === 1 && (
         <>
         {/* Scanner modal */}
 {scanning && (
@@ -1082,7 +1156,7 @@ const { data: drivers = [] } = useQuery({
       )}
 
       {/* ── Tab 2: At Fault ── */}
-      {activeTab === 2 && (
+      {layoutMode === 'tabs' && activeTab === 2 && (
         <>
           <SectionBlock title="At Fault Vehicle">
             <div style={grid3}>
@@ -1120,7 +1194,7 @@ const { data: drivers = [] } = useQuery({
       )}
 
       {/* ── Tab 3: Other Party ── */}
-      {activeTab === 3 && (
+      {layoutMode === 'tabs' && activeTab === 3 && (
         <>
           <SectionBlock title="Third Party 1 — Vehicle">
             <div style={grid3}>
@@ -1189,7 +1263,7 @@ const { data: drivers = [] } = useQuery({
       )}
 
       {/* ── Tab 4: Accident ── */}
-      {activeTab === 4 && (
+      {layoutMode === 'tabs' && activeTab === 4 && (
         <>
           <SectionBlock title="Accident Details">
             <div style={grid3}>
@@ -1208,7 +1282,7 @@ const { data: drivers = [] } = useQuery({
       )}
 
       {/* ── Tab 5: Damages ── */}
-      {activeTab === 5 && (
+      {layoutMode === 'tabs' && activeTab === 5 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '16px' }}>
             <CarSvg color="#01ae42" size={32} />
@@ -1229,7 +1303,7 @@ const { data: drivers = [] } = useQuery({
       )}
 
       {/* ── Tab 6: Photos ── */}
-      {activeTab === 6 && (
+      {layoutMode === 'tabs' && activeTab === 6 && (
         <>
           {missingMandatory.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '10px', marginBottom: '16px' }}>
@@ -1294,7 +1368,7 @@ const { data: drivers = [] } = useQuery({
       )}
 
       {/* ── Tab 7: Additional ── */}
-      {activeTab === 7 && (
+      {layoutMode === 'tabs' && activeTab === 7 && (
         <>
           <SectionBlock title="Police Report">
             <div style={grid3}>
@@ -1339,7 +1413,7 @@ const { data: drivers = [] } = useQuery({
       )}
 
      {/* ── Tab 8: Documents ── */}
-     {activeTab === 8 && (
+     {layoutMode === 'tabs' && activeTab === 8 && (
         <>
           <SectionBlock title="Authority to Act">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '20px', border: '1.5px dashed #e2e8f0', borderRadius: '10px', background: '#f8fafc' }}>
@@ -1359,6 +1433,469 @@ const { data: drivers = [] } = useQuery({
               </div>
             </div>
           </SectionBlock>
+        </>
+      )}
+
+      {/* ── Accordion (single-page layout) ── */}
+      {layoutMode === 'single' && (
+        <>
+          {/* Section 0 — Booking details */}
+          <AccordionSection
+            title="Booking details"
+            icon="📋"
+            summary={sourceOfBusiness ? `${sourceOfBusiness}${startDate ? ` · ${startDate}` : ''}` : 'Source of business and hire date'}
+            open={openSections[0]}
+            onToggle={() => toggleSection(0)}
+          >
+            <SectionBlock title="Booking Details">
+              <div style={grid2}>
+                <F label="Source *">
+                  <select style={inp} value={sourceOfBusiness} onChange={e => { setSourceOfBusiness(e.target.value); setPartnerName(''); }}>
+                    <option value="">Select source...</option>
+                    <option value="Repairer">Repairer</option>
+                    <option value="Tow Operator">Tow Operator</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Corporate Partnerships">Corporate Partnerships</option>
+                  </select>
+                </F>
+                <F label="Hire start date">
+                  <input type="date" style={inp} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                </F>
+                {sourceOfBusiness === 'Repairer' && (
+                  <F label="Repairer *" full>
+                    <select style={inp} value={partnerName} onChange={e => setPartnerName(e.target.value)}>
+                      <option value="">Select repairer...</option>
+                      {repairers.map((r: any) => (
+                        <option key={r.id} value={r.name}>{r.name}</option>
+                      ))}
+                    </select>
+                  </F>
+                )}
+                {sourceOfBusiness === 'Tow Operator' && (
+                  <F label="Tow operator name *" full>
+                    <input style={inp} value={partnerName} onChange={e => setPartnerName(e.target.value)} placeholder="e.g. Smith's Towing" />
+                  </F>
+                )}
+              </div>
+            </SectionBlock>
+          </AccordionSection>
+
+          {/* Section 1 — Customer & vehicle */}
+          <AccordionSection
+            title="Customer & vehicle"
+            icon="👤"
+            summary={driver.firstName ? `${driver.firstName} ${driver.lastName}${nafVehicleRego ? ` · ${nafVehicleRego}` : ''}` : 'NAF vehicle, driver and owner details'}
+            open={openSections[1]}
+            onToggle={() => toggleSection(1)}
+          >
+            {scanning && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+                <div style={{ width: '100%', maxWidth: '500px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>Scan Driver's Licence</div>
+                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>Point the camera at the barcode on the back of the licence</div>
+                    </div>
+                    <button type="button" onClick={stopScanner} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '20px', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                  </div>
+                  <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
+                    <video ref={videoRef} style={{ width: '100%', height: '280px', objectFit: 'cover', display: 'block' }} />
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                      <div style={{ width: '80%', height: '80px', border: '2px solid #01ae42', borderRadius: '8px', boxShadow: '0 0 0 1000px rgba(0,0,0,0.4)' }} />
+                    </div>
+                    <div style={{ position: 'absolute', left: '10%', right: '10%', height: '2px', background: '#01ae42', opacity: 0.8, animation: 'scan 2s linear infinite', top: '50%' }} />
+                  </div>
+                  <style>{`@keyframes scan { 0% { transform: translateY(-40px); } 100% { transform: translateY(40px); } }`}</style>
+                  {scanError && (
+                    <div style={{ marginTop: '12px', padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '13px', color: '#ef4444' }}>{scanError}</div>
+                  )}
+                  <p style={{ textAlign: 'center', fontSize: '12px', color: '#64748b', marginTop: '12px' }}>Scanning automatically — no need to tap anything</p>
+                </div>
+              </div>
+            )}
+            <SectionBlock title="NAF Vehicle">
+              <div style={grid3}>
+                <F label="Registration"><input style={inp} value={nafVehicleRego} onChange={e => setNafVehicleRego(e.target.value)} placeholder="e.g. ABC123" /></F>
+                <F label="Make"><input style={inp} value={nafVehicleMake} onChange={e => setNafVehicleMake(e.target.value)} placeholder="e.g. Toyota" /></F>
+                <F label="Model"><input style={inp} value={nafVehicleModel} onChange={e => setNafVehicleModel(e.target.value)} placeholder="e.g. Corolla" /></F>
+                <F label="Year"><input style={inp} value={nafVehicleYear} onChange={e => setNafVehicleYear(e.target.value)} placeholder="e.g. 2021" /></F>
+                <F label="Body type">
+                  <select style={inp} value={nafVehicleBodyType} onChange={e => setNafVehicleBodyType(e.target.value)}>
+                    <option value="">Select...</option>
+                    {BODY_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </F>
+                <F label=" ">
+                  <button type="button"
+                    onClick={() => { if (!nafVehicleRego || validating) return; setValidating(true); setTimeout(() => setValidating(false), 1000); }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: `1.5px solid ${nafVehicleRego ? '#01ae42' : '#e2e8f0'}`, background: nafVehicleRego ? '#f0fdf4' : '#f8fafc', color: nafVehicleRego ? '#01ae42' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: nafVehicleRego ? 'pointer' : 'not-allowed' }}>
+                    {validating ? 'Checking...' : 'Validate'}
+                  </button>
+                </F>
+              </div>
+            </SectionBlock>
+            <SectionBlock title="Customer Details">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+                <button type="button" onClick={startScanner}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '7px', border: '1.5px solid #01ae42', background: '#f0fdf4', color: '#01ae42', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+                  <span style={{ fontSize: '13px' }}>🪪</span> Scan Licence
+                </button>
+              </div>
+              <div style={grid3}>
+                <F label="First name *"><input style={inp} value={driver.firstName} onChange={e => updDriver('firstName', e.target.value)} /></F>
+                <F label="Last name *"><input style={inp} value={driver.lastName} onChange={e => updDriver('lastName', e.target.value)} /></F>
+                <F label="Phone *"><input style={inp} placeholder="0400-000-000" value={driver.phone} onChange={e => updDriver('phone', formatPhone(e.target.value))} /></F>
+                <F label="Email" span2><input style={inp} value={driver.email} onChange={e => updDriver('email', e.target.value)} /></F>
+                <F label="Date of birth"><input type="date" style={inp} value={driver.dob} onChange={e => updDriver('dob', e.target.value)} /></F>
+                <F label="Address" full>
+                  <AddressAutocomplete value={driver.address} onChange={(v: string) => updDriver('address', v)} onSelect={(r: any) => { updDriver('address', r.address); updDriver('suburb', r.suburb); updDriver('postcode', r.postcode); if (r.state) updDriver('state', r.state); }} style={inp} placeholder="Start typing address..." />
+                </F>
+                <F label="Suburb"><input style={inp} value={driver.suburb} onChange={e => updDriver('suburb', e.target.value)} /></F>
+                <F label="Postcode"><input style={inp} value={driver.postcode} onChange={e => updDriver('postcode', e.target.value)} /></F>
+                <F label="State"><select style={inp} value={driver.state} onChange={e => updDriver('state', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+                <F label="Licence number"><input style={inp} value={driver.licenceNumber} onChange={e => updDriver('licenceNumber', e.target.value)} /></F>
+                <F label="Licence state"><select style={inp} value={driver.licenceState} onChange={e => updDriver('licenceState', e.target.value)}><option value="">Select...</option>{LICENCE_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+                <F label="Licence expiry"><input type="date" style={inp} value={driver.licenceExpiry} onChange={e => updDriver('licenceExpiry', e.target.value)} /></F>
+              </div>
+            </SectionBlock>
+            <SectionBlock title="Registered Owner">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#64748b', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={sameAsDriver} onChange={e => handleSameAsDriver(e.target.checked)} />
+                  Same as driver
+                </label>
+              </div>
+              <div style={grid3}>
+                <F label="First name"><input style={inp} value={owner.firstName} onChange={e => updOwner('firstName', e.target.value)} /></F>
+                <F label="Last name"><input style={inp} value={owner.lastName} onChange={e => updOwner('lastName', e.target.value)} /></F>
+                <F label="Phone"><input style={inp} placeholder="0400-000-000" value={owner.phone} onChange={e => updOwner('phone', formatPhone(e.target.value))} /></F>
+                <F label="Email" span2><input style={inp} value={owner.email} onChange={e => updOwner('email', e.target.value)} /></F>
+                <F label="Date of birth"><input type="date" style={inp} value={owner.dob} onChange={e => updOwner('dob', e.target.value)} /></F>
+                <F label="Address" full>
+                  <AddressAutocomplete value={owner.address} onChange={(v: string) => updOwner('address', v)} onSelect={(r: any) => { updOwner('address', r.address); updOwner('suburb', r.suburb); updOwner('postcode', r.postcode); if (r.state) updOwner('state', r.state); }} style={inp} placeholder="Start typing address..." />
+                </F>
+                <F label="Suburb"><input style={inp} value={owner.suburb} onChange={e => updOwner('suburb', e.target.value)} /></F>
+                <F label="Postcode"><input style={inp} value={owner.postcode} onChange={e => updOwner('postcode', e.target.value)} /></F>
+                <F label="State"><select style={inp} value={owner.state} onChange={e => updOwner('state', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+              </div>
+            </SectionBlock>
+            <SectionBlock title="Insurance Details">
+              <div style={grid2}>
+                <F label="Insurance provider">
+                  <input style={inp} value={driver.insuranceProvider || ''} onChange={e => updDriver('insuranceProvider', e.target.value)} placeholder="e.g. AAMI, NRMA, Allianz" />
+                </F>
+                <F label="Claim number">
+                  <input style={inp} value={driver.claimNumber || ''} onChange={e => updDriver('claimNumber', e.target.value)} placeholder="e.g. CLM-123456" />
+                </F>
+              </div>
+            </SectionBlock>
+          </AccordionSection>
+
+          {/* Section 2 — At fault party */}
+          <AccordionSection
+            title="At fault party"
+            icon="⚠️"
+            summary={atFault.firstName ? `${atFault.firstName} ${atFault.lastName}${atFault.vehicleRegistration ? ` · ${atFault.vehicleRegistration}` : ''}` : 'At fault driver and vehicle details'}
+            open={openSections[2]}
+            onToggle={() => toggleSection(2)}
+          >
+            <SectionBlock title="At Fault Vehicle">
+              <div style={grid3}>
+                <F label="Registration"><input style={inp} value={atFault.vehicleRegistration} onChange={e => updAtFault('vehicleRegistration', e.target.value)} /></F>
+                <F label="State"><select style={inp} value={atFault.vehicleState} onChange={e => updAtFault('vehicleState', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+                <F label="Year"><input style={inp} value={atFault.vehicleYear} onChange={e => updAtFault('vehicleYear', e.target.value)} placeholder="e.g. 2021" /></F>
+                <F label="Make"><input style={inp} value={atFault.vehicleMake} onChange={e => updAtFault('vehicleMake', e.target.value)} /></F>
+                <F label="Model"><input style={inp} value={atFault.vehicleModel} onChange={e => updAtFault('vehicleModel', e.target.value)} /></F>
+                <F label=" ">
+                  <button type="button"
+                    onClick={() => { if (!atFault.vehicleRegistration || validatingAtFault) return; setValidatingAtFault(true); setTimeout(() => setValidatingAtFault(false), 1000); }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: `1.5px solid ${atFault.vehicleRegistration ? '#01ae42' : '#e2e8f0'}`, background: atFault.vehicleRegistration ? '#f0fdf4' : '#f8fafc', color: atFault.vehicleRegistration ? '#01ae42' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: atFault.vehicleRegistration ? 'pointer' : 'not-allowed' }}>
+                    {validatingAtFault ? 'Checking...' : 'Validate'}
+                  </button>
+                </F>
+              </div>
+            </SectionBlock>
+            <SectionBlock title="At Fault Party">
+              <div style={grid3}>
+                <F label="First name"><input style={inp} value={atFault.firstName} onChange={e => updAtFault('firstName', e.target.value)} /></F>
+                <F label="Last name"><input style={inp} value={atFault.lastName} onChange={e => updAtFault('lastName', e.target.value)} /></F>
+                <F label="Phone"><input style={inp} placeholder="0400-000-000" value={atFault.phone} onChange={e => updAtFault('phone', formatPhone(e.target.value))} /></F>
+                <F label="Email"><input style={inp} value={atFault.email} onChange={e => updAtFault('email', e.target.value)} /></F>
+                <F label="Insurance provider"><input style={inp} value={atFault.insuranceProvider} onChange={e => updAtFault('insuranceProvider', e.target.value)} /></F>
+                <F label="Claim number"><input style={inp} value={atFault.claimNumber} onChange={e => updAtFault('claimNumber', e.target.value)} /></F>
+                <F label="Address" full>
+                  <AddressAutocomplete value={atFault.address} onChange={(v: string) => updAtFault('address', v)} onSelect={(r: any) => { updAtFault('address', r.address); updAtFault('suburb', r.suburb); updAtFault('postcode', r.postcode); if (r.state) updAtFault('state', r.state); }} style={inp} placeholder="Start typing address..." />
+                </F>
+                <F label="Suburb"><input style={inp} value={atFault.suburb} onChange={e => updAtFault('suburb', e.target.value)} /></F>
+                <F label="Postcode"><input style={inp} value={atFault.postcode} onChange={e => updAtFault('postcode', e.target.value)} /></F>
+                <F label="State"><select style={inp} value={atFault.state} onChange={e => updAtFault('state', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+              </div>
+            </SectionBlock>
+          </AccordionSection>
+
+          {/* Section 3 — Other parties */}
+          <AccordionSection
+            title="Other parties"
+            icon="🚗"
+            summary={tp1.vehicleRegistration ? `TP1: ${tp1.vehicleRegistration}${showTp2 ? ' · TP2 added' : ''}` : 'Third party vehicles and drivers'}
+            open={openSections[3]}
+            onToggle={() => toggleSection(3)}
+          >
+            <SectionBlock title="Third Party 1 — Vehicle">
+              <div style={grid3}>
+                <F label="Registration"><input style={inp} value={tp1.vehicleRegistration} onChange={e => updTp1('vehicleRegistration', e.target.value)} /></F>
+                <F label="State"><select style={inp} value={tp1.vehicleState} onChange={e => updTp1('vehicleState', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+                <F label="Year"><input style={inp} value={tp1.vehicleYear} onChange={e => updTp1('vehicleYear', e.target.value)} placeholder="e.g. 2021" /></F>
+                <F label="Make"><input style={inp} value={tp1.vehicleMake} onChange={e => updTp1('vehicleMake', e.target.value)} /></F>
+                <F label="Model"><input style={inp} value={tp1.vehicleModel} onChange={e => updTp1('vehicleModel', e.target.value)} /></F>
+                <F label="Claim number"><input style={inp} value={tp1.claimNumber} onChange={e => updTp1('claimNumber', e.target.value)} /></F>
+              </div>
+            </SectionBlock>
+            <SectionBlock title="Third Party 1 — Person">
+              <div style={grid3}>
+                <F label="First name"><input style={inp} value={tp1.firstName} onChange={e => updTp1('firstName', e.target.value)} /></F>
+                <F label="Last name"><input style={inp} value={tp1.lastName} onChange={e => updTp1('lastName', e.target.value)} /></F>
+                <F label="Phone"><input style={inp} placeholder="0400-000-000" value={tp1.phone} onChange={e => updTp1('phone', formatPhone(e.target.value))} /></F>
+                <F label="Email"><input style={inp} value={tp1.email} onChange={e => updTp1('email', e.target.value)} /></F>
+                <F label="Insurance provider"><input style={inp} value={tp1.insuranceProvider} onChange={e => updTp1('insuranceProvider', e.target.value)} /></F>
+                <F label="Address" full>
+                  <AddressAutocomplete value={tp1.address} onChange={(v: string) => updTp1('address', v)} onSelect={(r: any) => { updTp1('address', r.address); updTp1('suburb', r.suburb); updTp1('postcode', r.postcode); if (r.state) updTp1('state', r.state); }} style={inp} placeholder="Start typing address..." />
+                </F>
+                <F label="Suburb"><input style={inp} value={tp1.suburb} onChange={e => updTp1('suburb', e.target.value)} /></F>
+                <F label="Postcode"><input style={inp} value={tp1.postcode} onChange={e => updTp1('postcode', e.target.value)} /></F>
+                <F label="State"><select style={inp} value={tp1.state} onChange={e => updTp1('state', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+              </div>
+            </SectionBlock>
+            {!showTp2 ? (
+              <button type="button" onClick={() => setShowTp2(true)}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: 'pointer', marginBottom: '16px' }}>
+                + Add Third Party 2
+              </button>
+            ) : (
+              <>
+                <SectionBlock title="Third Party 2 — Vehicle">
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                    <button type="button" onClick={() => setShowTp2(false)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#ef4444', fontSize: '12px', cursor: 'pointer' }}>Remove</button>
+                  </div>
+                  <div style={grid3}>
+                    <F label="Registration"><input style={inp} value={tp2.vehicleRegistration} onChange={e => updTp2('vehicleRegistration', e.target.value)} /></F>
+                    <F label="State"><select style={inp} value={tp2.vehicleState} onChange={e => updTp2('vehicleState', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+                    <F label="Year"><input style={inp} value={tp2.vehicleYear} onChange={e => updTp2('vehicleYear', e.target.value)} placeholder="e.g. 2021" /></F>
+                    <F label="Make"><input style={inp} value={tp2.vehicleMake} onChange={e => updTp2('vehicleMake', e.target.value)} /></F>
+                    <F label="Model"><input style={inp} value={tp2.vehicleModel} onChange={e => updTp2('vehicleModel', e.target.value)} /></F>
+                    <F label="Claim number"><input style={inp} value={tp2.claimNumber} onChange={e => updTp2('claimNumber', e.target.value)} /></F>
+                  </div>
+                </SectionBlock>
+                <SectionBlock title="Third Party 2 — Person">
+                  <div style={grid3}>
+                    <F label="First name"><input style={inp} value={tp2.firstName} onChange={e => updTp2('firstName', e.target.value)} /></F>
+                    <F label="Last name"><input style={inp} value={tp2.lastName} onChange={e => updTp2('lastName', e.target.value)} /></F>
+                    <F label="Phone"><input style={inp} placeholder="0400-000-000" value={tp2.phone} onChange={e => updTp2('phone', formatPhone(e.target.value))} /></F>
+                    <F label="Email"><input style={inp} value={tp2.email} onChange={e => updTp2('email', e.target.value)} /></F>
+                    <F label="Insurance provider"><input style={inp} value={tp2.insuranceProvider} onChange={e => updTp2('insuranceProvider', e.target.value)} /></F>
+                    <F label="Address" full>
+                      <AddressAutocomplete value={tp2.address} onChange={(v: string) => updTp2('address', v)} onSelect={(r: any) => { updTp2('address', r.address); updTp2('suburb', r.suburb); updTp2('postcode', r.postcode); if (r.state) updTp2('state', r.state); }} style={inp} placeholder="Start typing address..." />
+                    </F>
+                    <F label="Suburb"><input style={inp} value={tp2.suburb} onChange={e => updTp2('suburb', e.target.value)} /></F>
+                    <F label="Postcode"><input style={inp} value={tp2.postcode} onChange={e => updTp2('postcode', e.target.value)} /></F>
+                    <F label="State"><select style={inp} value={tp2.state} onChange={e => updTp2('state', e.target.value)}><option value="">Select...</option>{STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></F>
+                  </div>
+                </SectionBlock>
+              </>
+            )}
+          </AccordionSection>
+
+          {/* Section 4 — Accident details */}
+          <AccordionSection
+            title="Accident details"
+            icon="📍"
+            summary={accident.date ? `${accident.date}${accident.suburb ? ` · ${accident.suburb}` : accident.location ? ` · ${accident.location}` : ''}` : 'Date, location and description'}
+            open={openSections[4]}
+            onToggle={() => toggleSection(4)}
+          >
+            <SectionBlock title="Accident Details">
+              <div style={grid3}>
+                <F label="Date of accident"><input type="date" style={inp} value={accident.date} onChange={e => updAccident('date', e.target.value)} /></F>
+                <F label="Street / location"><input style={inp} value={accident.location} onChange={e => updAccident('location', e.target.value)} placeholder="e.g. Flinders St & Swanston St" /></F>
+                <F label="Suburb"><input style={inp} value={accident.suburb} onChange={e => updAccident('suburb', e.target.value)} /></F>
+                <F label="Description" full>
+                  <textarea style={{ ...inp, height: '80px', resize: 'vertical' }} value={accident.description} onChange={e => updAccident('description', e.target.value)} placeholder="Brief description of what happened..." />
+                </F>
+              </div>
+            </SectionBlock>
+            <SectionBlock title="Vehicle Positions">
+              <AccidentMap onUpdate={setAccidentVehicles} nafRego={nafVehicleRego} faultRego={atFault.vehicleRegistration} tp1Rego={tp1.vehicleRegistration} tp2Rego={tp2.vehicleRegistration} />
+            </SectionBlock>
+          </AccordionSection>
+
+          {/* Section 5 — Damages */}
+          <AccordionSection
+            title="Damages"
+            icon="🔧"
+            summary={damagedPanels.size > 0 ? `${damagedPanels.size} panel${damagedPanels.size === 1 ? '' : 's'} marked` : 'Vehicle damage panels'}
+            open={openSections[5]}
+            onToggle={() => toggleSection(5)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '16px' }}>
+              <CarSvg color="#01ae42" size={32} />
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', flex: 1 }}>
+                {[{ label: 'Rego', value: nafVehicleRego || '—' }, { label: 'Make', value: nafVehicleMake || '—' }, { label: 'Model', value: nafVehicleModel || '—' }, { label: 'Year', value: nafVehicleYear || '—' }, { label: 'Body', value: nafVehicleBodyType || '—' }].map(({ label, value }) => (
+                  <div key={label}>
+                    <div style={{ fontSize: '10px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+                    <div style={{ fontSize: '13px', fontWeight: 500, color: '#0f172a' }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+              {!nafVehicleRego && !nafVehicleMake && <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 500 }}>Fill in Customer section first</span>}
+            </div>
+            <SectionBlock title="Damage Selector">
+              <DamageSelector bodyType={nafVehicleBodyType} damaged={damagedPanels} onToggle={togglePanel} description={damageDescription} onDescriptionChange={setDamageDescription} />
+            </SectionBlock>
+          </AccordionSection>
+
+          {/* Section 6 — Photos */}
+          <AccordionSection
+            title="Photos"
+            icon="📷"
+            summary={`${licencePhoto && regoPhoto ? 'Required docs ✓' : 'Required docs missing'}${photos.length > 0 ? ` · ${photos.length} additional` : ''}`}
+            open={openSections[6]}
+            onToggle={() => toggleSection(6)}
+          >
+            {missingMandatory.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '10px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '16px' }}>⚠️</span>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#92400e' }}>Required photos missing</div>
+                  <div style={{ fontSize: '11px', color: '#92400e', marginTop: '1px' }}>{missingMandatory.join(' and ')} {missingMandatory.length === 1 ? 'is' : 'are'} required</div>
+                </div>
+              </div>
+            )}
+            <SectionBlock title="Required Documents">
+              <div style={grid2}>
+                <MandatoryPhotoSlot label="Driver's Licence" description="Front of the customer's licence" icon="🪪" value={licencePhoto} onChange={setLicencePhoto} onClear={() => setLicencePhoto(null)} />
+                <MandatoryPhotoSlot label="Vehicle Registration Papers" description="Current registration certificate" icon="📄" value={regoPhoto} onChange={setRegoPhoto} onClear={() => setRegoPhoto(null)} />
+              </div>
+            </SectionBlock>
+            <SectionBlock title="Additional Photos">
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" multiple onChange={handlePhotoCapture} style={{ display: 'none' }} />
+              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handlePhotoCapture} style={{ display: 'none' }} />
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+                <button type="button" onClick={() => cameraInputRef.current?.click()} disabled={photos.length >= 20}
+                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1.5px dashed #86efac', background: '#f0fdf4', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: photos.length >= 20 ? 'not-allowed' : 'pointer', textAlign: 'center', opacity: photos.length >= 20 ? 0.5 : 1 }}>
+                  📷 Take photo
+                </button>
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={photos.length >= 20}
+                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#f8fafc', color: '#64748b', fontSize: '13px', fontWeight: 500, cursor: photos.length >= 20 ? 'not-allowed' : 'pointer', textAlign: 'center', opacity: photos.length >= 20 ? 0.5 : 1 }}>
+                  📁 Upload photo
+                </button>
+              </div>
+              {photos.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '24px', border: '1.5px dashed #e2e8f0', borderRadius: '10px', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '28px', marginBottom: '6px' }}>📷</div>
+                  <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '3px', color: '#64748b' }}>No additional photos yet</div>
+                  <div style={{ fontSize: '11px' }}>Take or upload damage, vehicle or scene photos — up to 20</div>
+                </div>
+              )}
+              {photos.length > 0 && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                    {photos.map((photo, i) => (
+                      <div key={i} style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                        <div style={{ position: 'relative' }}>
+                          <img src={photo.dataUrl} alt={`Photo ${i + 1}`} style={{ width: '100%', height: '130px', objectFit: 'cover', display: 'block' }} />
+                          <button type="button" onClick={() => removePhoto(i)}
+                            style={{ position: 'absolute', top: '6px', right: '6px', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                          <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.5)', borderRadius: '4px', padding: '2px 7px', fontSize: '10px', color: '#fff', fontWeight: 500 }}>{photo.category}</div>
+                        </div>
+                        <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <select value={photo.category} onChange={e => updatePhotoField(i, 'category', e.target.value)} style={{ ...inp, fontSize: '11px', padding: '5px 8px' }}>
+                            {PHOTO_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                          <input style={{ ...inp, fontSize: '11px', padding: '5px 8px' }} placeholder="Caption (optional)" value={photo.caption} onChange={e => updatePhotoField(i, 'caption', e.target.value)} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: '10px', fontSize: '11px', color: '#94a3b8', textAlign: 'right' }}>{photos.length} / 20 photos</div>
+                </>
+              )}
+            </SectionBlock>
+          </AccordionSection>
+
+          {/* Section 7 — Additional info */}
+          <AccordionSection
+            title="Additional info"
+            icon="📝"
+            summary={policeReportNo ? `Police report: ${policeReportNo}` : 'Police report, witness and notes'}
+            open={openSections[7]}
+            onToggle={() => toggleSection(7)}
+          >
+            <SectionBlock title="Police Report">
+              <div style={grid3}>
+                <F label="Report number">
+                  <input style={inp} value={policeReportNo} onChange={e => setPoliceReportNo(e.target.value)} placeholder="e.g. E12345678" />
+                </F>
+                <F label="Police station">
+                  <input style={inp} value={policeStation} onChange={e => setPoliceStation(e.target.value)} placeholder="e.g. Melbourne Central" />
+                </F>
+                <F label="Officer name">
+                  <input style={inp} value={policeOfficerName} onChange={e => setPoliceOfficerName(e.target.value)} />
+                </F>
+                <F label="Officer phone">
+                  <input style={inp} placeholder="0400-000-000" value={policeOfficerPhone} onChange={e => setPoliceOfficerPhone(formatPhone(e.target.value))} />
+                </F>
+              </div>
+            </SectionBlock>
+            <SectionBlock title="Witness Details">
+              <div style={grid3}>
+                <F label="Witness name">
+                  <input style={inp} value={witnessName} onChange={e => setWitnessName(e.target.value)} />
+                </F>
+                <F label="Witness phone">
+                  <input style={inp} placeholder="0400-000-000" value={witnessPhone} onChange={e => setWitnessPhone(formatPhone(e.target.value))} />
+                </F>
+                <F label="Witness email">
+                  <input style={inp} value={witnessEmail} onChange={e => setWitnessEmail(e.target.value)} />
+                </F>
+              </div>
+            </SectionBlock>
+            <SectionBlock title="Additional Notes">
+              <textarea
+                style={{ ...inp, height: '120px', resize: 'vertical' }}
+                value={additionalNotes}
+                onChange={e => setAdditionalNotes(e.target.value)}
+                placeholder="Any other relevant details about the accident or claim..."
+              />
+            </SectionBlock>
+          </AccordionSection>
+
+          {/* Section 8 — Documents */}
+          <AccordionSection
+            title="Documents"
+            icon="🗂️"
+            summary="Available once reservation is on hire"
+            open={openSections[8]}
+            onToggle={() => toggleSection(8)}
+          >
+            <SectionBlock title="Authority to Act">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '20px', border: '1.5px dashed #e2e8f0', borderRadius: '10px', background: '#f8fafc' }}>
+                <span style={{ fontSize: '28px' }}>📋</span>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginBottom: '3px' }}>Authority to Act</div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>Available to sign once the reservation is on hire. Customer and accident details will be pre-filled automatically.</div>
+                </div>
+              </div>
+            </SectionBlock>
+            <SectionBlock title="Rental Agreement">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '20px', border: '1.5px dashed #e2e8f0', borderRadius: '10px', background: '#f8fafc' }}>
+                <span style={{ fontSize: '28px' }}>📝</span>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginBottom: '3px' }}>Rental Agreement</div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>Available to sign once the reservation is on hire. Vehicle and hire details will be pre-filled automatically.</div>
+                </div>
+              </div>
+            </SectionBlock>
+          </AccordionSection>
         </>
       )}
 
