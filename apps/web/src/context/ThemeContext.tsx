@@ -87,13 +87,14 @@ const ThemeContext = createContext<ThemeContextType>({
   setTheme: () => {},
 });
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('green');
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'green';
+  const saved = localStorage.getItem('rentpro-theme') as Theme;
+  return saved && themes[saved] ? saved : 'green';
+}
 
-  useEffect(() => {
-    const saved = localStorage.getItem('rentpro-theme') as Theme;
-    if (saved && themes[saved]) setThemeState(saved);
-  }, []);
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
