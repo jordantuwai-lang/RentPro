@@ -94,15 +94,24 @@ function getInitialTheme(): Theme {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  const [theme, setThemeState] = useState<Theme>('green');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('rentpro-theme') as Theme;
+    if (saved && themes[saved]) setThemeState(saved);
+  }, []);
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
     localStorage.setItem('rentpro-theme', t);
   };
 
+  // Suppress rendering theme-dependent UI until after hydration to prevent
+  // server/client style mismatches when a non-default theme is saved in localStorage.
+  const activeConfig = mounted ? themes[theme] : themes.green;
+
   return (
-    <ThemeContext.Provider value={{ theme, config: themes[theme], setTheme }}>
+    <ThemeContext.Provider value={{ theme: mounted ? theme : 'green', config: activeConfig, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

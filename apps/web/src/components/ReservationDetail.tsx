@@ -587,6 +587,10 @@ export default function ReservationDetail({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [licencePhoto, setLicencePhoto] = useState<string | null>(null);
   const [regoPhoto, setRegoPhoto] = useState<string | null>(null);
+  const licenceFileRef = useRef<HTMLInputElement>(null);
+  const licenceCamRef = useRef<HTMLInputElement>(null);
+  const regoFileRef = useRef<HTMLInputElement>(null);
+  const regoCamRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<{ dataUrl: string; caption: string; category: string }[]>([]);
   const missingMandatory = [!licencePhoto && "Driver's Licence", !regoPhoto && 'Vehicle Registration Papers'].filter(Boolean) as string[];
 
@@ -919,11 +923,9 @@ export default function ReservationDetail({
           <SectionBlock title="Required Documents">
             <div style={grid2}>
               {[
-                { label: "Driver's Licence", desc: "Front of the customer's licence", icon: '🪪', val: licencePhoto, set: setLicencePhoto },
-                { label: 'Vehicle Registration Papers', desc: 'Current registration certificate', icon: '📄', val: regoPhoto, set: setRegoPhoto }
+                { label: "Driver's Licence", desc: "Front of the customer's licence", icon: '🪪', val: licencePhoto, set: setLicencePhoto, fileRef: licenceFileRef, camRef: licenceCamRef },
+                { label: 'Vehicle Registration Papers', desc: 'Current registration certificate', icon: '📄', val: regoPhoto, set: setRegoPhoto, fileRef: regoFileRef, camRef: regoCamRef }
               ].map(slot => {
-                const fileRef = useRef<HTMLInputElement>(null);
-                const camRef = useRef<HTMLInputElement>(null);
                 const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
                   const f = e.target.files?.[0]; if (!f) return;
                   const reader = new FileReader();
@@ -933,8 +935,8 @@ export default function ReservationDetail({
                 };
                 return (
                   <div key={slot.label} style={{ border: `2px solid ${slot.val ? '#86efac' : '#e2e8f0'}`, borderRadius: '12px', overflow: 'hidden', background: slot.val ? '#f0fdf4' : '#f8fafc' }}>
-                    <input ref={camRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
-                    <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+                    <input ref={slot.camRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
+                    <input ref={slot.fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
                     {slot.val ? (
                       <div>
                         <div style={{ position: 'relative' }}>
@@ -943,7 +945,7 @@ export default function ReservationDetail({
                         </div>
                         <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span>✅</span><span style={{ fontSize: '12px', fontWeight: 500, color: '#16a34a' }}>Uploaded</span>
-                          <button type="button" onClick={() => fileRef.current?.click()} style={{ marginLeft: 'auto', fontSize: '11px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Replace</button>
+                          <button type="button" onClick={() => slot.fileRef.current?.click()} style={{ marginLeft: 'auto', fontSize: '11px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Replace</button>
                         </div>
                       </div>
                     ) : (
@@ -956,8 +958,8 @@ export default function ReservationDetail({
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button type="button" onClick={() => camRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #01ae42', background: '#fff', color: '#01ae42', fontSize: '12px', cursor: 'pointer' }}>📷 Take photo</button>
-                          <button type="button" onClick={() => fileRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#fff', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>📁 Upload</button>
+                          <button type="button" onClick={() => slot.camRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #01ae42', background: '#fff', color: '#01ae42', fontSize: '12px', cursor: 'pointer' }}>📷 Take photo</button>
+                          <button type="button" onClick={() => slot.fileRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#fff', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>📁 Upload</button>
                         </div>
                       </div>
                     )}
