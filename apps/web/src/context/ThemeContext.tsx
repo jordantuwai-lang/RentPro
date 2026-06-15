@@ -95,10 +95,12 @@ function getInitialTheme(): Theme {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('green');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('rentpro-theme') as Theme;
     if (saved && themes[saved]) setThemeState(saved);
+    setMounted(true);
   }, []);
 
   const setTheme = (t: Theme) => {
