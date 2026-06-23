@@ -507,7 +507,7 @@ export interface ReservationDetailProps {
   onSaveSuccess?: () => void;
 }
 
-const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Notes', 'Documents'];
+const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Notes', 'Card Details', 'Documents'];
 
 export default function ReservationDetail({
   reservationId,
@@ -555,8 +555,19 @@ export default function ReservationDetail({
   const [sourceOfBusiness, setSourceOfBusiness] = useState(r?.sourceOfBusiness || '');
   const [partnerName, setPartnerName] = useState(r?.partnerName || '');
   const [startDate, setStartDate] = useState(r?.startDate ? r.startDate.split('T')[0] : '');
+  const [startTime, setStartTime] = useState(r?.startDate ? new Date(r.startDate).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }) : '');
   const [endDate, setEndDate] = useState(r?.endDate ? r.endDate.split('T')[0] : '');
+  const [endTime, setEndTime] = useState(r?.endDate ? new Date(r.endDate).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }) : '');
   const [branchId, setBranchId] = useState(r?.branchId || '');
+  const [reminderDate, setReminderDate] = useState('');
+  const [reminderTime, setReminderTime] = useState('');
+  const [broadcastNote, setBroadcastNote] = useState(r?.broadcastNote || '');
+  // Card Details tab
+  const [cardName, setCardName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardType, setCardType] = useState('');
 
   // Tab 1 — Customer / NAF Vehicle
   const [nafRego, setNafRego] = useState('');
@@ -663,6 +674,7 @@ export default function ReservationDetail({
     partnerName,
     startDate,
     endDate,
+    broadcastNote,
     branchId: branchId || undefined,
     customer: driver,
     nafVehicle: { registration: nafRego, make: nafMake, model: nafModel, year: nafYear, bodyType: nafBodyType },
@@ -670,7 +682,7 @@ export default function ReservationDetail({
     accident,
     additional: { policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes },
     damages: { panels: Array.from(damagedPanels), description: damageDescription },
-  }), [sourceOfBusiness, partnerName, startDate, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType, atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription]);
+  }), [sourceOfBusiness, partnerName, startDate, endDate, broadcastNote, branchId, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType, atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription]);
 
   const doSave = useCallback(async () => {
     setSaveState('saving');
@@ -693,7 +705,7 @@ export default function ReservationDetail({
   }, [doSave]);
 
   useEffect(() => { scheduleAutoSave(); }, [
-    sourceOfBusiness, partnerName, startDate, endDate, branchId, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType,
+    sourceOfBusiness, partnerName, startDate, endDate, branchId, broadcastNote, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType,
     atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone,
     witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription,
   ]);
@@ -779,10 +791,22 @@ export default function ReservationDetail({
                 </select>
               </R>
               <R label="Pickup Date">
-                <input type="date" style={cinp} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <div style={{ display: 'flex', gap: '3px' }}>
+                  <input type="date" style={{ ...cinp, flex: '1 1 auto' }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                  <input type="time" style={{ ...cinp, width: '80px', flexShrink: 0 }} value={startTime} onChange={e => setStartTime(e.target.value)} />
+                </div>
               </R>
               <R label="Drop Off Date">
-                <input type="date" style={cinp} value={endDate} onChange={e => setEndDate(e.target.value)} />
+                <div style={{ display: 'flex', gap: '3px' }}>
+                  <input type="date" style={{ ...cinp, flex: '1 1 auto' }} value={endDate} onChange={e => setEndDate(e.target.value)} />
+                  <input type="time" style={{ ...cinp, width: '80px', flexShrink: 0 }} value={endTime} onChange={e => setEndTime(e.target.value)} />
+                </div>
+              </R>
+              <R label="Set Reminder">
+                <div style={{ display: 'flex', gap: '3px' }}>
+                  <input type="date" style={{ ...cinp, flex: '1 1 auto' }} value={reminderDate} onChange={e => setReminderDate(e.target.value)} />
+                  <input type="time" style={{ ...cinp, width: '80px', flexShrink: 0 }} value={reminderTime} onChange={e => setReminderTime(e.target.value)} />
+                </div>
               </R>
               {r?.vehicle && (
                 <>
@@ -890,6 +914,17 @@ export default function ReservationDetail({
                   </table>
                 </div>
               )}
+
+              {/* Broadcast Note */}
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#fff', background: '#475569', padding: '2px 8px', marginBottom: '4px', borderRadius: '3px', letterSpacing: '0.04em' }}>Broadcast Note</div>
+                <textarea
+                  style={{ ...cinp, height: '80px', resize: 'vertical', width: '100%' }}
+                  value={broadcastNote}
+                  onChange={e => setBroadcastNote(e.target.value)}
+                  placeholder="Broadcast message visible to all staff..."
+                />
+              </div>
             </div>
 
           </div>
@@ -1227,10 +1262,71 @@ export default function ReservationDetail({
       {/* ── Tab 8: Notes ── */}
       {activeTab === 8 && <NotesTab reservationId={reservationId} authorName={user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Staff'} />}
 
-      {/* ── Tab 9+: Extra or Documents ── */}
-      {activeTab >= 9 && extraTabContent && extraTabContent(activeTab)}
+      {/* ── Tab 9: Card Details ── */}
+      {activeTab === 9 && (
+        <SectionBlock title="Card Details">
+          <div style={{ maxWidth: '420px' }}>
+            <div style={{ padding: '10px 12px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', marginBottom: '14px', fontSize: '11px', color: '#92400e' }}>
+              Card details are stored locally and not transmitted without explicit action.
+            </div>
+            <R label="Cardholder Name">
+              <input style={cinp} value={cardName} onChange={e => setCardName(e.target.value)} placeholder="As it appears on card" />
+            </R>
+            <R label="Card Type">
+              <select style={cinp} value={cardType} onChange={e => setCardType(e.target.value)}>
+                <option value="">— Select —</option>
+                <option value="Visa">Visa</option>
+                <option value="Mastercard">Mastercard</option>
+                <option value="Amex">American Express</option>
+                <option value="eftpos">eftpos</option>
+                <option value="Other">Other</option>
+              </select>
+            </R>
+            <R label="Card Number">
+              <input
+                style={cinp}
+                value={cardNumber}
+                onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 16);
+                  setCardNumber(digits.replace(/(.{4})/g, '$1 ').trim());
+                }}
+                placeholder="•••• •••• •••• ••••"
+                maxLength={19}
+                inputMode="numeric"
+              />
+            </R>
+            <R label="Expiry">
+              <input
+                style={{ ...cinp, width: '90px' }}
+                value={cardExpiry}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                  setCardExpiry(val.length > 2 ? val.slice(0, 2) + '/' + val.slice(2) : val);
+                }}
+                placeholder="MM/YY"
+                maxLength={5}
+                inputMode="numeric"
+              />
+            </R>
+            <R label="CVV">
+              <input
+                style={{ ...cinp, width: '70px' }}
+                value={cardCvv}
+                onChange={e => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="•••"
+                maxLength={4}
+                inputMode="numeric"
+                type="password"
+              />
+            </R>
+          </div>
+        </SectionBlock>
+      )}
 
-      {activeTab === tabs.length - 1 && !extraTabContent && (
+      {/* ── Tab 10+: Extra or Documents ── */}
+      {activeTab >= 10 && extraTabContent && extraTabContent(activeTab)}
+
+      {activeTab === 10 && !extraTabContent && (
         <>
           <SectionBlock title="Authority to Act">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '20px', border: '1.5px dashed #e2e8f0', borderRadius: '10px', background: '#f8fafc' }}>
