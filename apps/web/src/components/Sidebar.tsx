@@ -9,6 +9,7 @@ import { useState } from 'react';
 const nav = [
   { label: 'Dashboard', href: '/dashboard', icon: '▦' },
   { label: 'Reservations', href: '/dashboard/reservations', icon: '📋' },
+  { label: 'TSD Reservation', href: '/dashboard/tsd-reservation', icon: '🧪' },
   { label: 'Schedule', href: '/dashboard/logistics', icon: '🚚' },
   { label: 'On Hired', href: '/dashboard/on-hire', icon: '🔑' },
   { label: 'Claims', href: '/dashboard/claims', icon: '📁' },
