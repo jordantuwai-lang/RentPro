@@ -19,7 +19,425 @@ const sectionHdr: React.CSSProperties = {
   padding: '2px 6px', display: 'block', marginBottom: '2px',
 };
 
-const TABS = ['Main', 'Misc', 'Accident Details'];
+const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party'];
+
+/* ─── Country list (ISO 3166) ───────────────────────────── */
+const COUNTRIES = [
+  ['',''],['AUS','Australia'],['AFG','Afghanistan'],['ALB','Albania'],['DZA','Algeria'],
+  ['AND','Andorra'],['AGO','Angola'],['ARG','Argentina'],['ARM','Armenia'],['AUT','Austria'],
+  ['AZE','Azerbaijan'],['BHS','Bahamas'],['BHR','Bahrain'],['BGD','Bangladesh'],['BRB','Barbados'],
+  ['BLR','Belarus'],['BEL','Belgium'],['BLZ','Belize'],['BEN','Benin'],['BTN','Bhutan'],
+  ['BOL','Bolivia'],['BIH','Bosnia and Herzegovina'],['BWA','Botswana'],['BRA','Brazil'],
+  ['BRN','Brunei Darussalam'],['BGR','Bulgaria'],['BFA','Burkina Faso'],['BDI','Burundi'],
+  ['KHM','Cambodia'],['CMR','Cameroon'],['CAN','Canada'],['CHL','Chile'],['CHN','China'],
+  ['COL','Colombia'],['COG','Congo'],['COD','Congo, Dem. Rep.'],['CRI','Costa Rica'],
+  ['HRV','Croatia'],['CUB','Cuba'],['CYP','Cyprus'],['CZE','Czech Republic'],['DNK','Denmark'],
+  ['DOM','Dominican Republic'],['ECU','Ecuador'],['EGY','Egypt'],['SLV','El Salvador'],
+  ['ERI','Eritrea'],['EST','Estonia'],['ETH','Ethiopia'],['FJI','Fiji'],['FIN','Finland'],
+  ['FRA','France'],['GAB','Gabon'],['GMB','Gambia'],['GEO','Georgia'],['DEU','Germany'],
+  ['GHA','Ghana'],['GRC','Greece'],['GTM','Guatemala'],['GIN','Guinea'],['GUY','Guyana'],
+  ['HTI','Haiti'],['HND','Honduras'],['HKG','Hong Kong'],['HUN','Hungary'],['ISL','Iceland'],
+  ['IND','India'],['IDN','Indonesia'],['IRN','Iran'],['IRQ','Iraq'],['IRL','Ireland'],
+  ['ISR','Israel'],['ITA','Italy'],['JAM','Jamaica'],['JPN','Japan'],['JOR','Jordan'],
+  ['KAZ','Kazakhstan'],['KEN','Kenya'],['KOR','Korea, Republic of'],['KWT','Kuwait'],
+  ['LAO','Lao PDR'],['LVA','Latvia'],['LBN','Lebanon'],['LBR','Liberia'],['LBY','Libya'],
+  ['LIE','Liechtenstein'],['LTU','Lithuania'],['LUX','Luxembourg'],['MAC','Macao'],
+  ['MDG','Madagascar'],['MWI','Malawi'],['MYS','Malaysia'],['MDV','Maldives'],['MLI','Mali'],
+  ['MLT','Malta'],['MHL','Marshall Islands'],['MRT','Mauritania'],['MUS','Mauritius'],
+  ['MEX','Mexico'],['FSM','Micronesia'],['MDA','Moldova'],['MCO','Monaco'],['MNG','Mongolia'],
+  ['MNE','Montenegro'],['MAR','Morocco'],['MOZ','Mozambique'],['MMR','Myanmar'],['NAM','Namibia'],
+  ['NPL','Nepal'],['NLD','Netherlands'],['NZL','New Zealand'],['NIC','Nicaragua'],['NER','Niger'],
+  ['NGA','Nigeria'],['NOR','Norway'],['OMN','Oman'],['PAK','Pakistan'],['PLW','Palau'],
+  ['PAN','Panama'],['PNG','Papua New Guinea'],['PRY','Paraguay'],['PER','Peru'],
+  ['PHL','Philippines'],['POL','Poland'],['PRT','Portugal'],['QAT','Qatar'],['ROU','Romania'],
+  ['RUS','Russian Federation'],['RWA','Rwanda'],['SAU','Saudi Arabia'],['SEN','Senegal'],
+  ['SRB','Serbia'],['SYC','Seychelles'],['SLE','Sierra Leone'],['SGP','Singapore'],
+  ['SVK','Slovakia'],['SVN','Slovenia'],['SLB','Solomon Islands'],['SOM','Somalia'],
+  ['ZAF','South Africa'],['SSD','South Sudan'],['ESP','Spain'],['LKA','Sri Lanka'],
+  ['SDN','Sudan'],['SUR','Suriname'],['SWE','Sweden'],['CHE','Switzerland'],
+  ['SYR','Syrian Arab Republic'],['TWN','Taiwan'],['TJK','Tajikistan'],['TZA','Tanzania'],
+  ['THA','Thailand'],['TGO','Togo'],['TON','Tonga'],['TTO','Trinidad and Tobago'],
+  ['TUN','Tunisia'],['TUR','Turkey'],['TKM','Turkmenistan'],['TUV','Tuvalu'],['UGA','Uganda'],
+  ['UKR','Ukraine'],['ARE','United Arab Emirates'],['GBR','United Kingdom'],
+  ['USA','United States'],['URY','Uruguay'],['UZB','Uzbekistan'],['VUT','Vanuatu'],
+  ['VAT','Vatican City'],['VEN','Venezuela'],['VNM','Viet Nam'],['YEM','Yemen'],
+  ['ZMB','Zambia'],['ZWE','Zimbabwe'],
+];
+
+const THIRD_PARTY_TYPES = [
+  'PLEASE SELECT','ACCEPTED','LIABILITY DISPUTE','FAILED TO MEET POLICY OBLIGATIONS',
+  'PENDING FROM BUSINESS BROKER','IN REVIEW','LIABILITY DENIED',
+  'PENDING INSURER DETAILS FROM TP','UNINSURED','INSURED - PENDING CLAIM NUMBER',
+  'BUSINESS TP','EBO (EACH BARE OWN)','3 DAY VALIDATION','PENDING FROM INSURER',
+];
+
+/* ─── At Fault Third Party Tab ───────────────────────────── */
+function AtFaultThirdPartyTab() {
+  const [lastName, setLastName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [mi, setMi] = useState('');
+  const [street1, setStreet1] = useState('');
+  const [street2, setStreet2] = useState('');
+  const [city, setCity] = useState('');
+  const [country, setCountry] = useState('AUS');
+  const [stateVal, setStateVal] = useState('');
+  const [postal, setPostal] = useState('');
+  const [homePhone, setHomePhone] = useState('');
+  const [mobilePhone, setMobilePhone] = useState('');
+  const [workPhone, setWorkPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [licIssueDate, setLicIssueDate] = useState('');
+  const [licCountry, setLicCountry] = useState('AUS');
+  const [licIssueCity, setLicIssueCity] = useState('');
+  const [licNum, setLicNum] = useState('');
+  const [licState, setLicState] = useState('');
+  const [licExpires, setLicExpires] = useState('');
+  const [dob, setDob] = useState('');
+  const [birthPlace, setBirthPlace] = useState('');
+
+  const [insCarrier, setInsCarrier] = useState('');
+  const [insAgency, setInsAgency] = useState('');
+  const [insAgent, setInsAgent] = useState('');
+  const [policyNo, setPolicyNo] = useState('');
+  const [altId, setAltId] = useState('');
+  const [coverType, setCoverType] = useState('CTP');
+  const [thirdPartyType, setThirdPartyType] = useState('PLEASE SELECT');
+  const [atFault, setAtFault] = useState('');
+  const [vehYear, setVehYear] = useState('');
+  const [vehMake, setVehMake] = useState('');
+  const [vehModel, setVehModel] = useState('');
+  const [vehRego, setVehRego] = useState('');
+  const [regoType, setRegoType] = useState('Private');
+  const [validated, setValidated] = useState(false);
+  const [company, setCompany] = useState('');
+  const [abn, setAbn] = useState('');
+  const [companyPhone, setCompanyPhone] = useState('');
+  const [claimNo, setClaimNo] = useState('');
+
+  /* grid rows (mock — would be loaded from API) */
+  const [gridRows] = useState<{lname:string;fname:string;licNum:string}[]>([]);
+
+  const inp2: React.CSSProperties = { ...inp, width: '100%' };
+  const lbl2: React.CSSProperties = { ...lbl };
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '960px' }}>
+        <colgroup>
+          <col style={{ width: '144px' }} />
+          <col style={{ width: '195px' }} />
+          <col style={{ width: '10px' }} />
+          <col style={{ width: '130px' }} />
+          <col style={{ width: '175px' }} />
+          <col style={{ width: '130px' }} />
+          <col style={{ width: '154px' }} />
+          <col />
+        </colgroup>
+        <tbody>
+          {/* Title row */}
+          <tr>
+            <td colSpan={2} style={{ padding: '2px 0 4px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700 }}>At Fault Third Party</span>
+            </td>
+            <td colSpan={6}></td>
+          </tr>
+
+          {/* Row 1 — grid starts rowspan 6, cols 4-8 */}
+          <tr>
+            <td style={lbl2}>Last Name&nbsp;<span style={{ color: 'red' }}>*</span></td>
+            <td style={tdc}><input style={inp2} value={lastName} onChange={e => setLastName(e.target.value)} maxLength={40} /></td>
+            <td></td>
+            {/* Third Party grid — rowspan 6 */}
+            <td colSpan={5} rowSpan={6} style={{ verticalAlign: 'top', padding: '1px 2px' }}>
+              <div style={{ width: '592px', border: '1px solid #9ca3af' }}>
+                {/* header */}
+                <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%', fontSize: '11px', background: '#e5e7eb' }}>
+                  <colgroup>
+                    <col style={{ width: '26px' }} />
+                    <col style={{ width: '176px' }} />
+                    <col style={{ width: '176px' }} />
+                    <col />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '2px 4px', border: '1px solid #9ca3af', textAlign: 'left' }}>&nbsp;</th>
+                      <th style={{ padding: '2px 4px', border: '1px solid #9ca3af', textAlign: 'left' }}>Last Name</th>
+                      <th style={{ padding: '2px 4px', border: '1px solid #9ca3af', textAlign: 'left' }}>First Name</th>
+                      <th style={{ padding: '2px 4px', border: '1px solid #9ca3af', textAlign: 'left' }}>License #</th>
+                    </tr>
+                  </thead>
+                </table>
+                {/* body */}
+                <div style={{ height: '95px', overflowY: 'auto' }}>
+                  <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%', fontSize: '11px' }}>
+                    <colgroup>
+                      <col style={{ width: '26px' }} />
+                      <col style={{ width: '176px' }} />
+                      <col style={{ width: '176px' }} />
+                      <col />
+                    </colgroup>
+                    <tbody>
+                      {gridRows.length === 0
+                        ? <tr><td colSpan={4} style={{ padding: '4px', color: '#6b7280' }}></td></tr>
+                        : gridRows.map((r, i) => (
+                          <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
+                            <td style={{ padding: '2px 4px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                              <button style={{ fontSize: '10px', padding: '0 3px', cursor: 'pointer' }}>▶</button>
+                            </td>
+                            <td style={{ padding: '2px 4px', border: '1px solid #e5e7eb' }}>{r.lname}</td>
+                            <td style={{ padding: '2px 4px', border: '1px solid #e5e7eb' }}>{r.fname}</td>
+                            <td style={{ padding: '2px 4px', border: '1px solid #e5e7eb' }}>{r.licNum}</td>
+                          </tr>
+                        ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                {/* pager */}
+                <div style={{ background: '#e5e7eb', padding: '2px 6px', fontSize: '11px', borderTop: '1px solid #9ca3af' }}>
+                  Page <strong>1</strong> of <strong>1</strong>, items <strong>0</strong> to <strong>0</strong> of <strong>0</strong>.
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          {/* Row 2 */}
+          <tr>
+            <td style={lbl2}>First Name&nbsp;<span style={{ color: 'red' }}>*</span></td>
+            <td style={tdc}>
+              <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                <input style={{ ...inp2, flex: 1 }} value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={40} />
+                <span style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>MI</span>
+                <input style={{ ...inp, width: '20px' }} value={mi} onChange={e => setMi(e.target.value)} maxLength={1} />
+              </div>
+            </td>
+            <td></td>
+          </tr>
+
+          {/* Row 3 */}
+          <tr>
+            <td style={lbl2}>Street 1</td>
+            <td style={tdc}><input style={inp2} value={street1} onChange={e => setStreet1(e.target.value)} maxLength={100} /></td>
+            <td></td>
+          </tr>
+
+          {/* Row 4 */}
+          <tr>
+            <td style={lbl2}>Street 2</td>
+            <td style={tdc}><input style={inp2} value={street2} onChange={e => setStreet2(e.target.value)} maxLength={100} /></td>
+            <td></td>
+          </tr>
+
+          {/* Row 5 */}
+          <tr>
+            <td style={lbl2}>City</td>
+            <td style={tdc}><input style={inp2} value={city} onChange={e => setCity(e.target.value)} maxLength={40} /></td>
+            <td></td>
+          </tr>
+
+          {/* Row 6 */}
+          <tr>
+            <td style={lbl2}>Country</td>
+            <td style={tdc}>
+              <select style={{ ...sel, width: '100%' }} value={country} onChange={e => setCountry(e.target.value)}>
+                {COUNTRIES.map(([code, name]) => (
+                  <option key={code} value={code}>{name}{name && code ? `  ${code}` : ''}</option>
+                ))}
+              </select>
+            </td>
+            <td></td>
+            {/* grid rowspan ends — next rows have their own cols 4-8 */}
+          </tr>
+
+          {/* Row 7 — grid ends, insurance starts */}
+          <tr>
+            <td style={lbl2}>State</td>
+            <td style={tdc}><input style={inp2} value={stateVal} onChange={e => setStateVal(e.target.value)} maxLength={40} /></td>
+            <td></td>
+            <td style={lbl2}>Insurance Carrier</td>
+            <td style={tdc}><input style={inp2} value={insCarrier} onChange={e => setInsCarrier(e.target.value)} maxLength={40} /></td>
+            <td style={lbl2}>Type</td>
+            <td colSpan={2} style={tdc}>
+              <select style={{ ...sel, width: '100%' }} value={thirdPartyType} onChange={e => setThirdPartyType(e.target.value)}>
+                {THIRD_PARTY_TYPES.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </td>
+          </tr>
+
+          {/* Row 8 */}
+          <tr>
+            <td style={lbl2}>Postal Code</td>
+            <td style={tdc}><input style={inp2} value={postal} onChange={e => setPostal(e.target.value)} maxLength={25} /></td>
+            <td></td>
+            <td style={lbl2}>Insurance Agency</td>
+            <td style={tdc}><input style={inp2} value={insAgency} onChange={e => setInsAgency(e.target.value)} maxLength={20} /></td>
+            <td style={lbl2}>At Fault&nbsp;<span style={{ color: 'red' }}>*</span></td>
+            <td style={tdc}>
+              <select style={{ ...sel, width: '80px' }} value={atFault} onChange={e => setAtFault(e.target.value)}>
+                <option value=""></option>
+                <option value="N">No</option>
+                <option value="Y">Yes</option>
+              </select>
+            </td>
+            <td></td>
+          </tr>
+
+          {/* Row 9 */}
+          <tr>
+            <td style={lbl2}>Home Phone</td>
+            <td style={tdc}><input style={inp2} type="tel" value={homePhone} onChange={e => setHomePhone(e.target.value)} maxLength={30} /></td>
+            <td></td>
+            <td style={lbl2}>Insurance Agent</td>
+            <td style={tdc}><input style={inp2} value={insAgent} onChange={e => setInsAgent(e.target.value)} maxLength={20} /></td>
+            <td style={lbl2}>Vehicle Year / Make</td>
+            <td colSpan={2} style={tdc}>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <input style={{ ...inp, width: '45px' }} type="number" value={vehYear} onChange={e => setVehYear(e.target.value)} maxLength={4} />
+                <input style={{ ...inp, flex: 1 }} value={vehMake} onChange={e => setVehMake(e.target.value)} maxLength={20} />
+              </div>
+            </td>
+          </tr>
+
+          {/* Row 10 */}
+          <tr>
+            <td style={lbl2}>Mobile Phone</td>
+            <td style={tdc}><input style={inp2} type="tel" value={mobilePhone} onChange={e => setMobilePhone(e.target.value)} maxLength={30} /></td>
+            <td></td>
+            <td style={lbl2}>Policy #</td>
+            <td style={tdc}><input style={inp2} value={policyNo} onChange={e => setPolicyNo(e.target.value)} maxLength={40} /></td>
+            <td style={lbl2}>Vehicle Model</td>
+            <td colSpan={2} style={tdc}><input style={inp2} value={vehModel} onChange={e => setVehModel(e.target.value)} maxLength={20} /></td>
+          </tr>
+
+          {/* Row 11 */}
+          <tr>
+            <td style={lbl2}>Work Phone</td>
+            <td style={tdc}><input style={inp2} type="tel" value={workPhone} onChange={e => setWorkPhone(e.target.value)} maxLength={40} /></td>
+            <td></td>
+            <td style={lbl2}>Alternate ID</td>
+            <td style={tdc}><input style={inp2} value={altId} onChange={e => setAltId(e.target.value)} maxLength={40} /></td>
+            <td style={lbl2}>Vehicle Registration</td>
+            <td colSpan={2} style={tdc}><input style={inp2} value={vehRego} onChange={e => setVehRego(e.target.value)} maxLength={29} /></td>
+          </tr>
+
+          {/* Row 12 */}
+          <tr>
+            <td style={lbl2}>E-Mail</td>
+            <td style={tdc}><input style={inp2} value={email} onChange={e => setEmail(e.target.value)} maxLength={50} /></td>
+            <td></td>
+            <td style={lbl2}>Type of Cover</td>
+            <td style={tdc}>
+              {['CTP','TPP','COMP'].map(c => (
+                <label key={c} style={{ fontSize: '11px', marginRight: '6px', cursor: 'pointer' }}>
+                  <input type="radio" name="afCoverType" value={c} checked={coverType === c} onChange={() => setCoverType(c)} />&nbsp;{c}
+                </label>
+              ))}
+            </td>
+            <td style={lbl2}>Vehicle Reg. Type</td>
+            <td colSpan={2} style={tdc}>
+              {['Private','Business'].map(r => (
+                <label key={r} style={{ fontSize: '11px', marginRight: '6px', cursor: 'pointer' }}>
+                  <input type="radio" name="afRegoType" value={r} checked={regoType === r} onChange={() => setRegoType(r)} />&nbsp;{r}
+                </label>
+              ))}
+            </td>
+          </tr>
+
+          {/* Row 13 */}
+          <tr>
+            <td style={lbl2}>Lic Issue Date / Country</td>
+            <td style={tdc}>
+              <div style={{ display: 'flex', gap: '2px' }}>
+                <input type="date" style={{ ...inp, width: '90px' }} value={licIssueDate} onChange={e => setLicIssueDate(e.target.value)} />
+                <select style={{ ...sel, flex: 1 }} value={licCountry} onChange={e => setLicCountry(e.target.value)}>
+                  {COUNTRIES.filter(([c]) => c).map(([code]) => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+              </div>
+            </td>
+            <td></td>
+            <td colSpan={2} style={tdc}>&nbsp;</td>
+            <td style={lbl2}>Validated</td>
+            <td colSpan={2} style={tdc}>
+              <input type="checkbox" checked={validated} onChange={e => setValidated(e.target.checked)} />&nbsp;
+              <span style={{ fontSize: '11px' }}>Company</span>&nbsp;
+              <input style={{ ...inp, width: '100px', display: 'inline-block' }} value={company} onChange={e => setCompany(e.target.value)} maxLength={40} />
+            </td>
+          </tr>
+
+          {/* Row 14 */}
+          <tr>
+            <td style={lbl2}>License Issue City</td>
+            <td style={tdc}><input style={inp2} value={licIssueCity} onChange={e => setLicIssueCity(e.target.value)} maxLength={35} /></td>
+            <td></td>
+            <td colSpan={2} style={tdc}>&nbsp;</td>
+            <td style={lbl2}>ABN</td>
+            <td colSpan={2} style={tdc}><input style={inp2} value={abn} onChange={e => setAbn(e.target.value)} maxLength={40} /></td>
+          </tr>
+
+          {/* Row 15 */}
+          <tr>
+            <td style={lbl2}>License # / State</td>
+            <td style={tdc}>
+              <div style={{ display: 'flex', gap: '2px', alignItems: 'flex-start' }}>
+                <textarea
+                  style={{ fontSize: '11px', border: '1px solid #9ca3af', width: '148px', height: '18px', resize: 'none', padding: '1px 3px', overflow: 'hidden', boxSizing: 'border-box' }}
+                  value={licNum}
+                  onChange={e => setLicNum(e.target.value)}
+                  maxLength={1000}
+                  rows={1}
+                />
+                <input style={{ ...inp, width: '38px' }} value={licState} onChange={e => setLicState(e.target.value)} maxLength={3} />
+              </div>
+            </td>
+            <td></td>
+            <td colSpan={2} style={tdc}>&nbsp;</td>
+            <td style={lbl2}>Company Phone</td>
+            <td colSpan={2} style={tdc}><input style={inp2} type="tel" value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} maxLength={40} /></td>
+          </tr>
+
+          {/* Row 16 */}
+          <tr>
+            <td style={lbl2}>License Expiration</td>
+            <td style={tdc}><input type="date" style={inp2} value={licExpires} onChange={e => setLicExpires(e.target.value)} /></td>
+            <td></td>
+            <td colSpan={2} style={tdc}></td>
+            <td style={lbl2}>Claim #</td>
+            <td colSpan={2} style={tdc}><input style={inp2} value={claimNo} onChange={e => setClaimNo(e.target.value)} maxLength={40} /></td>
+          </tr>
+
+          {/* Row 17 */}
+          <tr>
+            <td style={lbl2}>Date of Birth</td>
+            <td style={tdc}><input type="date" style={inp2} value={dob} onChange={e => setDob(e.target.value)} /></td>
+            <td colSpan={6}></td>
+          </tr>
+
+          {/* Row 18 */}
+          <tr>
+            <td style={lbl2}>Birth Place</td>
+            <td style={tdc}><input style={inp2} value={birthPlace} onChange={e => setBirthPlace(e.target.value)} maxLength={35} /></td>
+            <td colSpan={6}></td>
+          </tr>
+
+          {/* spacer */}
+          <tr><td style={{ height: '6px' }} colSpan={8}></td></tr>
+        </tbody>
+      </table>
+
+      {/* Button bar */}
+      <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+        {['Save','New','Delete','Close'].map(label => (
+          <button key={label} style={{
+            padding: '3px 14px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+            border: '1px solid #9ca3af', background: '#e5e7eb', borderRadius: '2px',
+          }}>{label}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ─── TSD bottom button bar ─────────────────────────────── */
 function BtnBar() {
@@ -886,6 +1304,7 @@ export default function TSDReservationDetail() {
       {activeTab === 0 && <MainTab />}
       {activeTab === 1 && <MiscTab />}
       {activeTab === 2 && <AccidentTab />}
+      {activeTab === 3 && <AtFaultThirdPartyTab />}
 
       <BtnBar />
     </div>
