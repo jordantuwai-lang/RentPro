@@ -20,7 +20,7 @@ const sectionHdr: React.CSSProperties = {
   padding: '2px 6px', display: 'block', marginBottom: '2px',
 };
 
-const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party'];
+const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Card Details'];
 
 /* ─── Country list (ISO 3166) ───────────────────────────── */
 const COUNTRIES = [
@@ -1297,6 +1297,120 @@ function AccidentTab() {
   );
 }
 
+/* ─── Card Details Tab ───────────────────────────────────── */
+function CardDetailsTab() {
+  const [nameOnCard, setNameOnCard] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cardType, setCardType] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  function formatCardNumber(raw: string) {
+    const digits = raw.replace(/\D/g, '').slice(0, 16);
+    return digits.replace(/(.{4})/g, '$1 ').trim();
+  }
+
+  function formatExpiry(raw: string) {
+    const digits = raw.replace(/\D/g, '').slice(0, 4);
+    return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+  }
+
+  function handleSave() {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  }
+
+  const field: React.CSSProperties = { ...inp, width: '100%' };
+  const row: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '10px' };
+  const fieldLbl: React.CSSProperties = { fontSize: '11px', fontWeight: 600, color: '#374151' };
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '20px', maxWidth: '400px' }}>
+      <div style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+        Customer Card Details
+      </div>
+
+      <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: '5px', padding: '8px 10px', fontSize: '11px', color: '#92400e', marginBottom: '14px' }}>
+        Card details are stored securely and not shared without authorisation.
+      </div>
+
+      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+        <colgroup>
+          <col style={{ width: '130px' }} />
+          <col />
+        </colgroup>
+        <tbody>
+          <tr>
+            <td style={lbl}>Name on Card</td>
+            <td style={tdc}>
+              <input
+                style={field}
+                value={nameOnCard}
+                onChange={e => setNameOnCard(e.target.value)}
+                placeholder="As it appears on card"
+                maxLength={60}
+              />
+            </td>
+          </tr>
+          <tr>
+            <td style={lbl}>Card Type</td>
+            <td style={tdc}>
+              <select style={field} value={cardType} onChange={e => setCardType(e.target.value)}>
+                <option value="">— Select —</option>
+                <option>Visa</option>
+                <option>Mastercard</option>
+                <option>American Express</option>
+                <option>eftpos</option>
+                <option>Other</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td style={lbl}>Card Number</td>
+            <td style={tdc}>
+              <input
+                style={field}
+                value={cardNumber}
+                onChange={e => setCardNumber(formatCardNumber(e.target.value))}
+                placeholder="•••• •••• •••• ••••"
+                maxLength={19}
+                inputMode="numeric"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td style={lbl}>Expiry Date</td>
+            <td style={tdc}>
+              <input
+                style={{ ...field, width: '80px' }}
+                value={expiry}
+                onChange={e => setExpiry(formatExpiry(e.target.value))}
+                placeholder="MM/YY"
+                maxLength={5}
+                inputMode="numeric"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={2} style={{ paddingTop: '14px' }}>
+              <button
+                onClick={handleSave}
+                style={{
+                  padding: '5px 20px', fontSize: '11px', fontWeight: 700,
+                  background: '#16a34a', color: '#fff', border: 'none',
+                  borderRadius: '4px', cursor: 'pointer',
+                }}
+              >
+                {saved ? '✓ Saved' : 'Save Card Details'}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /* ─── Root component ─────────────────────────────────────── */
 export default function TSDReservationDetail() {
   const [activeTab, setActiveTab] = useState(0);
@@ -1327,6 +1441,7 @@ export default function TSDReservationDetail() {
       {activeTab === 1 && <MiscTab />}
       {activeTab === 2 && <AccidentTab />}
       {activeTab === 3 && <AtFaultThirdPartyTab />}
+      {activeTab === 4 && <CardDetailsTab />}
 
       <BtnBar />
     </div>
