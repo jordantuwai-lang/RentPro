@@ -1086,10 +1086,14 @@ function AccidentTab() {
   // NAF Owner
   const [ownerName, setOwnerName] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerAddr, setOwnerAddr] = useState('');
   const [ownerCity, setOwnerCity] = useState('');
   const [ownerState, setOwnerState] = useState('');
   const [ownerPostal, setOwnerPostal] = useState('');
+  const [ownerLicNum, setOwnerLicNum] = useState('');
+  const [ownerLicExpiry, setOwnerLicExpiry] = useState('');
+  const [ownerDob, setOwnerDob] = useState('');
   // NAF Vehicle
   const [nafRego, setNafRego] = useState('');
   const [nafYear, setNafYear] = useState('');
@@ -1192,12 +1196,20 @@ function AccidentTab() {
             <td style={tdc}><input style={inp2} value={ownerName} onChange={e => setOwnerName(e.target.value)} /></td>
             <td style={lbl}>Phone</td>
             <td style={tdc}><input style={inp2} value={ownerPhone} onChange={e => setOwnerPhone(e.target.value)} /></td>
-            <td colSpan={2}></td>
+            <td style={lbl}>Email</td>
+            <td style={tdc}><input style={inp2} type="email" value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)} /></td>
           </tr>
           <tr>
             <td style={lbl}>Address</td>
-            <td colSpan={3} style={tdc}><input style={inp2} value={ownerAddr} onChange={e => setOwnerAddr(e.target.value)} /></td>
-            <td colSpan={2}></td>
+            <td colSpan={3} style={tdc}>
+              <AddressAutocomplete
+                value={ownerAddr}
+                onChange={setOwnerAddr}
+                onSelect={r => { setOwnerAddr(r.address); setOwnerCity(r.suburb); setOwnerPostal(r.postcode); setOwnerState(r.state); }}
+                style={inp2}
+              />
+            </td>
+            <td colSpan={2} />
           </tr>
           <tr>
             <td style={lbl}>City</td>
@@ -1211,6 +1223,14 @@ function AccidentTab() {
             </td>
             <td style={lbl}>Postal</td>
             <td style={tdc}><input style={inp2} value={ownerPostal} onChange={e => setOwnerPostal(e.target.value)} /></td>
+          </tr>
+          <tr>
+            <td style={lbl}>Licence #</td>
+            <td style={tdc}><input style={inp2} value={ownerLicNum} onChange={e => setOwnerLicNum(e.target.value)} /></td>
+            <td style={lbl}>Lic Expiry</td>
+            <td style={tdc}><input type="date" style={inp2} value={ownerLicExpiry} onChange={e => setOwnerLicExpiry(e.target.value)} /></td>
+            <td style={lbl}>Date of Birth</td>
+            <td style={tdc}><input type="date" style={inp2} value={ownerDob} onChange={e => setOwnerDob(e.target.value)} /></td>
           </tr>
 
           {/* NAF Vehicle Details */}
