@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import api from '@/lib/api';
@@ -69,7 +69,8 @@ interface RezForm {
   tpVehYear: string; setTpVehYear: (v: string) => void;
   tpInsCarrier: string; setTpInsCarrier: (v: string) => void;
   tpClaimNo: string; setTpClaimNo: (v: string) => void;
-  // Save state
+  // Meta
+  rezNumber: string;
   reservationId: string | null;
   isSaving: boolean;
   saveError: string;
@@ -554,7 +555,7 @@ function MainTab() {
     pickupDate, setPickupDate, dropDate, setDropDate, source, setSource,
   } = form;
 
-  const [quoteNum, setQuoteNum] = useState('');
+  const { rezNumber } = useRezForm();
   const [preferredNum, setPreferredNum] = useState('');
   const [passport, setPassport] = useState('');
   const [altKNum, setAltKNum] = useState('');
@@ -610,7 +611,7 @@ function MainTab() {
             <td style={tdc}>
               <div style={{ display: 'flex', gap: '2px' }}>
                 <button style={{ fontSize: '10px', padding: '1px 5px', border: '1px solid #9ca3af', background: '#e5e7eb', cursor: 'pointer' }}>Rez</button>
-                <input style={inp} value={quoteNum} onChange={e => setQuoteNum(e.target.value)} />
+                <input style={roInp} readOnly value={rezNumber} placeholder={rezNumber ? '' : 'Generating…'} />
               </div>
             </td>
             <td style={lbl}>Pickup Location</td>
@@ -1677,6 +1678,16 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [rezNumber, setRezNumber] = useState(initialData?.reservationNumber ?? '');
+
+  useEffect(() => {
+    if (initialData?.reservationNumber || initialResId) return;
+    getToken().then(token => {
+      api.get('/reservations/next-number', { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => setRezNumber(res.data?.nextNumber ?? res.data ?? ''))
+        .catch(() => {});
+    });
+  }, []);
 
   const save = async () => {
     setIsSaving(true);
@@ -1756,7 +1767,7 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     tpAddress, setTpAddress, tpSuburb, setTpSuburb, tpPostal, setTpPostal, tpState, setTpState,
     tpVehRego, setTpVehRego, tpVehMake, setTpVehMake, tpVehModel, setTpVehModel, tpVehYear, setTpVehYear,
     tpInsCarrier, setTpInsCarrier, tpClaimNo, setTpClaimNo,
-    reservationId, isSaving, saveError, saveSuccess, save,
+    rezNumber, reservationId, isSaving, saveError, saveSuccess, save,
   };
 
   return (
