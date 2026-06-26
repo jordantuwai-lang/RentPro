@@ -521,9 +521,8 @@ function MainTab() {
   const [directBill, setDirectBill] = useState('');
   const [poNum, setPoNum] = useState('');
   const [useTax, setUseTax] = useState(false);
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardType, setCardType] = useState('');
-  const [cardExp, setCardExp] = useState('');
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState('');
   const [broadcastNote, setBroadcastNote] = useState('');
   const [expires, setExpires] = useState('');
   const [booked] = useState(new Date().toLocaleDateString('en-AU'));
@@ -806,8 +805,66 @@ function MainTab() {
           <tr>
             <td style={lbl}>Work Phone</td>
             <td style={tdc}><input style={inp} value={workPhone} onChange={e => setWorkPhone(e.target.value)} /></td>
-            <td style={lbl}>Card Number</td>
-            <td style={tdc}><input style={inp} value={cardNumber} onChange={e => setCardNumber(e.target.value)} /></td>
+            <td colSpan={2} style={tdc}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <input
+                  id="scan-licence-input"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: 'none' }}
+                  onChange={async e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setScanLoading(true);
+                    setScanError('');
+                    try {
+                      const reader = new FileReader();
+                      const base64 = await new Promise<string>((resolve, reject) => {
+                        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                      });
+                      const res = await fetch('/api/scan-licence', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: base64 }),
+                      });
+                      if (!res.ok) throw new Error('Scan failed');
+                      const data = await res.json();
+                      if (data.firstName) setFirstName(data.firstName);
+                      if (data.lastName) setLastName(data.lastName);
+                      if (data.street1) setStreet1(data.street1);
+                      if (data.city) setCity(data.city);
+                      if (data.state) setStateVal(data.state);
+                      if (data.postcode) setPostal(data.postcode);
+                      if (data.licenceNumber) setLicNum(data.licenceNumber);
+                      if (data.licenceExpiry) setLicExpires(data.licenceExpiry);
+                      if (data.dob) setDob(data.dob);
+                    } catch {
+                      setScanError('Could not read licence. Please try again.');
+                    } finally {
+                      setScanLoading(false);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('scan-licence-input')?.click()}
+                  disabled={scanLoading}
+                  style={{
+                    padding: '2px 10px', fontSize: '11px', fontWeight: 600,
+                    background: '#16a34a', color: '#fff', border: 'none',
+                    borderRadius: '3px', cursor: 'pointer', height: '22px',
+                    opacity: scanLoading ? 0.6 : 1,
+                  }}
+                >
+                  {scanLoading ? 'Scanning…' : '📷 Scan Licence'}
+                </button>
+                {scanError && <span style={{ fontSize: '10px', color: '#dc2626' }}>{scanError}</span>}
+              </div>
+            </td>
           </tr>
 
           {/* Row 13 */}
@@ -822,19 +879,7 @@ function MainTab() {
                 </select>
               </div>
             </td>
-            <td style={lbl}>Card Type / Expiry</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <select style={{ ...sel, flex: 1 }} value={cardType} onChange={e => setCardType(e.target.value)}>
-                  <option value="">— Type —</option>
-                  <option>Visa</option>
-                  <option>Mastercard</option>
-                  <option>Amex</option>
-                  <option>eftpos</option>
-                </select>
-                <input style={{ ...inp, width: '60px' }} placeholder="MM/YY" value={cardExp} onChange={e => setCardExp(e.target.value)} />
-              </div>
-            </td>
+            <td colSpan={2} style={tdc} />
           </tr>
 
           {/* Row 14 */}
