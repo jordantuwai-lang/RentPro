@@ -1090,6 +1090,12 @@ function AccidentTab() {
   const [ownerCity, setOwnerCity] = useState('');
   const [ownerState, setOwnerState] = useState('');
   const [ownerPostal, setOwnerPostal] = useState('');
+  // NAF Vehicle
+  const [nafRego, setNafRego] = useState('');
+  const [nafYear, setNafYear] = useState('');
+  const [nafMake, setNafMake] = useState('');
+  const [nafModel, setNafModel] = useState('');
+  const [nafBodyType, setNafBodyType] = useState('');
   // NAF Insurance
   const [nafInsCarrier, setNafInsCarrier] = useState('');
   const [nafInsPolicy, setNafInsPolicy] = useState('');
@@ -1203,6 +1209,24 @@ function AccidentTab() {
             </td>
             <td style={lbl}>Postal</td>
             <td style={tdc}><input style={inp2} value={ownerPostal} onChange={e => setOwnerPostal(e.target.value)} /></td>
+          </tr>
+
+          {/* NAF Vehicle Details */}
+          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>NAF Vehicle Details</span></td></tr>
+          <tr>
+            <td style={lbl}>Rego</td>
+            <td style={tdc}><input style={inp2} value={nafRego} onChange={e => setNafRego(e.target.value)} /></td>
+            <td style={lbl}>Year</td>
+            <td style={tdc}><input style={{ ...inp2, width: '60px' }} value={nafYear} onChange={e => setNafYear(e.target.value)} maxLength={4} /></td>
+            <td style={lbl}>Make</td>
+            <td style={tdc}><input style={inp2} value={nafMake} onChange={e => setNafMake(e.target.value)} /></td>
+          </tr>
+          <tr>
+            <td style={lbl}>Model</td>
+            <td style={tdc}><input style={inp2} value={nafModel} onChange={e => setNafModel(e.target.value)} /></td>
+            <td style={lbl}>Body Type</td>
+            <td style={tdc}><input style={inp2} value={nafBodyType} onChange={e => setNafBodyType(e.target.value)} /></td>
+            <td colSpan={2} />
           </tr>
 
           {/* NAF Insurance */}
