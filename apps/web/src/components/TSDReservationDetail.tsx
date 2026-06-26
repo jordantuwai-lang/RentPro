@@ -1142,7 +1142,10 @@ function MiscTab() {
 
 /* ─── Accident Details Tab ───────────────────────────────── */
 function AccidentTab() {
-  const { hireType, setHireType, accDate, setAccDate, accStreet, setAccStreet, accSuburb, setAccSuburb, accDescription, setAccDescription } = useRezForm();
+  const {
+    hireType, setHireType, accDate, setAccDate, accStreet, setAccStreet, accSuburb, setAccSuburb, accDescription, setAccDescription,
+    firstName, lastName, homePhone, mobile, email, street1, city, stateVal, postal, licNum, licExpires, dob,
+  } = useRezForm();
   const [flags, setFlags] = useState<Record<string, boolean>>({
     AFR: false, AFC: false, MAV: false, VAL: false, SIG: false, REG: false, INS: false, DLS: false,
   });
@@ -1241,10 +1244,27 @@ function AccidentTab() {
             <td colSpan={6} style={{ padding: '2px 0 4px' }}>
               <span style={{ fontSize: '13px', fontWeight: 500 }}>Is Driver the Vehicle Owner?&nbsp;&nbsp;</span>
               <label style={{ fontSize: '13px', marginRight: '10px', cursor: 'pointer' }}>
-                <input type="radio" name="driverOwner" value="yes" checked={driverIsOwner === 'yes'} onChange={() => setDriverIsOwner('yes')} />&nbsp;Yes
+                <input type="radio" name="driverOwner" value="yes" checked={driverIsOwner === 'yes'} onChange={() => {
+                  setDriverIsOwner('yes');
+                  setOwnerName(`${firstName} ${lastName}`.trim());
+                  setOwnerPhone(mobile || homePhone);
+                  setOwnerEmail(email);
+                  setOwnerAddr(street1);
+                  setOwnerCity(city);
+                  setOwnerState(stateVal);
+                  setOwnerPostal(postal);
+                  setOwnerLicNum(licNum);
+                  setOwnerLicExpiry(licExpires);
+                  setOwnerDob(dob);
+                }} />&nbsp;Yes
               </label>
               <label style={{ fontSize: '13px', cursor: 'pointer' }}>
-                <input type="radio" name="driverOwner" value="no" checked={driverIsOwner === 'no'} onChange={() => setDriverIsOwner('no')} />&nbsp;No
+                <input type="radio" name="driverOwner" value="no" checked={driverIsOwner === 'no'} onChange={() => {
+                  setDriverIsOwner('no');
+                  setOwnerName(''); setOwnerPhone(''); setOwnerEmail('');
+                  setOwnerAddr(''); setOwnerCity(''); setOwnerState(''); setOwnerPostal('');
+                  setOwnerLicNum(''); setOwnerLicExpiry(''); setOwnerDob('');
+                }} />&nbsp;No
               </label>
             </td>
           </tr>
