@@ -1096,6 +1096,8 @@ function AccidentTab() {
   const [nafMake, setNafMake] = useState('');
   const [nafModel, setNafModel] = useState('');
   const [nafBodyType, setNafBodyType] = useState('');
+  const [regoChecking, setRegoChecking] = useState(false);
+  const [regoResult, setRegoResult] = useState<{ valid: boolean; message: string; details?: Record<string, string> } | null>(null);
   // NAF Insurance
   const [nafInsCarrier, setNafInsCarrier] = useState('');
   const [nafInsPolicy, setNafInsPolicy] = useState('');
@@ -1215,7 +1217,48 @@ function AccidentTab() {
           <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>NAF Vehicle Details</span></td></tr>
           <tr>
             <td style={lbl}>Rego</td>
-            <td style={tdc}><input style={inp2} value={nafRego} onChange={e => setNafRego(e.target.value)} /></td>
+            <td style={tdc}>
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <input
+                  style={{ ...inp2, flex: 1 }}
+                  value={nafRego}
+                  onChange={e => { setNafRego(e.target.value.toUpperCase()); setRegoResult(null); }}
+                />
+                <button
+                  type="button"
+                  disabled={regoChecking || !nafRego.trim()}
+                  onClick={async () => {
+                    setRegoChecking(true);
+                    setRegoResult(null);
+                    try {
+                      const res = await fetch('/api/check-rego', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ rego: nafRego.trim() }),
+                      });
+                      const data = await res.json();
+                      if (data.year) setNafYear(data.year);
+                      if (data.make) setNafMake(data.make);
+                      if (data.model) setNafModel(data.model);
+                      if (data.bodyType) setNafBodyType(data.bodyType);
+                      setRegoResult(data);
+                    } catch {
+                      setRegoResult({ valid: false, message: 'Check failed. Please try again.' });
+                    } finally {
+                      setRegoChecking(false);
+                    }
+                  }}
+                  style={{
+                    padding: '1px 8px', fontSize: '11px', fontWeight: 600, height: '20px',
+                    background: '#16a34a', color: '#fff', border: 'none',
+                    borderRadius: '3px', cursor: 'pointer', whiteSpace: 'nowrap',
+                    opacity: (regoChecking || !nafRego.trim()) ? 0.5 : 1,
+                  }}
+                >
+                  {regoChecking ? 'Checking…' : 'Check'}
+                </button>
+              </div>
+            </td>
             <td style={lbl}>Year</td>
             <td style={tdc}><input style={{ ...inp2, width: '60px' }} value={nafYear} onChange={e => setNafYear(e.target.value)} maxLength={4} /></td>
             <td style={lbl}>Make</td>
@@ -1228,6 +1271,22 @@ function AccidentTab() {
             <td style={tdc}><input style={inp2} value={nafBodyType} onChange={e => setNafBodyType(e.target.value)} /></td>
             <td colSpan={2} />
           </tr>
+          {regoResult && (
+            <tr>
+              <td colSpan={6} style={{ padding: '2px 0' }}>
+                <div style={{
+                  fontSize: '11px', padding: '4px 8px', borderRadius: '3px',
+                  background: regoResult.valid ? '#dcfce7' : '#fee2e2',
+                  color: regoResult.valid ? '#166534' : '#991b1b',
+                  border: `1px solid ${regoResult.valid ? '#86efac' : '#fca5a5'}`,
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                }}>
+                  <span>{regoResult.valid ? '✓' : '✗'}</span>
+                  <span>{regoResult.message}</span>
+                </div>
+              </td>
+            </tr>
+          )}
 
           {/* NAF Insurance */}
           <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>NAF Insurance Details</span></td></tr>
