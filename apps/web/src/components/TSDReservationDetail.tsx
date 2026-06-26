@@ -532,12 +532,12 @@ function MainTab() {
 
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '900px' }}>
+      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '980px' }}>
         <colgroup>
           <col style={{ width: '125px' }} />
-          <col style={{ width: '170px' }} />
-          <col style={{ width: '125px' }} />
-          <col style={{ width: '230px' }} />
+          <col style={{ width: '175px' }} />
+          <col style={{ width: '130px' }} />
+          <col style={{ width: '215px' }} />
           <col style={{ width: '135px' }} />
           <col />
         </colgroup>
@@ -625,8 +625,10 @@ function MainTab() {
                 <select style={{ ...sel, width: '38px' }} value={dropAmPm} onChange={e => setDropAmPm(e.target.value)}>
                   <option>AM</option><option>PM</option>
                 </select>
-                &nbsp;Days:&nbsp;
-                <input style={{ ...inp, width: '32px' }} value={days} onChange={e => setDays(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                <span style={{ fontSize: '11px' }}>Days:</span>
+                <input style={{ ...inp, width: '40px' }} value={days} onChange={e => setDays(e.target.value)} />
               </div>
             </td>
             <td style={lbl}>Source of Business</td>
@@ -763,7 +765,7 @@ function MainTab() {
             <td colSpan={2} style={tdc}></td>
             {/* Charge Grid rowspan 9 */}
             <td colSpan={2} rowSpan={9} style={{ verticalAlign: 'top', padding: '1px 2px' }}>
-              <div style={{ width: '315px', height: '210px', border: '1px solid #9ca3af', overflow: 'auto' }}>
+              <div style={{ width: '100%', height: '210px', border: '1px solid #9ca3af', overflow: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '11px' }}>
                   <thead>
                     <tr style={{ background: '#16a34a' }}>
@@ -824,24 +826,30 @@ function MainTab() {
 
           {/* Row 14 */}
           <tr>
-            <td style={lbl}>Expiry / DOB</td>
+            <td style={lbl}>Lic Expiry</td>
             <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <input type="date" style={{ ...inp, flex: 1 }} value={licExpires} onChange={e => setLicExpires(e.target.value)} placeholder="Lic Expires" />
-                <input type="date" style={{ ...inp, flex: 1 }} value={dob} onChange={e => setDob(e.target.value)} placeholder="DOB" />
-              </div>
+              <input type="date" style={{ ...inp, width: '140px' }} value={licExpires} onChange={e => setLicExpires(e.target.value)} />
             </td>
             <td colSpan={2} style={{ ...tdc, fontWeight: 700, fontSize: '11px' }}>Broadcast Note</td>
           </tr>
 
-          {/* Row 15 — Broadcast Note textarea rowspan 5 cols 3-4 */}
+          {/* Row 14b */}
+          <tr>
+            <td style={lbl}>Date of Birth</td>
+            <td style={tdc}>
+              <input type="date" style={{ ...inp, width: '140px' }} value={dob} onChange={e => setDob(e.target.value)} />
+            </td>
+            <td colSpan={2} style={tdc}></td>
+          </tr>
+
+          {/* Row 15 — Broadcast Note textarea rowspan 6 cols 3-4 */}
           <tr>
             <td style={lbl}>Email</td>
             <td style={tdc}><input style={inp} value={email} onChange={e => setEmail(e.target.value)} /></td>
-            {/* Broadcast Note textarea rowspan 5 */}
-            <td colSpan={2} rowSpan={5} style={{ verticalAlign: 'top', padding: '1px 2px' }}>
+            {/* Broadcast Note textarea rowspan 6 */}
+            <td colSpan={2} rowSpan={6} style={{ verticalAlign: 'top', padding: '1px 2px' }}>
               <textarea
-                style={{ width: '340px', height: '100px', fontSize: '11px', border: '1px solid #9ca3af', padding: '2px 4px', resize: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', height: '90px', fontSize: '11px', border: '1px solid #9ca3af', padding: '2px 4px', resize: 'none', boxSizing: 'border-box' }}
                 value={broadcastNote}
                 onChange={e => setBroadcastNote(e.target.value)}
               />
@@ -860,9 +868,10 @@ function MainTab() {
             <td style={tdc}><input style={inp} value={altKNum} onChange={e => setAltKNum(e.target.value)} /></td>
           </tr>
 
-          {/* Rows 18-19 spacers */}
-          <tr><td colSpan={2} style={{ height: '4px' }}></td></tr>
-          <tr><td colSpan={2} style={{ height: '4px' }}></td></tr>
+          {/* Rows 18-20 spacers */}
+          <tr><td colSpan={2} style={{ height: '8px' }}></td></tr>
+          <tr><td colSpan={2} style={{ height: '8px' }}></td></tr>
+          <tr><td colSpan={2} style={{ height: '8px' }}></td></tr>
         </tbody>
       </table>
     </div>
