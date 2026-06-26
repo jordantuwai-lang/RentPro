@@ -1618,53 +1618,62 @@ function CardDetailsTab() {
 }
 
 /* ─── Root component ─────────────────────────────────────── */
-export default function TSDReservationDetail() {
+interface TSDReservationDetailProps {
+  initialData?: any;
+  reservationId?: string;
+}
+
+export default function TSDReservationDetail({ initialData, reservationId: initialResId }: TSDReservationDetailProps = {}) {
   const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
 
+  const c = initialData?.customer ?? initialData?.driver ?? {};
+  const acc = initialData?.accident ?? {};
+  const af = initialData?.atFault ?? {};
+
   // ── Shared saveable state ──────────────────────────────
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [firstName, setFirstName] = useState(c.firstName ?? '');
+  const [lastName, setLastName] = useState(c.lastName ?? '');
   const [mi, setMi] = useState('');
-  const [homePhone, setHomePhone] = useState('');
+  const [homePhone, setHomePhone] = useState(c.phone ?? '');
   const [mobile, setMobile] = useState('');
   const [workPhone, setWorkPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [street1, setStreet1] = useState('');
+  const [email, setEmail] = useState(c.email ?? '');
+  const [street1, setStreet1] = useState(c.address ?? '');
   const [street2, setStreet2] = useState('');
-  const [city, setCity] = useState('');
-  const [stateVal, setStateVal] = useState('');
-  const [postal, setPostal] = useState('');
+  const [city, setCity] = useState(c.suburb ?? '');
+  const [stateVal, setStateVal] = useState(c.state ?? '');
+  const [postal, setPostal] = useState(c.postcode ?? '');
   const [country, setCountry] = useState('');
-  const [licNum, setLicNum] = useState('');
-  const [licState, setLicState] = useState('');
-  const [licExpires, setLicExpires] = useState('');
-  const [dob, setDob] = useState('');
-  const [pickupDate, setPickupDate] = useState('');
-  const [dropDate, setDropDate] = useState('');
-  const [source, setSource] = useState('');
-  const [hireType, setHireType] = useState('credit');
-  const [accDate, setAccDate] = useState('');
-  const [accStreet, setAccStreet] = useState('');
+  const [licNum, setLicNum] = useState(c.licenceNumber ?? '');
+  const [licState, setLicState] = useState(c.licenceState ?? '');
+  const [licExpires, setLicExpires] = useState(c.licenceExpiry ? c.licenceExpiry.slice(0, 10) : '');
+  const [dob, setDob] = useState(c.dob ? c.dob.slice(0, 10) : '');
+  const [pickupDate, setPickupDate] = useState(initialData?.startDate ? initialData.startDate.slice(0, 10) : '');
+  const [dropDate, setDropDate] = useState(initialData?.endDate ? initialData.endDate.slice(0, 10) : '');
+  const [source, setSource] = useState(initialData?.sourceOfBusiness ?? '');
+  const [hireType, setHireType] = useState(initialData?.hireType ?? 'credit');
+  const [accDate, setAccDate] = useState(acc.date ? acc.date.slice(0, 10) : '');
+  const [accStreet, setAccStreet] = useState(acc.location ?? '');
   const [accSuburb, setAccSuburb] = useState('');
-  const [accDescription, setAccDescription] = useState('');
-  const [tpFirstName, setTpFirstName] = useState('');
-  const [tpLastName, setTpLastName] = useState('');
-  const [tpPhone, setTpPhone] = useState('');
-  const [tpEmail, setTpEmail] = useState('');
-  const [tpAddress, setTpAddress] = useState('');
-  const [tpSuburb, setTpSuburb] = useState('');
-  const [tpPostal, setTpPostal] = useState('');
-  const [tpState, setTpState] = useState('');
-  const [tpVehRego, setTpVehRego] = useState('');
-  const [tpVehMake, setTpVehMake] = useState('');
-  const [tpVehModel, setTpVehModel] = useState('');
-  const [tpVehYear, setTpVehYear] = useState('');
-  const [tpInsCarrier, setTpInsCarrier] = useState('');
-  const [tpClaimNo, setTpClaimNo] = useState('');
+  const [accDescription, setAccDescription] = useState(acc.description ?? '');
+  const [tpFirstName, setTpFirstName] = useState(af.firstName ?? '');
+  const [tpLastName, setTpLastName] = useState(af.lastName ?? '');
+  const [tpPhone, setTpPhone] = useState(af.phone ?? '');
+  const [tpEmail, setTpEmail] = useState(af.email ?? '');
+  const [tpAddress, setTpAddress] = useState(af.address ?? '');
+  const [tpSuburb, setTpSuburb] = useState(af.suburb ?? '');
+  const [tpPostal, setTpPostal] = useState(af.postcode ?? '');
+  const [tpState, setTpState] = useState(af.state ?? '');
+  const [tpVehRego, setTpVehRego] = useState(af.vehicleRegistration ?? '');
+  const [tpVehMake, setTpVehMake] = useState(af.vehicleMake ?? '');
+  const [tpVehModel, setTpVehModel] = useState(af.vehicleModel ?? '');
+  const [tpVehYear, setTpVehYear] = useState(af.vehicleYear ?? '');
+  const [tpInsCarrier, setTpInsCarrier] = useState(af.insuranceProvider ?? '');
+  const [tpClaimNo, setTpClaimNo] = useState(af.claimNumber ?? '');
 
   // ── Save state ──────────────────────────────────────────
-  const [reservationId, setReservationId] = useState<string | null>(null);
+  const [reservationId, setReservationId] = useState<string | null>(initialResId ?? null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1756,7 +1765,7 @@ export default function TSDReservationDetail() {
         {/* Page header */}
         <div style={{ background: '#16a34a', color: '#fff', padding: '4px 10px', fontSize: '13px', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>Reservation Detail</span>
-          <span style={{ fontSize: '11px', fontWeight: 400 }}>{reservationId ? `Rez #${reservationId}` : 'New Reservation'}</span>
+          <span style={{ fontSize: '11px', fontWeight: 400 }}>{initialData?.reservationNumber ?? (reservationId ? `Rez #${reservationId}` : 'New Reservation')}</span>
         </div>
 
         {/* Tab bar */}
