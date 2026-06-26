@@ -6,19 +6,19 @@ import api from '@/lib/api';
 
 /* ─── shared styles ─────────────────────────────────────── */
 const inp: React.CSSProperties = {
-  width: '100%', padding: '1px 3px', border: '1px solid #9ca3af',
-  fontSize: '11px', color: '#000', background: '#fff', boxSizing: 'border-box', height: '20px',
+  width: '100%', padding: '2px 4px', border: '1px solid #9ca3af',
+  fontSize: '13px', color: '#000', background: '#fff', boxSizing: 'border-box', height: '22px',
 };
 const roInp: React.CSSProperties = { ...inp, background: '#e5e7eb', color: '#374151' };
-const sel: React.CSSProperties = { ...inp, height: '20px' };
+const sel: React.CSSProperties = { ...inp, height: '22px' };
 const lbl: React.CSSProperties = {
-  fontSize: '11px', fontWeight: 400, color: '#111',
+  fontSize: '13px', fontWeight: 400, color: '#111',
   textAlign: 'right', paddingRight: '4px', whiteSpace: 'nowrap',
   verticalAlign: 'middle', padding: '1px 4px 1px 0',
 };
-const tdc: React.CSSProperties = { padding: '1px 2px', verticalAlign: 'middle' };
+const tdc: React.CSSProperties = { padding: '2px 2px', verticalAlign: 'middle' };
 const sectionHdr: React.CSSProperties = {
-  fontSize: '11px', fontWeight: 700, background: '#16a34a', color: '#fff',
+  fontSize: '12px', fontWeight: 700, background: '#16a34a', color: '#fff',
   padding: '2px 6px', display: 'block', marginBottom: '2px',
 };
 
@@ -71,6 +71,7 @@ interface RezForm {
   tpClaimNo: string; setTpClaimNo: (v: string) => void;
   // Meta
   rezNumber: string;
+  tabHasData: (tab: number) => boolean;
   reservationId: string | null;
   isSaving: boolean;
   saveError: string;
@@ -219,7 +220,7 @@ function AtFaultThirdPartyTab() {
             <td colSpan={5} rowSpan={6} style={{ verticalAlign: 'top', padding: '1px 2px' }}>
               <div style={{ width: '592px', border: '1px solid #9ca3af' }}>
                 {/* header */}
-                <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%', fontSize: '11px', background: '#e5e7eb' }}>
+                <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%', fontSize: '13px', background: '#e5e7eb' }}>
                   <colgroup>
                     <col style={{ width: '26px' }} />
                     <col style={{ width: '176px' }} />
@@ -237,7 +238,7 @@ function AtFaultThirdPartyTab() {
                 </table>
                 {/* body */}
                 <div style={{ height: '95px', overflowY: 'auto' }}>
-                  <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%', fontSize: '11px' }}>
+                  <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%', fontSize: '13px' }}>
                     <colgroup>
                       <col style={{ width: '26px' }} />
                       <col style={{ width: '176px' }} />
@@ -262,7 +263,7 @@ function AtFaultThirdPartyTab() {
                   </table>
                 </div>
                 {/* pager */}
-                <div style={{ background: '#e5e7eb', padding: '2px 6px', fontSize: '11px', borderTop: '1px solid #9ca3af' }}>
+                <div style={{ background: '#e5e7eb', padding: '2px 6px', fontSize: '13px', borderTop: '1px solid #9ca3af' }}>
                   Page <strong>1</strong> of <strong>1</strong>, items <strong>0</strong> to <strong>0</strong> of <strong>0</strong>.
                 </div>
               </div>
@@ -275,7 +276,7 @@ function AtFaultThirdPartyTab() {
             <td style={tdc}>
               <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
                 <input style={{ ...inp2, flex: 1 }} value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={40} />
-                <span style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>MI</span>
+                <span style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>MI</span>
                 <input style={{ ...inp, width: '20px' }} value={mi} onChange={e => setMi(e.target.value)} maxLength={1} />
               </div>
             </td>
@@ -396,7 +397,7 @@ function AtFaultThirdPartyTab() {
             <td style={lbl2}>Type of Cover</td>
             <td style={tdc}>
               {['CTP','TPP','COMP'].map(c => (
-                <label key={c} style={{ fontSize: '11px', marginRight: '6px', cursor: 'pointer' }}>
+                <label key={c} style={{ fontSize: '13px', marginRight: '6px', cursor: 'pointer' }}>
                   <input type="radio" name="afCoverType" value={c} checked={coverType === c} onChange={() => setCoverType(c)} />&nbsp;{c}
                 </label>
               ))}
@@ -404,7 +405,7 @@ function AtFaultThirdPartyTab() {
             <td style={lbl2}>Vehicle Reg. Type</td>
             <td colSpan={2} style={tdc}>
               {['Private','Business'].map(r => (
-                <label key={r} style={{ fontSize: '11px', marginRight: '6px', cursor: 'pointer' }}>
+                <label key={r} style={{ fontSize: '13px', marginRight: '6px', cursor: 'pointer' }}>
                   <input type="radio" name="afRegoType" value={r} checked={regoType === r} onChange={() => setRegoType(r)} />&nbsp;{r}
                 </label>
               ))}
@@ -429,7 +430,7 @@ function AtFaultThirdPartyTab() {
             <td style={lbl2}>Validated</td>
             <td colSpan={2} style={tdc}>
               <input type="checkbox" checked={validated} onChange={e => setValidated(e.target.checked)} />&nbsp;
-              <span style={{ fontSize: '11px' }}>Company</span>&nbsp;
+              <span style={{ fontSize: '13px' }}>Company</span>&nbsp;
               <input style={{ ...inp, width: '100px', display: 'inline-block' }} value={company} onChange={e => setCompany(e.target.value)} maxLength={40} />
             </td>
           </tr>
@@ -450,7 +451,7 @@ function AtFaultThirdPartyTab() {
             <td style={tdc}>
               <div style={{ display: 'flex', gap: '2px', alignItems: 'flex-start' }}>
                 <textarea
-                  style={{ fontSize: '11px', border: '1px solid #9ca3af', width: '148px', height: '18px', resize: 'none', padding: '1px 3px', overflow: 'hidden', boxSizing: 'border-box' }}
+                  style={{ fontSize: '13px', border: '1px solid #9ca3af', width: '148px', height: '22px', resize: 'none', padding: '1px 3px', overflow: 'hidden', boxSizing: 'border-box' }}
                   value={licNum}
                   onChange={e => setLicNum(e.target.value)}
                   maxLength={1000}
@@ -498,7 +499,7 @@ function AtFaultThirdPartyTab() {
       <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
         {['Save','New','Delete','Close'].map(label => (
           <button key={label} style={{
-            padding: '3px 14px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+            padding: '3px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
             border: '1px solid #9ca3af', background: '#e5e7eb', borderRadius: '2px',
           }}>{label}</button>
         ))}
@@ -511,7 +512,7 @@ function AtFaultThirdPartyTab() {
 function BtnBar() {
   const { save, isSaving, saveError, saveSuccess } = useRezForm();
   const btn = (label: string, primary = false): React.CSSProperties => ({
-    padding: '3px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+    padding: '3px 10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
     border: '1px solid #9ca3af',
     background: primary ? '#16a34a' : '#e5e7eb',
     color: primary ? '#fff' : '#111',
@@ -611,7 +612,7 @@ function MainTab() {
             <td style={tdc}>
               <div style={{ display: 'flex', gap: '2px' }}>
                 <button style={{ fontSize: '10px', padding: '1px 5px', border: '1px solid #9ca3af', background: '#e5e7eb', cursor: 'pointer' }}>Rez</button>
-                <input style={roInp} readOnly value={rezNumber} placeholder={rezNumber ? '' : 'Generating…'} />
+                <input style={{ ...roInp, fontWeight: 700, fontSize: '14px', letterSpacing: '0.03em', color: '#14532d' }} readOnly value={rezNumber} placeholder={rezNumber ? '' : 'Generating…'} />
               </div>
             </td>
             <td style={lbl}>Pickup Location</td>
@@ -702,7 +703,7 @@ function MainTab() {
                 </select>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                <span style={{ fontSize: '11px' }}>Days:</span>
+                <span style={{ fontSize: '13px' }}>Days:</span>
                 <input style={{ ...inp, width: '40px' }} value={days} onChange={e => setDays(e.target.value)} />
               </div>
             </td>
@@ -817,7 +818,7 @@ function MainTab() {
             </td>
             {/* Use Tax — rowspan 2, cols 5-6 */}
             <td colSpan={2} rowSpan={2} style={{ ...tdc, verticalAlign: 'top' }}>
-              <div style={{ border: '1px solid #9ca3af', padding: '4px 6px', fontSize: '11px' }}>
+              <div style={{ border: '1px solid #9ca3af', padding: '4px 6px', fontSize: '13px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
                   <input type="checkbox" checked={useTax} onChange={e => setUseTax(e.target.checked)} />
                   Use Tax Exempt
@@ -841,7 +842,7 @@ function MainTab() {
             {/* Charge Grid rowspan 9 */}
             <td colSpan={2} rowSpan={9} style={{ verticalAlign: 'top', padding: '1px 2px' }}>
               <div style={{ width: '100%', height: '210px', border: '1px solid #9ca3af', overflow: 'auto' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '11px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '13px' }}>
                   <thead>
                     <tr style={{ background: '#16a34a' }}>
                       <th style={{ color: '#fff', padding: '2px 4px', textAlign: 'left', fontWeight: 600 }}>Description</th>
@@ -851,12 +852,12 @@ function MainTab() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td colSpan={4} style={{ padding: '4px', color: '#6b7280', fontSize: '11px' }}>No charges added</td></tr>
+                    <tr><td colSpan={4} style={{ padding: '4px', color: '#6b7280', fontSize: '13px' }}>No charges added</td></tr>
                   </tbody>
                   <tfoot>
                     <tr style={{ background: '#e5e7eb', borderTop: '1px solid #9ca3af' }}>
-                      <td colSpan={3} style={{ padding: '2px 4px', fontWeight: 700, fontSize: '11px' }}>Total</td>
-                      <td style={{ padding: '2px 4px', fontWeight: 700, fontSize: '11px', textAlign: 'right' }}>0.00</td>
+                      <td colSpan={3} style={{ padding: '2px 4px', fontWeight: 700, fontSize: '13px' }}>Total</td>
+                      <td style={{ padding: '2px 4px', fontWeight: 700, fontSize: '13px', textAlign: 'right' }}>0.00</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -917,7 +918,7 @@ function MainTab() {
                   onClick={() => document.getElementById('scan-licence-input')?.click()}
                   disabled={scanLoading}
                   style={{
-                    padding: '2px 10px', fontSize: '11px', fontWeight: 600,
+                    padding: '2px 10px', fontSize: '13px', fontWeight: 600,
                     background: '#16a34a', color: '#fff', border: 'none',
                     borderRadius: '3px', cursor: 'pointer', height: '22px',
                     opacity: scanLoading ? 0.6 : 1,
@@ -951,7 +952,7 @@ function MainTab() {
             <td style={tdc}>
               <input type="date" style={{ ...inp, width: '140px' }} value={licExpires} onChange={e => setLicExpires(e.target.value)} />
             </td>
-            <td colSpan={2} style={{ ...tdc, fontWeight: 700, fontSize: '11px' }}>Broadcast Note</td>
+            <td colSpan={2} style={{ ...tdc, fontWeight: 700, fontSize: '13px' }}>Broadcast Note</td>
           </tr>
 
           {/* Row 14b */}
@@ -970,7 +971,7 @@ function MainTab() {
             {/* Broadcast Note textarea rowspan 6 */}
             <td colSpan={2} rowSpan={6} style={{ verticalAlign: 'top', padding: '1px 2px' }}>
               <textarea
-                style={{ width: '100%', height: '90px', fontSize: '11px', border: '1px solid #9ca3af', padding: '2px 4px', resize: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', height: '90px', fontSize: '13px', border: '1px solid #9ca3af', padding: '2px 4px', resize: 'none', boxSizing: 'border-box' }}
                 value={broadcastNote}
                 onChange={e => setBroadcastNote(e.target.value)}
               />
@@ -1216,17 +1217,17 @@ function AccidentTab() {
           <tr>
             <td colSpan={6} style={{ padding: '4px 0' }}>
               <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <label style={{ fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
+                <label style={{ fontSize: '13px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
                   <input type="radio" name="hireType" value="credit" checked={hireType === 'credit'} onChange={() => setHireType('credit')} />
                   Credit Hire
                 </label>
-                <label style={{ fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
+                <label style={{ fontSize: '13px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
                   <input type="radio" name="hireType" value="direct" checked={hireType === 'direct'} onChange={() => setHireType('direct')} />
                   Direct Hire
                 </label>
                 <div style={{ display: 'flex', gap: '10px', marginLeft: '30px' }}>
                   {Object.keys(flags).map(f => (
-                    <label key={f} style={{ fontSize: '11px', display: 'flex', gap: '3px', alignItems: 'center', cursor: 'pointer' }}>
+                    <label key={f} style={{ fontSize: '13px', display: 'flex', gap: '3px', alignItems: 'center', cursor: 'pointer' }}>
                       <input type="checkbox" checked={flags[f]} onChange={() => toggleFlag(f)} />{f}
                     </label>
                   ))}
@@ -1238,11 +1239,11 @@ function AccidentTab() {
           {/* Is driver vehicle owner? */}
           <tr>
             <td colSpan={6} style={{ padding: '2px 0 4px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 500 }}>Is Driver the Vehicle Owner?&nbsp;&nbsp;</span>
-              <label style={{ fontSize: '11px', marginRight: '10px', cursor: 'pointer' }}>
+              <span style={{ fontSize: '13px', fontWeight: 500 }}>Is Driver the Vehicle Owner?&nbsp;&nbsp;</span>
+              <label style={{ fontSize: '13px', marginRight: '10px', cursor: 'pointer' }}>
                 <input type="radio" name="driverOwner" value="yes" checked={driverIsOwner === 'yes'} onChange={() => setDriverIsOwner('yes')} />&nbsp;Yes
               </label>
-              <label style={{ fontSize: '11px', cursor: 'pointer' }}>
+              <label style={{ fontSize: '13px', cursor: 'pointer' }}>
                 <input type="radio" name="driverOwner" value="no" checked={driverIsOwner === 'no'} onChange={() => setDriverIsOwner('no')} />&nbsp;No
               </label>
             </td>
@@ -1328,7 +1329,7 @@ function AccidentTab() {
                     }
                   }}
                   style={{
-                    padding: '1px 8px', fontSize: '11px', fontWeight: 600, height: '20px',
+                    padding: '1px 8px', fontSize: '13px', fontWeight: 600, height: '22px',
                     background: '#16a34a', color: '#fff', border: 'none',
                     borderRadius: '3px', cursor: 'pointer', whiteSpace: 'nowrap',
                     opacity: (regoChecking || !nafRego.trim()) ? 0.5 : 1,
@@ -1354,7 +1355,7 @@ function AccidentTab() {
             <tr>
               <td colSpan={6} style={{ padding: '2px 0' }}>
                 <div style={{
-                  fontSize: '11px', padding: '4px 8px', borderRadius: '3px',
+                  fontSize: '13px', padding: '4px 8px', borderRadius: '3px',
                   background: regoResult.valid ? '#dcfce7' : '#fee2e2',
                   color: regoResult.valid ? '#166534' : '#991b1b',
                   border: `1px solid ${regoResult.valid ? '#86efac' : '#fca5a5'}`,
@@ -1390,7 +1391,7 @@ function AccidentTab() {
           <tr>
             <td colSpan={6} style={{ padding: '2px 0 4px' }}>
               {['CTP', 'TPP', 'COMP'].map(c => (
-                <label key={c} style={{ fontSize: '11px', marginRight: '16px', cursor: 'pointer' }}>
+                <label key={c} style={{ fontSize: '13px', marginRight: '16px', cursor: 'pointer' }}>
                   <input type="radio" name="coverType" value={c} checked={coverType === c} onChange={() => setCoverType(c)} />&nbsp;{c}
                 </label>
               ))}
@@ -1402,14 +1403,14 @@ function AccidentTab() {
           <tr>
             <td style={lbl}>Description</td>
             <td colSpan={5} style={tdc}>
-              <textarea style={{ width: '100%', height: '50px', fontSize: '11px', border: '1px solid #9ca3af', padding: '2px 4px', boxSizing: 'border-box' }}
+              <textarea style={{ width: '100%', height: '50px', fontSize: '13px', border: '1px solid #9ca3af', padding: '2px 4px', boxSizing: 'border-box' }}
                 value={accDescription} onChange={e => setAccDescription(e.target.value)} />
             </td>
           </tr>
           <tr>
             <td style={lbl}>Damage Desc.</td>
             <td colSpan={5} style={tdc}>
-              <textarea style={{ width: '100%', height: '40px', fontSize: '11px', border: '1px solid #9ca3af', padding: '2px 4px', boxSizing: 'border-box' }}
+              <textarea style={{ width: '100%', height: '40px', fontSize: '13px', border: '1px solid #9ca3af', padding: '2px 4px', boxSizing: 'border-box' }}
                 value={accDamageDesc} onChange={e => setAccDamageDesc(e.target.value)} />
             </td>
           </tr>
@@ -1442,7 +1443,7 @@ function AccidentTab() {
             <td style={lbl}>Drivable?</td>
             <td style={tdc}>
               {['Yes', 'No'].map(o => (
-                <label key={o} style={{ fontSize: '11px', marginRight: '10px', cursor: 'pointer' }}>
+                <label key={o} style={{ fontSize: '13px', marginRight: '10px', cursor: 'pointer' }}>
                   <input type="radio" name="drivable" value={o} checked={drivable === o} onChange={() => setDrivable(o)} />&nbsp;{o}
                 </label>
               ))}
@@ -1450,7 +1451,7 @@ function AccidentTab() {
             <td style={lbl}>Total Loss?</td>
             <td style={tdc}>
               {['Yes', 'No'].map(o => (
-                <label key={o} style={{ fontSize: '11px', marginRight: '10px', cursor: 'pointer' }}>
+                <label key={o} style={{ fontSize: '13px', marginRight: '10px', cursor: 'pointer' }}>
                   <input type="radio" name="totalLossAcc" value={o} checked={totalLossAcc === o} onChange={() => setTotalLossAcc(o)} />&nbsp;{o}
                 </label>
               ))}
@@ -1458,7 +1459,7 @@ function AccidentTab() {
             <td style={lbl}>Settlement Ltr?</td>
             <td style={tdc}>
               {['Yes', 'No'].map(o => (
-                <label key={o} style={{ fontSize: '11px', marginRight: '10px', cursor: 'pointer' }}>
+                <label key={o} style={{ fontSize: '13px', marginRight: '10px', cursor: 'pointer' }}>
                   <input type="radio" name="settlementLetter" value={o} checked={settlementLetter === o} onChange={() => setSettlementLetter(o)} />&nbsp;{o}
                 </label>
               ))}
@@ -1529,7 +1530,7 @@ function CardDetailsTab() {
 
   const field: React.CSSProperties = { ...inp, width: '100%' };
   const row: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '10px' };
-  const fieldLbl: React.CSSProperties = { fontSize: '11px', fontWeight: 600, color: '#374151' };
+  const fieldLbl: React.CSSProperties = { fontSize: '13px', fontWeight: 600, color: '#374151' };
 
   return (
     <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '20px', maxWidth: '400px' }}>
@@ -1537,7 +1538,7 @@ function CardDetailsTab() {
         Customer Card Details
       </div>
 
-      <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: '5px', padding: '8px 10px', fontSize: '11px', color: '#92400e', marginBottom: '14px' }}>
+      <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: '5px', padding: '8px 10px', fontSize: '13px', color: '#92400e', marginBottom: '14px' }}>
         Card details are stored securely and not shared without authorisation.
       </div>
 
@@ -1603,7 +1604,7 @@ function CardDetailsTab() {
               <button
                 onClick={handleSave}
                 style={{
-                  padding: '5px 20px', fontSize: '11px', fontWeight: 700,
+                  padding: '5px 20px', fontSize: '13px', fontWeight: 700,
                   background: '#16a34a', color: '#fff', border: 'none',
                   borderRadius: '4px', cursor: 'pointer',
                 }}
@@ -1679,6 +1680,16 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [rezNumber, setRezNumber] = useState(initialData?.reservationNumber ?? '');
+
+  const tabHasData = (tab: number): boolean => {
+    switch (tab) {
+      case 0: return !!(firstName || lastName || homePhone || email || street1 || pickupDate || dropDate);
+      case 2: return !!(accDate || accStreet || accDescription || hireType);
+      case 3: return !!(tpFirstName || tpLastName || tpVehRego || tpInsCarrier);
+      case 4: return false; // Card Details: local state only, can't inspect from here
+      default: return false;
+    }
+  };
 
   useEffect(() => {
     if (initialData?.reservationNumber || initialResId) return;
@@ -1767,29 +1778,42 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     tpAddress, setTpAddress, tpSuburb, setTpSuburb, tpPostal, setTpPostal, tpState, setTpState,
     tpVehRego, setTpVehRego, tpVehMake, setTpVehMake, tpVehModel, setTpVehModel, tpVehYear, setTpVehYear,
     tpInsCarrier, setTpInsCarrier, tpClaimNo, setTpClaimNo,
-    rezNumber, reservationId, isSaving, saveError, saveSuccess, save,
+    rezNumber, tabHasData, reservationId, isSaving, saveError, saveSuccess, save,
   };
 
   return (
     <RezFormContext.Provider value={formCtx}>
-      <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', paddingBottom: '50px', maxWidth: '960px' }}>
+      <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '13px', paddingBottom: '50px', maxWidth: '960px' }}>
         {/* Page header */}
         <div style={{ background: '#16a34a', color: '#fff', padding: '4px 10px', fontSize: '13px', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>Reservation Detail</span>
-          <span style={{ fontSize: '11px', fontWeight: 400 }}>{initialData?.reservationNumber ?? (reservationId ? `Rez #${reservationId}` : 'New Reservation')}</span>
+          <span style={{ fontSize: '13px', fontWeight: 400 }}>{initialData?.reservationNumber ?? (reservationId ? `Rez #${reservationId}` : 'New Reservation')}</span>
         </div>
 
         {/* Tab bar */}
         <div style={{ display: 'flex', borderBottom: '2px solid #16a34a', marginBottom: '6px', background: '#fff' }}>
-          {TABS.map((t, i) => (
-            <button key={t} type="button" onClick={() => setActiveTab(i)} style={{
-              padding: '4px 14px', fontSize: '11px', fontWeight: activeTab === i ? 700 : 400,
-              color: activeTab === i ? '#fff' : '#475569',
-              background: activeTab === i ? '#16a34a' : 'transparent',
-              border: 'none', borderRight: '1px solid #e2e8f0',
-              cursor: 'pointer', whiteSpace: 'nowrap',
-            }}>{t}</button>
-          ))}
+          {TABS.map((t, i) => {
+            const active = activeTab === i;
+            const hasData = tabHasData(i);
+            return (
+              <button key={t} type="button" onClick={() => setActiveTab(i)} style={{
+                padding: '5px 14px', fontSize: '12px', fontWeight: active ? 700 : 400,
+                color: active ? '#fff' : '#475569',
+                background: active ? '#16a34a' : 'transparent',
+                border: 'none', borderRight: '1px solid #e2e8f0',
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                display: 'flex', alignItems: 'center', gap: '5px',
+              }}>
+                {t}
+                {hasData && !active && (
+                  <span style={{
+                    width: '7px', height: '7px', borderRadius: '50%',
+                    background: '#16a34a', display: 'inline-block', flexShrink: 0,
+                  }} />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab content */}
