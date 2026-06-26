@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 
 /* ─── shared styles ─────────────────────────────────────── */
 const inp: React.CSSProperties = {
@@ -611,7 +612,19 @@ function MainTab() {
           {/* Row 4 */}
           <tr>
             <td style={lbl}>Street 1</td>
-            <td style={tdc}><input style={inp} value={street1} onChange={e => setStreet1(e.target.value)} /></td>
+            <td style={tdc}>
+              <AddressAutocomplete
+                value={street1}
+                onChange={setStreet1}
+                onSelect={r => {
+                  setStreet1(r.address);
+                  setCity(r.suburb);
+                  setStateVal(r.state);
+                  setPostal(r.postcode);
+                }}
+                style={{ ...inp, width: '100%' }}
+              />
+            </td>
             <td style={lbl}>Drop Off Date</td>
             <td style={tdc}>
               <div style={{ display: 'flex', gap: '2px' }}>
