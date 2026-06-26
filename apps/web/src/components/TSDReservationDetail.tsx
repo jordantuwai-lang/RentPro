@@ -15,7 +15,7 @@ const lbl: React.CSSProperties = {
 };
 const tdc: React.CSSProperties = { padding: '1px 2px', verticalAlign: 'middle' };
 const sectionHdr: React.CSSProperties = {
-  fontSize: '11px', fontWeight: 700, background: '#1e3a5f', color: '#fff',
+  fontSize: '11px', fontWeight: 700, background: '#16a34a', color: '#fff',
   padding: '2px 6px', display: 'block', marginBottom: '2px',
 };
 
@@ -444,12 +444,12 @@ function BtnBar() {
   const btn = (label: string, primary = false): React.CSSProperties => ({
     padding: '3px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
     border: '1px solid #9ca3af',
-    background: primary ? '#1e3a5f' : '#e5e7eb',
+    background: primary ? '#16a34a' : '#e5e7eb',
     color: primary ? '#fff' : '#111',
     borderRadius: '2px',
   });
   return (
-    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#d1d5db', borderTop: '1px solid #9ca3af', padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '4px', zIndex: 100, flexWrap: 'wrap' }}>
+    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#f0fdf4', borderTop: '1px solid #bbf7d0', padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '4px', zIndex: 100, flexWrap: 'wrap' }}>
       <button style={btn('Save', true)}>Save</button>
       <button style={btn('')}>Opt. Services</button>
       <button style={btn('')}>Addl Drivers</button>
@@ -766,7 +766,7 @@ function MainTab() {
               <div style={{ width: '315px', height: '210px', border: '1px solid #9ca3af', overflow: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '11px' }}>
                   <thead>
-                    <tr style={{ background: '#1e3a5f' }}>
+                    <tr style={{ background: '#16a34a' }}>
                       <th style={{ color: '#fff', padding: '2px 4px', textAlign: 'left', fontWeight: 600 }}>Description</th>
                       <th style={{ color: '#fff', padding: '2px 4px', textAlign: 'right', fontWeight: 600 }}>Qty</th>
                       <th style={{ color: '#fff', padding: '2px 4px', textAlign: 'right', fontWeight: 600 }}>Rate</th>
@@ -1282,19 +1282,19 @@ export default function TSDReservationDetail() {
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', paddingBottom: '50px', maxWidth: '960px' }}>
       {/* Page header */}
-      <div style={{ background: '#1e3a5f', color: '#fff', padding: '4px 10px', fontSize: '13px', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: '#16a34a', color: '#fff', padding: '4px 10px', fontSize: '13px', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>Reservation Detail</span>
         <span style={{ fontSize: '11px', fontWeight: 400 }}>New Reservation</span>
       </div>
 
       {/* Tab bar */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #1e3a5f', marginBottom: '6px', background: '#e5e7eb' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid #16a34a', marginBottom: '6px', background: '#fff' }}>
         {TABS.map((t, i) => (
           <button key={t} type="button" onClick={() => setActiveTab(i)} style={{
             padding: '4px 14px', fontSize: '11px', fontWeight: activeTab === i ? 700 : 400,
-            color: activeTab === i ? '#fff' : '#374151',
-            background: activeTab === i ? '#1e3a5f' : 'transparent',
-            border: 'none', borderRight: '1px solid #9ca3af',
+            color: activeTab === i ? '#fff' : '#475569',
+            background: activeTab === i ? '#16a34a' : 'transparent',
+            border: 'none', borderRight: '1px solid #e2e8f0',
             cursor: 'pointer', whiteSpace: 'nowrap',
           }}>{t}</button>
         ))}
