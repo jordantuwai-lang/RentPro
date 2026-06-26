@@ -190,16 +190,16 @@ function AtFaultThirdPartyTab() {
   const lbl2: React.CSSProperties = { ...lbl };
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '960px' }}>
+    <div>
+      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
-          <col style={{ width: '144px' }} />
-          <col style={{ width: '195px' }} />
-          <col style={{ width: '10px' }} />
-          <col style={{ width: '130px' }} />
-          <col style={{ width: '175px' }} />
-          <col style={{ width: '130px' }} />
-          <col style={{ width: '154px' }} />
+          <col style={{ width: '15%' }} />
+          <col style={{ width: '20%' }} />
+          <col style={{ width: '1%' }} />
+          <col style={{ width: '13%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '13%' }} />
+          <col style={{ width: '16%' }} />
           <col />
         </colgroup>
         <tbody>
@@ -595,14 +595,14 @@ function MainTab() {
   const MM = ['00', '15', '30', '45'];
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '980px' }}>
+    <div>
+      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
-          <col style={{ width: '125px' }} />
-          <col style={{ width: '175px' }} />
-          <col style={{ width: '130px' }} />
-          <col style={{ width: '215px' }} />
-          <col style={{ width: '135px' }} />
+          <col style={{ width: '13%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '13%' }} />
+          <col style={{ width: '22%' }} />
+          <col style={{ width: '14%' }} />
           <col />
         </colgroup>
         <tbody>
@@ -1032,14 +1032,14 @@ function MiscTab() {
   const inp2: React.CSSProperties = { ...inp, width: '100%' };
 
   return (
-    <div style={{ overflowX: 'auto', maxHeight: 'calc(100vh - 150px)', overflowY: 'auto' }}>
-      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '860px' }}>
+    <div>
+      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
-          <col style={{ width: '120px' }} />
-          <col style={{ width: '200px' }} />
-          <col style={{ width: '120px' }} />
-          <col style={{ width: '200px' }} />
-          <col style={{ width: '110px' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '23%' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '23%' }} />
+          <col style={{ width: '13%' }} />
           <col />
         </colgroup>
         <tbody>
@@ -1205,14 +1205,14 @@ function AccidentTab() {
   }
 
   return (
-    <div style={{ overflowX: 'auto', maxHeight: 'calc(100vh - 150px)', overflowY: 'auto' }}>
-      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '860px' }}>
+    <div>
+      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
-          <col style={{ width: '120px' }} />
-          <col style={{ width: '200px' }} />
-          <col style={{ width: '120px' }} />
-          <col style={{ width: '200px' }} />
-          <col style={{ width: '110px' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '23%' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '23%' }} />
+          <col style={{ width: '13%' }} />
           <col />
         </colgroup>
         <tbody>
@@ -1803,7 +1803,7 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
 
   return (
     <RezFormContext.Provider value={formCtx}>
-      <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '13px', paddingBottom: '50px', maxWidth: '960px' }}>
+      <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '13px', paddingBottom: '50px' }}>
         {/* Page header */}
         <div style={{ background: '#16a34a', color: '#fff', padding: '4px 10px', fontSize: '13px', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>Reservation Detail</span>
