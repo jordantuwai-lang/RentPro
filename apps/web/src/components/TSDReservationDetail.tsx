@@ -1,6 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
+import api from '@/lib/api';
 
 /* ─── shared styles ─────────────────────────────────────── */
 const inp: React.CSSProperties = {
@@ -21,6 +23,66 @@ const sectionHdr: React.CSSProperties = {
 };
 
 const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Card Details'];
+
+/* ─── Reservation form context ───────────────────────────── */
+interface RezForm {
+  // Customer
+  firstName: string; setFirstName: (v: string) => void;
+  lastName: string; setLastName: (v: string) => void;
+  mi: string; setMi: (v: string) => void;
+  homePhone: string; setHomePhone: (v: string) => void;
+  mobile: string; setMobile: (v: string) => void;
+  workPhone: string; setWorkPhone: (v: string) => void;
+  email: string; setEmail: (v: string) => void;
+  street1: string; setStreet1: (v: string) => void;
+  street2: string; setStreet2: (v: string) => void;
+  city: string; setCity: (v: string) => void;
+  stateVal: string; setStateVal: (v: string) => void;
+  postal: string; setPostal: (v: string) => void;
+  country: string; setCountry: (v: string) => void;
+  licNum: string; setLicNum: (v: string) => void;
+  licState: string; setLicState: (v: string) => void;
+  licExpires: string; setLicExpires: (v: string) => void;
+  dob: string; setDob: (v: string) => void;
+  // Rental
+  pickupDate: string; setPickupDate: (v: string) => void;
+  dropDate: string; setDropDate: (v: string) => void;
+  source: string; setSource: (v: string) => void;
+  hireType: string; setHireType: (v: string) => void;
+  // Accident
+  accDate: string; setAccDate: (v: string) => void;
+  accStreet: string; setAccStreet: (v: string) => void;
+  accSuburb: string; setAccSuburb: (v: string) => void;
+  accDescription: string; setAccDescription: (v: string) => void;
+  // AtFault
+  tpFirstName: string; setTpFirstName: (v: string) => void;
+  tpLastName: string; setTpLastName: (v: string) => void;
+  tpPhone: string; setTpPhone: (v: string) => void;
+  tpEmail: string; setTpEmail: (v: string) => void;
+  tpAddress: string; setTpAddress: (v: string) => void;
+  tpSuburb: string; setTpSuburb: (v: string) => void;
+  tpPostal: string; setTpPostal: (v: string) => void;
+  tpState: string; setTpState: (v: string) => void;
+  tpVehRego: string; setTpVehRego: (v: string) => void;
+  tpVehMake: string; setTpVehMake: (v: string) => void;
+  tpVehModel: string; setTpVehModel: (v: string) => void;
+  tpVehYear: string; setTpVehYear: (v: string) => void;
+  tpInsCarrier: string; setTpInsCarrier: (v: string) => void;
+  tpClaimNo: string; setTpClaimNo: (v: string) => void;
+  // Save state
+  reservationId: string | null;
+  isSaving: boolean;
+  saveError: string;
+  saveSuccess: boolean;
+  save: () => Promise<void>;
+}
+
+const RezFormContext = createContext<RezForm | null>(null);
+const useRezForm = () => {
+  const ctx = useContext(RezFormContext);
+  if (!ctx) throw new Error('useRezForm must be used inside ReservationFormProvider');
+  return ctx;
+};
 
 /* ─── Country list (ISO 3166) ───────────────────────────── */
 const COUNTRIES = [
@@ -74,19 +136,28 @@ const THIRD_PARTY_TYPES = [
 
 /* ─── At Fault Third Party Tab ───────────────────────────── */
 function AtFaultThirdPartyTab() {
-  const [lastName, setLastName] = useState('');
-  const [firstName, setFirstName] = useState('');
+  const {
+    tpFirstName: firstName, setTpFirstName: setFirstName,
+    tpLastName: lastName, setTpLastName: setLastName,
+    tpPhone: homePhone, setTpPhone: setHomePhone,
+    tpEmail: email, setTpEmail: setEmail,
+    tpAddress: street1, setTpAddress: setStreet1,
+    tpSuburb: city, setTpSuburb: setCity,
+    tpPostal: postal, setTpPostal: setPostal,
+    tpState: stateVal, setTpState: setStateVal,
+    tpVehRego: vehRego, setTpVehRego: setVehRego,
+    tpVehMake: vehMake, setTpVehMake: setVehMake,
+    tpVehModel: vehModel, setTpVehModel: setVehModel,
+    tpVehYear: vehYear, setTpVehYear: setVehYear,
+    tpInsCarrier: insCarrier, setTpInsCarrier: setInsCarrier,
+    tpClaimNo: claimNo, setTpClaimNo: setClaimNo,
+  } = useRezForm();
+
   const [mi, setMi] = useState('');
-  const [street1, setStreet1] = useState('');
   const [street2, setStreet2] = useState('');
-  const [city, setCity] = useState('');
   const [country, setCountry] = useState('AUS');
-  const [stateVal, setStateVal] = useState('');
-  const [postal, setPostal] = useState('');
-  const [homePhone, setHomePhone] = useState('');
   const [mobilePhone, setMobilePhone] = useState('');
   const [workPhone, setWorkPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [licIssueDate, setLicIssueDate] = useState('');
   const [licCountry, setLicCountry] = useState('AUS');
   const [licIssueCity, setLicIssueCity] = useState('');
@@ -96,7 +167,6 @@ function AtFaultThirdPartyTab() {
   const [dob, setDob] = useState('');
   const [birthPlace, setBirthPlace] = useState('');
 
-  const [insCarrier, setInsCarrier] = useState('');
   const [insAgency, setInsAgency] = useState('');
   const [insAgent, setInsAgent] = useState('');
   const [policyNo, setPolicyNo] = useState('');
@@ -104,16 +174,12 @@ function AtFaultThirdPartyTab() {
   const [coverType, setCoverType] = useState('CTP');
   const [thirdPartyType, setThirdPartyType] = useState('PLEASE SELECT');
   const [atFault, setAtFault] = useState('');
-  const [vehYear, setVehYear] = useState('');
-  const [vehMake, setVehMake] = useState('');
-  const [vehModel, setVehModel] = useState('');
-  const [vehRego, setVehRego] = useState('');
   const [regoType, setRegoType] = useState('Private');
   const [validated, setValidated] = useState(false);
   const [company, setCompany] = useState('');
   const [abn, setAbn] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
-  const [claimNo, setClaimNo] = useState('');
+
 
   /* grid rows (mock — would be loaded from API) */
   const [gridRows] = useState<{lname:string;fname:string;licNum:string}[]>([]);
@@ -442,6 +508,7 @@ function AtFaultThirdPartyTab() {
 
 /* ─── TSD bottom button bar ─────────────────────────────── */
 function BtnBar() {
+  const { save, isSaving, saveError, saveSuccess } = useRezForm();
   const btn = (label: string, primary = false): React.CSSProperties => ({
     padding: '3px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
     border: '1px solid #9ca3af',
@@ -451,7 +518,14 @@ function BtnBar() {
   });
   return (
     <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#f0fdf4', borderTop: '1px solid #bbf7d0', padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '4px', zIndex: 100, flexWrap: 'wrap' }}>
-      <button style={btn('Save', true)}>Save</button>
+      <button
+        style={{ ...btn('Save', true), opacity: isSaving ? 0.6 : 1 }}
+        disabled={isSaving}
+        onClick={save}
+      >
+        {isSaving ? 'Saving…' : saveSuccess ? '✓ Saved' : 'Save'}
+      </button>
+      {saveError && <span style={{ fontSize: '10px', color: '#dc2626' }}>{saveError}</span>}
       <button style={btn('')}>Opt. Services</button>
       <button style={btn('')}>Addl Drivers</button>
       <button style={btn('')}>Discount</button>
@@ -470,35 +544,25 @@ function BtnBar() {
 
 /* ─── Main Tab ───────────────────────────────────────────── */
 function MainTab() {
+  const form = useRezForm();
+  const {
+    firstName, setFirstName, lastName, setLastName, mi, setMi,
+    homePhone, setHomePhone, mobile, setMobile, workPhone, setWorkPhone,
+    email, setEmail, street1, setStreet1, street2, setStreet2,
+    city, setCity, stateVal, setStateVal, postal, setPostal, country, setCountry,
+    licNum, setLicNum, licState, setLicState, licExpires, setLicExpires, dob, setDob,
+    pickupDate, setPickupDate, dropDate, setDropDate, source, setSource,
+  } = form;
+
   const [quoteNum, setQuoteNum] = useState('');
   const [preferredNum, setPreferredNum] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [mi, setMi] = useState('');
-  const [street1, setStreet1] = useState('');
-  const [street2, setStreet2] = useState('');
-  const [city, setCity] = useState('');
-  const [country, setCountry] = useState('');
-  const [stateVal, setStateVal] = useState('');
-  const [postal, setPostal] = useState('');
-  const [homePhone, setHomePhone] = useState('');
-  const [mobile, setMobile] = useState('');
-  const [workPhone, setWorkPhone] = useState('');
-  const [licNum, setLicNum] = useState('');
-  const [licState, setLicState] = useState('');
-  const [licExpires, setLicExpires] = useState('');
-  const [dob, setDob] = useState('');
-  const [email, setEmail] = useState('');
   const [passport, setPassport] = useState('');
   const [altKNum, setAltKNum] = useState('');
-
   const [pickupLoc, setPickupLoc] = useState('');
   const [dropLoc, setDropLoc] = useState('');
-  const [pickupDate, setPickupDate] = useState('');
   const [pickupHH, setPickupHH] = useState('08');
   const [pickupMM, setPickupMM] = useState('00');
   const [pickupAmPm, setPickupAmPm] = useState('AM');
-  const [dropDate, setDropDate] = useState('');
   const [dropHH, setDropHH] = useState('08');
   const [dropMM, setDropMM] = useState('00');
   const [dropAmPm, setDropAmPm] = useState('AM');
@@ -513,9 +577,7 @@ function MainTab() {
   const [prepaidFuel, setPrepaidFuel] = useState(false);
   const [prepaidFuelAmt, setPrepaidFuelAmt] = useState('');
   const [origCurrency, setOrigCurrency] = useState('AUD');
-
-  const [agentOut, setAgentOut] = useState('');
-  const [source, setSource] = useState('');
+  const [agentOut] = useState('');
   const [referralAgency, setReferralAgency] = useState('');
   const [referralAgent, setReferralAgent] = useState('');
   const [directBill, setDirectBill] = useState('');
@@ -1078,7 +1140,7 @@ function MiscTab() {
 
 /* ─── Accident Details Tab ───────────────────────────────── */
 function AccidentTab() {
-  const [hireType, setHireType] = useState<'credit' | 'direct'>('credit');
+  const { hireType, setHireType, accDate, setAccDate, accStreet, setAccStreet, accSuburb, setAccSuburb, accDescription, setAccDescription } = useRezForm();
   const [flags, setFlags] = useState<Record<string, boolean>>({
     AFR: false, AFC: false, MAV: false, VAL: false, SIG: false, REG: false, INS: false, DLS: false,
   });
@@ -1110,13 +1172,9 @@ function AccidentTab() {
   const [nafInsAgency, setNafInsAgency] = useState('');
   // Type of Cover
   const [coverType, setCoverType] = useState('');
-  // Accident Details
-  const [accDescription, setAccDescription] = useState('');
+  // Accident Details (local-only extras)
   const [accDamageDesc, setAccDamageDesc] = useState('');
-  const [accDate, setAccDate] = useState('');
   const [accTime, setAccTime] = useState('');
-  const [accStreet, setAccStreet] = useState('');
-  const [accSuburb, setAccSuburb] = useState('');
   const [accState, setAccState] = useState('');
   const [accPostal, setAccPostal] = useState('');
   const [accCrossStreet, setAccCrossStreet] = useState('');
@@ -1561,37 +1619,168 @@ function CardDetailsTab() {
 
 /* ─── Root component ─────────────────────────────────────── */
 export default function TSDReservationDetail() {
+  const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
 
+  // ── Shared saveable state ──────────────────────────────
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [mi, setMi] = useState('');
+  const [homePhone, setHomePhone] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [workPhone, setWorkPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [street1, setStreet1] = useState('');
+  const [street2, setStreet2] = useState('');
+  const [city, setCity] = useState('');
+  const [stateVal, setStateVal] = useState('');
+  const [postal, setPostal] = useState('');
+  const [country, setCountry] = useState('');
+  const [licNum, setLicNum] = useState('');
+  const [licState, setLicState] = useState('');
+  const [licExpires, setLicExpires] = useState('');
+  const [dob, setDob] = useState('');
+  const [pickupDate, setPickupDate] = useState('');
+  const [dropDate, setDropDate] = useState('');
+  const [source, setSource] = useState('');
+  const [hireType, setHireType] = useState('credit');
+  const [accDate, setAccDate] = useState('');
+  const [accStreet, setAccStreet] = useState('');
+  const [accSuburb, setAccSuburb] = useState('');
+  const [accDescription, setAccDescription] = useState('');
+  const [tpFirstName, setTpFirstName] = useState('');
+  const [tpLastName, setTpLastName] = useState('');
+  const [tpPhone, setTpPhone] = useState('');
+  const [tpEmail, setTpEmail] = useState('');
+  const [tpAddress, setTpAddress] = useState('');
+  const [tpSuburb, setTpSuburb] = useState('');
+  const [tpPostal, setTpPostal] = useState('');
+  const [tpState, setTpState] = useState('');
+  const [tpVehRego, setTpVehRego] = useState('');
+  const [tpVehMake, setTpVehMake] = useState('');
+  const [tpVehModel, setTpVehModel] = useState('');
+  const [tpVehYear, setTpVehYear] = useState('');
+  const [tpInsCarrier, setTpInsCarrier] = useState('');
+  const [tpClaimNo, setTpClaimNo] = useState('');
+
+  // ── Save state ──────────────────────────────────────────
+  const [reservationId, setReservationId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const save = async () => {
+    setIsSaving(true);
+    setSaveError('');
+    setSaveSuccess(false);
+    try {
+      const token = await getToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      const payload = {
+        customer: {
+          firstName, lastName,
+          phone: mobile || homePhone,
+          email: email || undefined,
+          address: street1,
+          suburb: city,
+          postcode: postal,
+          state: stateVal,
+          licenceNumber: licNum || undefined,
+          licenceState: licState || undefined,
+          licenceExpiry: licExpires || undefined,
+          dob: dob || undefined,
+        },
+        startDate: pickupDate || undefined,
+        endDate: dropDate || undefined,
+        sourceOfBusiness: source || undefined,
+        hireType: hireType || undefined,
+        accident: (accDate || accDescription) ? {
+          date: accDate || undefined,
+          location: accStreet ? `${accStreet}${accSuburb ? ', ' + accSuburb : ''}` : undefined,
+          description: accDescription || undefined,
+        } : undefined,
+        atFault: (tpLastName || tpVehRego) ? {
+          firstName: tpFirstName || undefined,
+          lastName: tpLastName || undefined,
+          phone: tpPhone || undefined,
+          email: tpEmail || undefined,
+          address: tpAddress || undefined,
+          suburb: tpSuburb || undefined,
+          postcode: tpPostal || undefined,
+          state: tpState || undefined,
+          vehicleRegistration: tpVehRego || undefined,
+          vehicleMake: tpVehMake || undefined,
+          vehicleModel: tpVehModel || undefined,
+          vehicleYear: tpVehYear || undefined,
+          insuranceProvider: tpInsCarrier || undefined,
+          claimNumber: tpClaimNo || undefined,
+        } : undefined,
+      };
+
+      if (reservationId) {
+        await api.patch(`/reservations/${reservationId}`, payload, { headers });
+      } else {
+        const res = await api.post('/reservations', payload, { headers });
+        setReservationId(res.data?.id ?? null);
+      }
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      setSaveError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Save failed. Please try again.'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const formCtx: RezForm = {
+    firstName, setFirstName, lastName, setLastName, mi, setMi,
+    homePhone, setHomePhone, mobile, setMobile, workPhone, setWorkPhone,
+    email, setEmail, street1, setStreet1, street2, setStreet2,
+    city, setCity, stateVal, setStateVal, postal, setPostal, country, setCountry,
+    licNum, setLicNum, licState, setLicState, licExpires, setLicExpires, dob, setDob,
+    pickupDate, setPickupDate, dropDate, setDropDate, source, setSource,
+    hireType, setHireType, accDate, setAccDate, accStreet, setAccStreet,
+    accSuburb, setAccSuburb, accDescription, setAccDescription,
+    tpFirstName, setTpFirstName, tpLastName, setTpLastName,
+    tpPhone, setTpPhone, tpEmail, setTpEmail,
+    tpAddress, setTpAddress, tpSuburb, setTpSuburb, tpPostal, setTpPostal, tpState, setTpState,
+    tpVehRego, setTpVehRego, tpVehMake, setTpVehMake, tpVehModel, setTpVehModel, tpVehYear, setTpVehYear,
+    tpInsCarrier, setTpInsCarrier, tpClaimNo, setTpClaimNo,
+    reservationId, isSaving, saveError, saveSuccess, save,
+  };
+
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', paddingBottom: '50px', maxWidth: '960px' }}>
-      {/* Page header */}
-      <div style={{ background: '#16a34a', color: '#fff', padding: '4px 10px', fontSize: '13px', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span>Reservation Detail</span>
-        <span style={{ fontSize: '11px', fontWeight: 400 }}>New Reservation</span>
+    <RezFormContext.Provider value={formCtx}>
+      <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', paddingBottom: '50px', maxWidth: '960px' }}>
+        {/* Page header */}
+        <div style={{ background: '#16a34a', color: '#fff', padding: '4px 10px', fontSize: '13px', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>Reservation Detail</span>
+          <span style={{ fontSize: '11px', fontWeight: 400 }}>{reservationId ? `Rez #${reservationId}` : 'New Reservation'}</span>
+        </div>
+
+        {/* Tab bar */}
+        <div style={{ display: 'flex', borderBottom: '2px solid #16a34a', marginBottom: '6px', background: '#fff' }}>
+          {TABS.map((t, i) => (
+            <button key={t} type="button" onClick={() => setActiveTab(i)} style={{
+              padding: '4px 14px', fontSize: '11px', fontWeight: activeTab === i ? 700 : 400,
+              color: activeTab === i ? '#fff' : '#475569',
+              background: activeTab === i ? '#16a34a' : 'transparent',
+              border: 'none', borderRight: '1px solid #e2e8f0',
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}>{t}</button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        {activeTab === 0 && <MainTab />}
+        {activeTab === 1 && <MiscTab />}
+        {activeTab === 2 && <AccidentTab />}
+        {activeTab === 3 && <AtFaultThirdPartyTab />}
+        {activeTab === 4 && <CardDetailsTab />}
+
+        <BtnBar />
       </div>
-
-      {/* Tab bar */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #16a34a', marginBottom: '6px', background: '#fff' }}>
-        {TABS.map((t, i) => (
-          <button key={t} type="button" onClick={() => setActiveTab(i)} style={{
-            padding: '4px 14px', fontSize: '11px', fontWeight: activeTab === i ? 700 : 400,
-            color: activeTab === i ? '#fff' : '#475569',
-            background: activeTab === i ? '#16a34a' : 'transparent',
-            border: 'none', borderRight: '1px solid #e2e8f0',
-            cursor: 'pointer', whiteSpace: 'nowrap',
-          }}>{t}</button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      {activeTab === 0 && <MainTab />}
-      {activeTab === 1 && <MiscTab />}
-      {activeTab === 2 && <AccidentTab />}
-      {activeTab === 3 && <AtFaultThirdPartyTab />}
-      {activeTab === 4 && <CardDetailsTab />}
-
-      <BtnBar />
-    </div>
+    </RezFormContext.Provider>
   );
 }
