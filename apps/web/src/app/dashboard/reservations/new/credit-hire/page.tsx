@@ -745,7 +745,8 @@ const startScanner = async () => {
     const reader = new BrowserMultiFormatReader(hints);
     scannerRef.current = reader;
 
-    const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+    const allDevices = await navigator.mediaDevices.enumerateDevices();
+    const devices = allDevices.filter(d => d.kind === 'videoinput');
     // Prefer rear camera on tablet
     const rearCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment')) || devices[devices.length - 1];
 
