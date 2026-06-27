@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
   const { image } = await req.json();
   if (!image) return NextResponse.json({ error: 'No image provided' }, { status: 400 });
 
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GOOGLE_VISION_API_KEY || process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'Vision API key not configured' }, { status: 500 });
 
   const visionRes = await fetch(`${VISION_API_URL}?key=${apiKey}`, {
@@ -108,7 +108,9 @@ export async function POST(req: NextRequest) {
   });
 
   if (!visionRes.ok) {
-    return NextResponse.json({ error: 'Vision API request failed' }, { status: 502 });
+    const errBody = await visionRes.json().catch(() => ({}));
+    const errMsg = errBody?.error?.message || 'Vision API request failed';
+    return NextResponse.json({ error: errMsg }, { status: 502 });
   }
 
   const visionData = await visionRes.json();
