@@ -510,7 +510,9 @@ function AtFaultThirdPartyTab() {
 
 /* ─── TSD bottom button bar ─────────────────────────────── */
 function BtnBar() {
-  const { save, isSaving, saveError, saveSuccess } = useRezForm();
+  const { save, isSaving, saveError, saveSuccess, setFirstName, setLastName, setStreet1, setCity, setStateVal, setPostal, setLicNum, setLicExpires, setDob } = useRezForm();
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState('');
   const btn = (label: string, primary = false): React.CSSProperties => ({
     padding: '3px 10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
     border: '1px solid #9ca3af',
@@ -518,8 +520,40 @@ function BtnBar() {
     color: primary ? '#fff' : '#111',
     borderRadius: '2px',
   });
+
+  const handleScanChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanLoading(true); setScanError('');
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const res = await fetch('/api/scan-licence', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: base64 }) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Scan failed');
+        if (data.firstName) setFirstName(data.firstName);
+        if (data.lastName) setLastName(data.lastName);
+        if (data.street1) setStreet1(data.street1);
+        if (data.city) setCity(data.city);
+        if (data.state) setStateVal(data.state);
+        if (data.postcode) setPostal(data.postcode);
+        if (data.licenceNumber) setLicNum(data.licenceNumber);
+        if (data.licenceExpiry) setLicExpires(data.licenceExpiry);
+        if (data.dob) setDob(data.dob);
+        setScanLoading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setScanError(err.message || 'Scan failed');
+      setScanLoading(false);
+    }
+    e.target.value = '';
+  };
+
   return (
     <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#f0fdf4', borderTop: '1px solid #bbf7d0', padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '4px', zIndex: 100, flexWrap: 'wrap' }}>
+      <input id="scan-licence-input" type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleScanChange} />
       <button
         style={{ ...btn('Save', true), opacity: isSaving ? 0.6 : 1 }}
         disabled={isSaving}
@@ -539,6 +573,14 @@ function BtnBar() {
       <button style={btn('')}>Invoice</button>
       <button style={btn('')}>Open R/A</button>
       <button style={btn('')}>Duplicate</button>
+      <button
+        style={{ ...btn(''), background: scanLoading ? '#d1fae5' : '#e5e7eb', opacity: scanLoading ? 0.7 : 1 }}
+        disabled={scanLoading}
+        onClick={() => document.getElementById('scan-licence-input')?.click()}
+      >
+        {scanLoading ? 'Scanning…' : '📷 Scan Licence'}
+      </button>
+      {scanError && <span style={{ fontSize: '10px', color: '#dc2626' }}>{scanError}</span>}
       <button style={{ ...btn(''), color: '#dc2626', border: '1px solid #dc2626' }}>Cancel</button>
     </div>
   );
@@ -585,8 +627,6 @@ function MainTab() {
   const [directBill, setDirectBill] = useState('');
   const [poNum, setPoNum] = useState('');
   const [useTax, setUseTax] = useState(false);
-  const [scanLoading, setScanLoading] = useState(false);
-  const [scanError, setScanError] = useState('');
   const [broadcastNote, setBroadcastNote] = useState('');
   const [expires, setExpires] = useState('');
   const [booked] = useState(new Date().toLocaleDateString('en-AU'));
@@ -869,66 +909,7 @@ function MainTab() {
           <tr>
             <td style={lbl}>Work Phone</td>
             <td style={tdc}><input style={inp} value={workPhone} onChange={e => setWorkPhone(e.target.value)} /></td>
-            <td colSpan={2} style={tdc}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <input
-                  id="scan-licence-input"
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  style={{ display: 'none' }}
-                  onChange={async e => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setScanLoading(true);
-                    setScanError('');
-                    try {
-                      const reader = new FileReader();
-                      const base64 = await new Promise<string>((resolve, reject) => {
-                        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
-                      });
-                      const res = await fetch('/api/scan-licence', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ image: base64 }),
-                      });
-                      if (!res.ok) throw new Error('Scan failed');
-                      const data = await res.json();
-                      if (data.firstName) setFirstName(data.firstName);
-                      if (data.lastName) setLastName(data.lastName);
-                      if (data.street1) setStreet1(data.street1);
-                      if (data.city) setCity(data.city);
-                      if (data.state) setStateVal(data.state);
-                      if (data.postcode) setPostal(data.postcode);
-                      if (data.licenceNumber) setLicNum(data.licenceNumber);
-                      if (data.licenceExpiry) setLicExpires(data.licenceExpiry);
-                      if (data.dob) setDob(data.dob);
-                    } catch {
-                      setScanError('Could not read licence. Please try again.');
-                    } finally {
-                      setScanLoading(false);
-                      e.target.value = '';
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('scan-licence-input')?.click()}
-                  disabled={scanLoading}
-                  style={{
-                    padding: '2px 10px', fontSize: '13px', fontWeight: 600,
-                    background: '#16a34a', color: '#fff', border: 'none',
-                    borderRadius: '3px', cursor: 'pointer', height: '22px',
-                    opacity: scanLoading ? 0.6 : 1,
-                  }}
-                >
-                  {scanLoading ? 'Scanning…' : '📷 Scan Licence'}
-                </button>
-                {scanError && <span style={{ fontSize: '10px', color: '#dc2626' }}>{scanError}</span>}
-              </div>
-            </td>
+            <td colSpan={2} style={tdc} />
           </tr>
 
           {/* Row 13 */}
