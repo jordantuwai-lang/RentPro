@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import api from '@/lib/api';
 
-/* ─── shared styles ─────────────────────────────────────── */
+/* ─── legacy shared styles (used by non-modernised tabs) ─── */
 const inp: React.CSSProperties = {
   width: '100%', padding: '2px 4px', border: '1px solid #9ca3af',
   fontSize: '13px', color: '#000', background: '#fff', boxSizing: 'border-box', height: '22px',
@@ -21,6 +21,41 @@ const sectionHdr: React.CSSProperties = {
   fontSize: '12px', fontWeight: 700, background: '#16a34a', color: '#fff',
   padding: '2px 6px', display: 'block', marginBottom: '2px',
 };
+
+/* ─── modern shared styles ───────────────────────────────── */
+const mField: React.CSSProperties = {
+  width: '100%', height: '36px', padding: '0 10px', fontSize: '14px',
+  color: '#0f172a', background: '#fff', border: '1px solid #cbd5e1',
+  borderRadius: '6px', boxSizing: 'border-box', outline: 'none',
+};
+const mFieldRo: React.CSSProperties = { ...mField, background: '#f1f5f9', color: '#475569' };
+const mLabel: React.CSSProperties = {
+  display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748b',
+  textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '5px',
+};
+
+function MField({ label, children, span = 1 }: { label: string; children: React.ReactNode; span?: number }) {
+  return (
+    <div style={{ gridColumn: `span ${span}` }}>
+      <label style={mLabel}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function MCard({ title, children, cols = 6 }: { title: string; children: React.ReactNode; cols?: number }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', marginBottom: '16px' }}>
+      <div style={{ padding: '10px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: '13px', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ width: '3px', height: '14px', background: '#16a34a', borderRadius: '2px', display: 'inline-block', flexShrink: 0 }} />
+        {title}
+      </div>
+      <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '12px 16px' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Card Details'];
 
@@ -183,327 +218,175 @@ function AtFaultThirdPartyTab() {
   const [companyPhone, setCompanyPhone] = useState('');
 
 
-  /* grid rows (mock — would be loaded from API) */
-  const [gridRows] = useState<{lname:string;fname:string;licNum:string}[]>([]);
-
-  const inp2: React.CSSProperties = { ...inp, width: '100%' };
-  const lbl2: React.CSSProperties = { ...lbl };
+  const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
 
   return (
-    <div>
-      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
-        <colgroup>
-          <col style={{ width: '15%' }} />
-          <col style={{ width: '20%' }} />
-          <col style={{ width: '1%' }} />
-          <col style={{ width: '13%' }} />
-          <col style={{ width: '18%' }} />
-          <col style={{ width: '13%' }} />
-          <col style={{ width: '16%' }} />
-          <col />
-        </colgroup>
-        <tbody>
-          {/* Title row */}
-          <tr>
-            <td colSpan={2} style={{ padding: '2px 0 4px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 700 }}>At Fault Third Party</span>
-            </td>
-            <td colSpan={6}></td>
-          </tr>
+    <div style={{ padding: '16px' }}>
+      <MCard title="Personal Details" cols={6}>
+        <MField label="Last Name" span={2}>
+          <input style={mField} value={lastName} onChange={e => setLastName(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="First Name" span={3}>
+          <input style={mField} value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="MI" span={1}>
+          <input style={mField} value={mi} onChange={e => setMi(e.target.value)} maxLength={1} />
+        </MField>
+        <MField label="Date of Birth" span={2}>
+          <input type="date" style={mField} value={dob} onChange={e => setDob(e.target.value)} />
+        </MField>
+        <MField label="Birth Place" span={2}>
+          <input style={mField} value={birthPlace} onChange={e => setBirthPlace(e.target.value)} maxLength={35} />
+        </MField>
+        <MField label="Home Phone" span={2}>
+          <input type="tel" style={mField} value={homePhone} onChange={e => setHomePhone(e.target.value)} maxLength={30} />
+        </MField>
+        <MField label="Mobile" span={2}>
+          <input type="tel" style={mField} value={mobilePhone} onChange={e => setMobilePhone(e.target.value)} maxLength={30} />
+        </MField>
+        <MField label="Work Phone" span={2}>
+          <input type="tel" style={mField} value={workPhone} onChange={e => setWorkPhone(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="Email" span={6}>
+          <input type="email" style={mField} value={email} onChange={e => setEmail(e.target.value)} maxLength={50} />
+        </MField>
+      </MCard>
 
-          {/* Row 1 — grid starts rowspan 6, cols 4-8 */}
-          <tr>
-            <td style={lbl2}>Last Name&nbsp;<span style={{ color: 'red' }}>*</span></td>
-            <td style={tdc}><input style={inp2} value={lastName} onChange={e => setLastName(e.target.value)} maxLength={40} /></td>
-            <td></td>
-            {/* Third Party grid — rowspan 6 */}
-            <td colSpan={5} rowSpan={6} style={{ verticalAlign: 'top', padding: '1px 2px' }}>
-              <div style={{ width: '592px', border: '1px solid #9ca3af' }}>
-                {/* header */}
-                <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%', fontSize: '13px', background: '#e5e7eb' }}>
-                  <colgroup>
-                    <col style={{ width: '26px' }} />
-                    <col style={{ width: '176px' }} />
-                    <col style={{ width: '176px' }} />
-                    <col />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th style={{ padding: '2px 4px', border: '1px solid #9ca3af', textAlign: 'left' }}>&nbsp;</th>
-                      <th style={{ padding: '2px 4px', border: '1px solid #9ca3af', textAlign: 'left' }}>Last Name</th>
-                      <th style={{ padding: '2px 4px', border: '1px solid #9ca3af', textAlign: 'left' }}>First Name</th>
-                      <th style={{ padding: '2px 4px', border: '1px solid #9ca3af', textAlign: 'left' }}>License #</th>
-                    </tr>
-                  </thead>
-                </table>
-                {/* body */}
-                <div style={{ height: '95px', overflowY: 'auto' }}>
-                  <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%', fontSize: '13px' }}>
-                    <colgroup>
-                      <col style={{ width: '26px' }} />
-                      <col style={{ width: '176px' }} />
-                      <col style={{ width: '176px' }} />
-                      <col />
-                    </colgroup>
-                    <tbody>
-                      {gridRows.length === 0
-                        ? <tr><td colSpan={4} style={{ padding: '4px', color: '#6b7280' }}></td></tr>
-                        : gridRows.map((r, i) => (
-                          <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                            <td style={{ padding: '2px 4px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
-                              <button style={{ fontSize: '10px', padding: '0 3px', cursor: 'pointer' }}>▶</button>
-                            </td>
-                            <td style={{ padding: '2px 4px', border: '1px solid #e5e7eb' }}>{r.lname}</td>
-                            <td style={{ padding: '2px 4px', border: '1px solid #e5e7eb' }}>{r.fname}</td>
-                            <td style={{ padding: '2px 4px', border: '1px solid #e5e7eb' }}>{r.licNum}</td>
-                          </tr>
-                        ))
-                      }
-                    </tbody>
-                  </table>
-                </div>
-                {/* pager */}
-                <div style={{ background: '#e5e7eb', padding: '2px 6px', fontSize: '13px', borderTop: '1px solid #9ca3af' }}>
-                  Page <strong>1</strong> of <strong>1</strong>, items <strong>0</strong> to <strong>0</strong> of <strong>0</strong>.
-                </div>
-              </div>
-            </td>
-          </tr>
+      <MCard title="Address" cols={6}>
+        <MField label="Street 1" span={4}>
+          <input style={mField} value={street1} onChange={e => setStreet1(e.target.value)} maxLength={100} />
+        </MField>
+        <MField label="Street 2" span={2}>
+          <input style={mField} value={street2} onChange={e => setStreet2(e.target.value)} maxLength={100} />
+        </MField>
+        <MField label="Suburb" span={2}>
+          <input style={mField} value={city} onChange={e => setCity(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="State" span={1}>
+          <input style={mField} value={stateVal} onChange={e => setStateVal(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="Postcode" span={1}>
+          <input style={mField} value={postal} onChange={e => setPostal(e.target.value)} maxLength={25} />
+        </MField>
+        <MField label="Country" span={2}>
+          <select style={mSel} value={country} onChange={e => setCountry(e.target.value)}>
+            {COUNTRIES.map(([code, name]) => (
+              <option key={code} value={code}>{name}{name && code ? `  ${code}` : ''}</option>
+            ))}
+          </select>
+        </MField>
+      </MCard>
 
-          {/* Row 2 */}
-          <tr>
-            <td style={lbl2}>First Name&nbsp;<span style={{ color: 'red' }}>*</span></td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-                <input style={{ ...inp2, flex: 1 }} value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={40} />
-                <span style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>MI</span>
-                <input style={{ ...inp, width: '20px' }} value={mi} onChange={e => setMi(e.target.value)} maxLength={1} />
-              </div>
-            </td>
-            <td></td>
-          </tr>
+      <MCard title="Licence" cols={6}>
+        <MField label="Licence #" span={3}>
+          <input style={mField} value={licNum} onChange={e => setLicNum(e.target.value)} />
+        </MField>
+        <MField label="State" span={1}>
+          <input style={mField} value={licState} onChange={e => setLicState(e.target.value)} maxLength={3} />
+        </MField>
+        <MField label="Expiry" span={2}>
+          <input type="date" style={mField} value={licExpires} onChange={e => setLicExpires(e.target.value)} />
+        </MField>
+        <MField label="Issue Date" span={2}>
+          <input type="date" style={mField} value={licIssueDate} onChange={e => setLicIssueDate(e.target.value)} />
+        </MField>
+        <MField label="Issue Country" span={2}>
+          <select style={mSel} value={licCountry} onChange={e => setLicCountry(e.target.value)}>
+            {COUNTRIES.filter(([c]) => c).map(([code]) => (
+              <option key={code} value={code}>{code}</option>
+            ))}
+          </select>
+        </MField>
+        <MField label="Issue City" span={2}>
+          <input style={mField} value={licIssueCity} onChange={e => setLicIssueCity(e.target.value)} maxLength={35} />
+        </MField>
+        <MField label="Alternate ID" span={2}>
+          <input style={mField} value={altId} onChange={e => setAltId(e.target.value)} maxLength={40} />
+        </MField>
+      </MCard>
 
-          {/* Row 3 */}
-          <tr>
-            <td style={lbl2}>Street 1</td>
-            <td style={tdc}><input style={inp2} value={street1} onChange={e => setStreet1(e.target.value)} maxLength={100} /></td>
-            <td></td>
-          </tr>
+      <MCard title="Vehicle Details" cols={6}>
+        <MField label="Registration" span={2}>
+          <input style={mField} value={vehRego} onChange={e => setVehRego(e.target.value)} maxLength={29} />
+        </MField>
+        <MField label="Year" span={1}>
+          <input style={mField} value={vehYear} onChange={e => setVehYear(e.target.value)} maxLength={4} />
+        </MField>
+        <MField label="Make" span={2}>
+          <input style={mField} value={vehMake} onChange={e => setVehMake(e.target.value)} maxLength={20} />
+        </MField>
+        <MField label="Model" span={2}>
+          <input style={mField} value={vehModel} onChange={e => setVehModel(e.target.value)} maxLength={20} />
+        </MField>
+        <div style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', gap: '20px', paddingTop: '22px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>Reg. Type</span>
+          {['Private','Business'].map(r => (
+            <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+              <input type="radio" name="afRegoType" value={r} checked={regoType === r} onChange={() => setRegoType(r)} />{r}
+            </label>
+          ))}
+        </div>
+      </MCard>
 
-          {/* Row 4 */}
-          <tr>
-            <td style={lbl2}>Street 2</td>
-            <td style={tdc}><input style={inp2} value={street2} onChange={e => setStreet2(e.target.value)} maxLength={100} /></td>
-            <td></td>
-          </tr>
+      <MCard title="Insurance Details" cols={6}>
+        <MField label="Carrier" span={2}>
+          <input style={mField} value={insCarrier} onChange={e => setInsCarrier(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="Agency" span={2}>
+          <input style={mField} value={insAgency} onChange={e => setInsAgency(e.target.value)} maxLength={20} />
+        </MField>
+        <MField label="Agent" span={2}>
+          <input style={mField} value={insAgent} onChange={e => setInsAgent(e.target.value)} maxLength={20} />
+        </MField>
+        <MField label="Policy #" span={2}>
+          <input style={mField} value={policyNo} onChange={e => setPolicyNo(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="Claim #" span={2}>
+          <input style={mField} value={claimNo} onChange={e => setClaimNo(e.target.value)} maxLength={40} />
+        </MField>
+        <div style={{ gridColumn: 'span 6', display: 'flex', gap: '24px', flexWrap: 'wrap', paddingTop: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>Type of Cover</span>
+            {['CTP','TPP','COMP'].map(c => (
+              <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+                <input type="radio" name="afCoverType" value={c} checked={coverType === c} onChange={() => setCoverType(c)} />{c}
+              </label>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>At Fault</span>
+            <select style={{ ...mSel, width: '100px' }} value={atFault} onChange={e => setAtFault(e.target.value)}>
+              <option value="">—</option>
+              <option value="N">No</option>
+              <option value="Y">Yes</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>Third Party Type</span>
+            <select style={{ ...mSel, width: '180px' }} value={thirdPartyType} onChange={e => setThirdPartyType(e.target.value)}>
+              {THIRD_PARTY_TYPES.map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+      </MCard>
 
-          {/* Row 5 */}
-          <tr>
-            <td style={lbl2}>City</td>
-            <td style={tdc}><input style={inp2} value={city} onChange={e => setCity(e.target.value)} maxLength={40} /></td>
-            <td></td>
-          </tr>
-
-          {/* Row 6 */}
-          <tr>
-            <td style={lbl2}>Country</td>
-            <td style={tdc}>
-              <select style={{ ...sel, width: '100%' }} value={country} onChange={e => setCountry(e.target.value)}>
-                {COUNTRIES.map(([code, name]) => (
-                  <option key={code} value={code}>{name}{name && code ? `  ${code}` : ''}</option>
-                ))}
-              </select>
-            </td>
-            <td></td>
-            {/* grid rowspan ends — next rows have their own cols 4-8 */}
-          </tr>
-
-          {/* Row 7 — grid ends, insurance starts */}
-          <tr>
-            <td style={lbl2}>State</td>
-            <td style={tdc}><input style={inp2} value={stateVal} onChange={e => setStateVal(e.target.value)} maxLength={40} /></td>
-            <td></td>
-            <td style={lbl2}>Insurance Carrier</td>
-            <td style={tdc}><input style={inp2} value={insCarrier} onChange={e => setInsCarrier(e.target.value)} maxLength={40} /></td>
-            <td style={lbl2}>Type</td>
-            <td colSpan={2} style={tdc}>
-              <select style={{ ...sel, width: '100%' }} value={thirdPartyType} onChange={e => setThirdPartyType(e.target.value)}>
-                {THIRD_PARTY_TYPES.map(t => <option key={t}>{t}</option>)}
-              </select>
-            </td>
-          </tr>
-
-          {/* Row 8 */}
-          <tr>
-            <td style={lbl2}>Postal Code</td>
-            <td style={tdc}><input style={inp2} value={postal} onChange={e => setPostal(e.target.value)} maxLength={25} /></td>
-            <td></td>
-            <td style={lbl2}>Insurance Agency</td>
-            <td style={tdc}><input style={inp2} value={insAgency} onChange={e => setInsAgency(e.target.value)} maxLength={20} /></td>
-            <td style={lbl2}>At Fault&nbsp;<span style={{ color: 'red' }}>*</span></td>
-            <td style={tdc}>
-              <select style={{ ...sel, width: '80px' }} value={atFault} onChange={e => setAtFault(e.target.value)}>
-                <option value=""></option>
-                <option value="N">No</option>
-                <option value="Y">Yes</option>
-              </select>
-            </td>
-            <td></td>
-          </tr>
-
-          {/* Row 9 */}
-          <tr>
-            <td style={lbl2}>Home Phone</td>
-            <td style={tdc}><input style={inp2} type="tel" value={homePhone} onChange={e => setHomePhone(e.target.value)} maxLength={30} /></td>
-            <td></td>
-            <td style={lbl2}>Insurance Agent</td>
-            <td style={tdc}><input style={inp2} value={insAgent} onChange={e => setInsAgent(e.target.value)} maxLength={20} /></td>
-            <td style={lbl2}>Vehicle Year / Make</td>
-            <td colSpan={2} style={tdc}>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <input style={{ ...inp, width: '45px' }} type="number" value={vehYear} onChange={e => setVehYear(e.target.value)} maxLength={4} />
-                <input style={{ ...inp, flex: 1 }} value={vehMake} onChange={e => setVehMake(e.target.value)} maxLength={20} />
-              </div>
-            </td>
-          </tr>
-
-          {/* Row 10 */}
-          <tr>
-            <td style={lbl2}>Mobile Phone</td>
-            <td style={tdc}><input style={inp2} type="tel" value={mobilePhone} onChange={e => setMobilePhone(e.target.value)} maxLength={30} /></td>
-            <td></td>
-            <td style={lbl2}>Policy #</td>
-            <td style={tdc}><input style={inp2} value={policyNo} onChange={e => setPolicyNo(e.target.value)} maxLength={40} /></td>
-            <td style={lbl2}>Vehicle Model</td>
-            <td colSpan={2} style={tdc}><input style={inp2} value={vehModel} onChange={e => setVehModel(e.target.value)} maxLength={20} /></td>
-          </tr>
-
-          {/* Row 11 */}
-          <tr>
-            <td style={lbl2}>Work Phone</td>
-            <td style={tdc}><input style={inp2} type="tel" value={workPhone} onChange={e => setWorkPhone(e.target.value)} maxLength={40} /></td>
-            <td></td>
-            <td style={lbl2}>Alternate ID</td>
-            <td style={tdc}><input style={inp2} value={altId} onChange={e => setAltId(e.target.value)} maxLength={40} /></td>
-            <td style={lbl2}>Vehicle Registration</td>
-            <td colSpan={2} style={tdc}><input style={inp2} value={vehRego} onChange={e => setVehRego(e.target.value)} maxLength={29} /></td>
-          </tr>
-
-          {/* Row 12 */}
-          <tr>
-            <td style={lbl2}>E-Mail</td>
-            <td style={tdc}><input style={inp2} value={email} onChange={e => setEmail(e.target.value)} maxLength={50} /></td>
-            <td></td>
-            <td style={lbl2}>Type of Cover</td>
-            <td style={tdc}>
-              {['CTP','TPP','COMP'].map(c => (
-                <label key={c} style={{ fontSize: '13px', marginRight: '6px', cursor: 'pointer' }}>
-                  <input type="radio" name="afCoverType" value={c} checked={coverType === c} onChange={() => setCoverType(c)} />&nbsp;{c}
-                </label>
-              ))}
-            </td>
-            <td style={lbl2}>Vehicle Reg. Type</td>
-            <td colSpan={2} style={tdc}>
-              {['Private','Business'].map(r => (
-                <label key={r} style={{ fontSize: '13px', marginRight: '6px', cursor: 'pointer' }}>
-                  <input type="radio" name="afRegoType" value={r} checked={regoType === r} onChange={() => setRegoType(r)} />&nbsp;{r}
-                </label>
-              ))}
-            </td>
-          </tr>
-
-          {/* Row 13 */}
-          <tr>
-            <td style={lbl2}>Lic Issue Date / Country</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <input type="date" style={{ ...inp, width: '90px' }} value={licIssueDate} onChange={e => setLicIssueDate(e.target.value)} />
-                <select style={{ ...sel, flex: 1 }} value={licCountry} onChange={e => setLicCountry(e.target.value)}>
-                  {COUNTRIES.filter(([c]) => c).map(([code]) => (
-                    <option key={code} value={code}>{code}</option>
-                  ))}
-                </select>
-              </div>
-            </td>
-            <td></td>
-            <td colSpan={2} style={tdc}>&nbsp;</td>
-            <td style={lbl2}>Validated</td>
-            <td colSpan={2} style={tdc}>
-              <input type="checkbox" checked={validated} onChange={e => setValidated(e.target.checked)} />&nbsp;
-              <span style={{ fontSize: '13px' }}>Company</span>&nbsp;
-              <input style={{ ...inp, width: '100px', display: 'inline-block' }} value={company} onChange={e => setCompany(e.target.value)} maxLength={40} />
-            </td>
-          </tr>
-
-          {/* Row 14 */}
-          <tr>
-            <td style={lbl2}>License Issue City</td>
-            <td style={tdc}><input style={inp2} value={licIssueCity} onChange={e => setLicIssueCity(e.target.value)} maxLength={35} /></td>
-            <td></td>
-            <td colSpan={2} style={tdc}>&nbsp;</td>
-            <td style={lbl2}>ABN</td>
-            <td colSpan={2} style={tdc}><input style={inp2} value={abn} onChange={e => setAbn(e.target.value)} maxLength={40} /></td>
-          </tr>
-
-          {/* Row 15 */}
-          <tr>
-            <td style={lbl2}>License # / State</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px', alignItems: 'flex-start' }}>
-                <textarea
-                  style={{ fontSize: '13px', border: '1px solid #9ca3af', width: '148px', height: '22px', resize: 'none', padding: '1px 3px', overflow: 'hidden', boxSizing: 'border-box' }}
-                  value={licNum}
-                  onChange={e => setLicNum(e.target.value)}
-                  maxLength={1000}
-                  rows={1}
-                />
-                <input style={{ ...inp, width: '38px' }} value={licState} onChange={e => setLicState(e.target.value)} maxLength={3} />
-              </div>
-            </td>
-            <td></td>
-            <td colSpan={2} style={tdc}>&nbsp;</td>
-            <td style={lbl2}>Company Phone</td>
-            <td colSpan={2} style={tdc}><input style={inp2} type="tel" value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} maxLength={40} /></td>
-          </tr>
-
-          {/* Row 16 */}
-          <tr>
-            <td style={lbl2}>License Expiration</td>
-            <td style={tdc}><input type="date" style={inp2} value={licExpires} onChange={e => setLicExpires(e.target.value)} /></td>
-            <td></td>
-            <td colSpan={2} style={tdc}></td>
-            <td style={lbl2}>Claim #</td>
-            <td colSpan={2} style={tdc}><input style={inp2} value={claimNo} onChange={e => setClaimNo(e.target.value)} maxLength={40} /></td>
-          </tr>
-
-          {/* Row 17 */}
-          <tr>
-            <td style={lbl2}>Date of Birth</td>
-            <td style={tdc}><input type="date" style={inp2} value={dob} onChange={e => setDob(e.target.value)} /></td>
-            <td colSpan={6}></td>
-          </tr>
-
-          {/* Row 18 */}
-          <tr>
-            <td style={lbl2}>Birth Place</td>
-            <td style={tdc}><input style={inp2} value={birthPlace} onChange={e => setBirthPlace(e.target.value)} maxLength={35} /></td>
-            <td colSpan={6}></td>
-          </tr>
-
-          {/* spacer */}
-          <tr><td style={{ height: '6px' }} colSpan={8}></td></tr>
-        </tbody>
-      </table>
-
-      {/* Button bar */}
-      <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-        {['Save','New','Delete','Close'].map(label => (
-          <button key={label} style={{
-            padding: '3px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-            border: '1px solid #9ca3af', background: '#e5e7eb', borderRadius: '2px',
-          }}>{label}</button>
-        ))}
-      </div>
+      <MCard title="Company Details" cols={6}>
+        <div style={{ gridColumn: 'span 1', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '22px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+            <input type="checkbox" checked={validated} onChange={e => setValidated(e.target.checked)} />
+            Validated
+          </label>
+        </div>
+        <MField label="Company" span={3}>
+          <input style={mField} value={company} onChange={e => setCompany(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="ABN" span={2}>
+          <input style={mField} value={abn} onChange={e => setAbn(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="Company Phone" span={2}>
+          <input type="tel" style={mField} value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} maxLength={40} />
+        </MField>
+      </MCard>
     </div>
   );
 }
@@ -551,44 +434,50 @@ function BtnBar() {
     e.target.value = '';
   };
 
+  const secondary: React.CSSProperties = {
+    padding: '6px 12px', fontSize: '13px', fontWeight: 500, borderRadius: '6px',
+    border: '1px solid #e2e8f0', background: '#fff', color: '#334155', cursor: 'pointer',
+  };
+
   return (
-    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#f0fdf4', borderTop: '1px solid #bbf7d0', padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '4px', zIndex: 100, flexWrap: 'wrap' }}>
+    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e2e8f0', padding: '8px 20px', display: 'flex', alignItems: 'center', gap: '6px', zIndex: 100 }}>
       <input id="scan-licence-input" type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleScanChange} />
+      {/* Primary save */}
       <button
-        style={{ ...btn('Save', true), opacity: isSaving ? 0.6 : 1 }}
-        disabled={isSaving}
         onClick={save}
+        disabled={isSaving}
+        style={{ padding: '7px 18px', fontSize: '13px', fontWeight: 700, borderRadius: '6px', border: 'none', background: isSaving ? '#94a3b8' : '#16a34a', color: '#fff', cursor: isSaving ? 'not-allowed' : 'pointer' }}
       >
         {isSaving ? 'Saving…' : saveSuccess ? '✓ Saved' : 'Save'}
       </button>
-      {saveError && <span style={{ fontSize: '10px', color: '#dc2626' }}>{saveError}</span>}
-      <button style={btn('')}>Opt. Services</button>
-      <button style={btn('')}>Addl Drivers</button>
-      <button style={btn('')}>Discount</button>
-      <button style={btn('')}>Notes</button>
-      <button style={btn('')}>Events</button>
-      <button style={btn('')}>Payments</button>
-      <button style={btn('')}>Print</button>
-      <button style={btn('')}>Email</button>
-      <button style={btn('')}>Invoice</button>
-      <button style={btn('')}>Open R/A</button>
-      <button style={btn('')}>Duplicate</button>
+      {saveError && <span style={{ fontSize: '12px', color: '#dc2626' }}>{saveError}</span>}
+
+      <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
+
+      {['Opt. Services','Addl Drivers','Discount','Notes','Events','Payments','Print','Email','Invoice','Open R/A','Duplicate'].map(lbl => (
+        <button key={lbl} style={secondary}>{lbl}</button>
+      ))}
+
+      <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
+
       <button
-        style={{ ...btn(''), background: scanLoading ? '#d1fae5' : '#e5e7eb', opacity: scanLoading ? 0.7 : 1 }}
+        style={{ ...secondary, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', opacity: scanLoading ? 0.6 : 1 }}
         disabled={scanLoading}
         onClick={() => document.getElementById('scan-licence-input')?.click()}
       >
         {scanLoading ? 'Scanning…' : '📷 Scan Licence'}
       </button>
-      {scanError && <span style={{ fontSize: '10px', color: '#dc2626' }}>{scanError}</span>}
-      <button style={{ ...btn(''), color: '#dc2626', border: '1px solid #dc2626' }}>Cancel</button>
+      {scanError && <span style={{ fontSize: '12px', color: '#dc2626' }}>{scanError}</span>}
+
+      <div style={{ flex: 1 }} />
+
+      <button style={{ ...secondary, color: '#dc2626', border: '1px solid #fca5a5', background: '#fff5f5' }}>Cancel Reservation</button>
     </div>
   );
 }
 
 /* ─── Main Tab ───────────────────────────────────────────── */
 function MainTab() {
-  const form = useRezForm();
   const {
     firstName, setFirstName, lastName, setLastName, mi, setMi,
     homePhone, setHomePhone, mobile, setMobile, workPhone, setWorkPhone,
@@ -596,21 +485,16 @@ function MainTab() {
     city, setCity, stateVal, setStateVal, postal, setPostal, country, setCountry,
     licNum, setLicNum, licState, setLicState, licExpires, setLicExpires, dob, setDob,
     pickupDate, setPickupDate, dropDate, setDropDate, source, setSource,
-  } = form;
+    rezNumber,
+  } = useRezForm();
 
-  const { rezNumber } = useRezForm();
   const [preferredNum, setPreferredNum] = useState('');
   const [passport, setPassport] = useState('');
   const [altKNum, setAltKNum] = useState('');
   const [pickupLoc, setPickupLoc] = useState('');
   const [dropLoc, setDropLoc] = useState('');
-  const [pickupHH, setPickupHH] = useState('08');
-  const [pickupMM, setPickupMM] = useState('00');
-  const [pickupAmPm, setPickupAmPm] = useState('AM');
-  const [dropHH, setDropHH] = useState('08');
-  const [dropMM, setDropMM] = useState('00');
-  const [dropAmPm, setDropAmPm] = useState('AM');
-  const [days, setDays] = useState('');
+  const [pickupTime, setPickupTime] = useState('08:00');
+  const [dropTime, setDropTime] = useState('08:00');
   const [ratePlanType, setRatePlanType] = useState('');
   const [rateCode, setRateCode] = useState('');
   const [rateClass, setRateClass] = useState('');
@@ -621,362 +505,226 @@ function MainTab() {
   const [prepaidFuel, setPrepaidFuel] = useState(false);
   const [prepaidFuelAmt, setPrepaidFuelAmt] = useState('');
   const [origCurrency, setOrigCurrency] = useState('AUD');
-  const [agentOut] = useState('');
   const [referralAgency, setReferralAgency] = useState('');
   const [referralAgent, setReferralAgent] = useState('');
   const [directBill, setDirectBill] = useState('');
   const [poNum, setPoNum] = useState('');
   const [useTax, setUseTax] = useState(false);
   const [broadcastNote, setBroadcastNote] = useState('');
-  const [expires, setExpires] = useState('');
   const [booked] = useState(new Date().toLocaleDateString('en-AU'));
 
-  const HH = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
-  const MM = ['00', '15', '30', '45'];
+  const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
 
   return (
-    <div>
-      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
-        <colgroup>
-          <col style={{ width: '13%' }} />
-          <col style={{ width: '18%' }} />
-          <col style={{ width: '13%' }} />
-          <col style={{ width: '22%' }} />
-          <col style={{ width: '14%' }} />
-          <col />
-        </colgroup>
-        <tbody>
-          {/* Row 1 */}
-          <tr>
-            <td style={lbl}>Rez Number</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <button style={{ fontSize: '10px', padding: '1px 5px', border: '1px solid #9ca3af', background: '#e5e7eb', cursor: 'pointer' }}>Rez</button>
-                <input style={{ ...roInp, fontWeight: 700, fontSize: '14px', letterSpacing: '0.03em', color: '#14532d' }} readOnly value={rezNumber} placeholder={rezNumber ? '' : 'Generating…'} />
-              </div>
-            </td>
-            <td style={lbl}>Pickup Location</td>
-            <td style={tdc}>
-              <select style={sel} value={pickupLoc} onChange={e => setPickupLoc(e.target.value)}>
-                <option value="">— Select —</option>
-              </select>
-            </td>
-            <td style={lbl}>Preferred Renter #</td>
-            <td style={tdc}><input style={inp} value={preferredNum} onChange={e => setPreferredNum(e.target.value)} /></td>
-          </tr>
+    <div style={{ padding: '16px' }}>
+      {/* Reservation summary strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+        {[
+          { label: 'Reservation #', value: rezNumber || 'Generating…', mono: true, green: true },
+          { label: 'Booked', value: booked },
+          { label: 'Pickup Date', value: null, input: true, type: 'date', val: pickupDate, set: setPickupDate },
+          { label: 'Return Date', value: null, input: true, type: 'date', val: dropDate, set: setDropDate },
+        ].map((c, i) => (
+          <div key={i} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>{c.label}</div>
+            {c.input
+              ? <input type={c.type} style={{ border: 'none', padding: 0, fontSize: '15px', fontWeight: 600, color: '#0f172a', background: 'transparent', width: '100%', outline: 'none' }} value={c.val} onChange={e => c.set!(e.target.value)} />
+              : <div style={{ fontSize: '18px', fontWeight: 800, color: c.green ? '#16a34a' : '#0f172a', letterSpacing: c.mono ? '0.03em' : undefined }}>{c.value}</div>
+            }
+          </div>
+        ))}
+      </div>
 
-          {/* Row 2 */}
-          <tr>
-            <td style={lbl}>Last Name</td>
-            <td style={tdc}><input style={inp} value={lastName} onChange={e => setLastName(e.target.value)} /></td>
-            <td style={lbl}>Return Location</td>
-            <td style={tdc}>
-              <select style={sel} value={dropLoc} onChange={e => setDropLoc(e.target.value)}>
-                <option value="">Return to pickup</option>
-              </select>
-            </td>
-            <td style={lbl}>Expiration / Booked</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <input style={{ ...inp, width: '80px' }} placeholder="Expiry" value={expires} onChange={e => setExpires(e.target.value)} />
-                <input style={{ ...roInp, flex: 1 }} readOnly value={booked} />
-              </div>
-            </td>
-          </tr>
+      {/* Pickup / Return locations + time */}
+      <MCard title="Pickup & Return" cols={4}>
+        <MField label="Pickup Location" span={2}>
+          <select style={mSel} value={pickupLoc} onChange={e => setPickupLoc(e.target.value)}>
+            <option value="">— Select location —</option>
+          </select>
+        </MField>
+        <MField label="Pickup Time" span={1}>
+          <input type="time" style={mField} value={pickupTime} onChange={e => setPickupTime(e.target.value)} />
+        </MField>
+        <MField label="Source of Business" span={1}>
+          <select style={mSel} value={source} onChange={e => setSource(e.target.value)}>
+            <option value="">— Select —</option>
+            <option>Insurance</option>
+            <option>Corporate</option>
+            <option>Walk-in</option>
+            <option>Internet</option>
+            <option>Repairer</option>
+          </select>
+        </MField>
+        <MField label="Return Location" span={2}>
+          <select style={mSel} value={dropLoc} onChange={e => setDropLoc(e.target.value)}>
+            <option value="">Return to pickup</option>
+          </select>
+        </MField>
+        <MField label="Return Time" span={1}>
+          <input type="time" style={mField} value={dropTime} onChange={e => setDropTime(e.target.value)} />
+        </MField>
+        <MField label="Direct Bill" span={1}>
+          <select style={mSel} value={directBill} onChange={e => setDirectBill(e.target.value)}>
+            <option value="">— Select —</option>
+          </select>
+        </MField>
+      </MCard>
 
-          {/* Row 3 */}
-          <tr>
-            <td style={lbl}>First Name / MI</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <input style={{ ...inp, flex: 1 }} value={firstName} onChange={e => setFirstName(e.target.value)} />
-                <input style={{ ...inp, width: '30px' }} value={mi} onChange={e => setMi(e.target.value)} maxLength={1} />
-              </div>
-            </td>
-            <td style={lbl}>Pickup Date</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <input type="date" style={{ ...inp, flex: 1 }} value={pickupDate} onChange={e => setPickupDate(e.target.value)} />
-                <select style={{ ...sel, width: '36px' }} value={pickupHH} onChange={e => setPickupHH(e.target.value)}>
-                  {HH.map(h => <option key={h}>{h}</option>)}
-                </select>
-                <select style={{ ...sel, width: '36px' }} value={pickupMM} onChange={e => setPickupMM(e.target.value)}>
-                  {MM.map(m => <option key={m}>{m}</option>)}
-                </select>
-                <select style={{ ...sel, width: '38px' }} value={pickupAmPm} onChange={e => setPickupAmPm(e.target.value)}>
-                  <option>AM</option><option>PM</option>
-                </select>
-              </div>
-            </td>
-            <td style={lbl}>Agent Out</td>
-            <td style={tdc}><input style={roInp} readOnly value={agentOut} /></td>
-          </tr>
+      {/* Driver Details */}
+      <MCard title="Driver Details" cols={6}>
+        <MField label="First Name" span={2}>
+          <input style={mField} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" />
+        </MField>
+        <MField label="Last Name" span={2}>
+          <input style={mField} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" />
+        </MField>
+        <MField label="MI" span={1}>
+          <input style={mField} value={mi} onChange={e => setMi(e.target.value)} maxLength={1} placeholder="MI" />
+        </MField>
+        <MField label="Date of Birth" span={1}>
+          <input type="date" style={mField} value={dob} onChange={e => setDob(e.target.value)} />
+        </MField>
+        <MField label="Mobile" span={2}>
+          <input type="tel" style={mField} value={mobile} onChange={e => setMobile(e.target.value)} placeholder="0400 000 000" />
+        </MField>
+        <MField label="Home Phone" span={2}>
+          <input type="tel" style={mField} value={homePhone} onChange={e => setHomePhone(e.target.value)} placeholder="02 0000 0000" />
+        </MField>
+        <MField label="Work Phone" span={2}>
+          <input type="tel" style={mField} value={workPhone} onChange={e => setWorkPhone(e.target.value)} placeholder="02 0000 0000" />
+        </MField>
+        <MField label="Email" span={3}>
+          <input type="email" style={mField} value={email} onChange={e => setEmail(e.target.value)} placeholder="driver@email.com" />
+        </MField>
+        <MField label="Preferred Renter #" span={2}>
+          <input style={mField} value={preferredNum} onChange={e => setPreferredNum(e.target.value)} />
+        </MField>
+        <MField label="Alternate ID" span={1}>
+          <input style={mField} value={passport} onChange={e => setPassport(e.target.value)} />
+        </MField>
+      </MCard>
 
-          {/* Row 4 */}
-          <tr>
-            <td style={lbl}>Street 1</td>
-            <td style={tdc}>
-              <AddressAutocomplete
-                value={street1}
-                onChange={setStreet1}
-                onSelect={r => {
-                  setStreet1(r.address);
-                  setCity(r.suburb);
-                  setStateVal(r.state);
-                  setPostal(r.postcode);
-                }}
-                style={{ ...inp, width: '100%' }}
-              />
-            </td>
-            <td style={lbl}>Drop Off Date</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <input type="date" style={{ ...inp, flex: 1 }} value={dropDate} onChange={e => setDropDate(e.target.value)} />
-                <select style={{ ...sel, width: '36px' }} value={dropHH} onChange={e => setDropHH(e.target.value)}>
-                  {HH.map(h => <option key={h}>{h}</option>)}
-                </select>
-                <select style={{ ...sel, width: '36px' }} value={dropMM} onChange={e => setDropMM(e.target.value)}>
-                  {MM.map(m => <option key={m}>{m}</option>)}
-                </select>
-                <select style={{ ...sel, width: '38px' }} value={dropAmPm} onChange={e => setDropAmPm(e.target.value)}>
-                  <option>AM</option><option>PM</option>
-                </select>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                <span style={{ fontSize: '13px' }}>Days:</span>
-                <input style={{ ...inp, width: '40px' }} value={days} onChange={e => setDays(e.target.value)} />
-              </div>
-            </td>
-            <td style={lbl}>Source of Business</td>
-            <td style={tdc}>
-              <select style={sel} value={source} onChange={e => setSource(e.target.value)}>
-                <option value="">— Select —</option>
-                <option>Insurance</option>
-                <option>Corporate</option>
-                <option>Walk-in</option>
-                <option>Internet</option>
-                <option>Repairer</option>
-              </select>
-            </td>
-          </tr>
+      {/* Address */}
+      <MCard title="Address" cols={6}>
+        <MField label="Street 1" span={4}>
+          <AddressAutocomplete
+            value={street1}
+            onChange={setStreet1}
+            onSelect={r => { setStreet1(r.address); setCity(r.suburb); setStateVal(r.state); setPostal(r.postcode); }}
+            style={{ ...mField }}
+          />
+        </MField>
+        <MField label="Street 2" span={2}>
+          <input style={mField} value={street2} onChange={e => setStreet2(e.target.value)} />
+        </MField>
+        <MField label="Suburb" span={2}>
+          <input style={mField} value={city} onChange={e => setCity(e.target.value)} />
+        </MField>
+        <MField label="State" span={1}>
+          <select style={mSel} value={stateVal} onChange={e => setStateVal(e.target.value)}>
+            <option value="">—</option>
+            {['ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </MField>
+        <MField label="Postcode" span={1}>
+          <input style={mField} value={postal} onChange={e => setPostal(e.target.value)} maxLength={4} />
+        </MField>
+        <MField label="Country" span={2}>
+          <input style={mField} value={country} onChange={e => setCountry(e.target.value)} placeholder="Australia" />
+        </MField>
+      </MCard>
 
-          {/* Row 5 */}
-          <tr>
-            <td style={lbl}>Street 2</td>
-            <td style={tdc}><input style={inp} value={street2} onChange={e => setStreet2(e.target.value)} /></td>
-            <td style={lbl}>Rate Plan Type / Code</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <select style={{ ...sel, flex: 1 }} value={ratePlanType} onChange={e => setRatePlanType(e.target.value)}>
-                  <option value="">— Type —</option>
-                  <option>Daily</option>
-                  <option>Weekly</option>
-                  <option>Monthly</option>
-                </select>
-                <input style={{ ...inp, width: '80px' }} placeholder="Code" value={rateCode} onChange={e => setRateCode(e.target.value)} />
-              </div>
-            </td>
-            <td style={lbl}>Referral Agency</td>
-            <td style={tdc}><input style={inp} value={referralAgency} onChange={e => setReferralAgency(e.target.value)} /></td>
-          </tr>
+      {/* Licence */}
+      <MCard title="Licence" cols={6}>
+        <MField label="Licence Number" span={3}>
+          <input style={mField} value={licNum} onChange={e => setLicNum(e.target.value)} />
+        </MField>
+        <MField label="Issuing State" span={1}>
+          <select style={mSel} value={licState} onChange={e => setLicState(e.target.value)}>
+            <option value="">—</option>
+            {['International','ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </MField>
+        <MField label="Expiry Date" span={2}>
+          <input type="date" style={mField} value={licExpires} onChange={e => setLicExpires(e.target.value)} />
+        </MField>
+      </MCard>
 
-          {/* Row 6 */}
-          <tr>
-            <td style={lbl}>City</td>
-            <td style={tdc}><input style={inp} value={city} onChange={e => setCity(e.target.value)} /></td>
-            <td style={lbl}>Rate Class / Est. Kms</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <select style={{ ...sel, flex: 1 }} value={rateClass} onChange={e => setRateClass(e.target.value)}>
-                  <option value="">— Class —</option>
-                  <option>Economy</option>
-                  <option>Compact</option>
-                  <option>Midsize</option>
-                  <option>Standard</option>
-                  <option>Fullsize</option>
-                  <option>SUV</option>
-                  <option>Van</option>
-                </select>
-                <input style={{ ...inp, width: '60px' }} placeholder="Est Kms" value={estKms} onChange={e => setEstKms(e.target.value)} />
-              </div>
-            </td>
-            <td style={lbl}>Referral Agent</td>
-            <td style={tdc}><input style={inp} value={referralAgent} onChange={e => setReferralAgent(e.target.value)} /></td>
-          </tr>
+      {/* Rate & Vehicle */}
+      <MCard title="Rate & Vehicle" cols={6}>
+        <MField label="Rate Plan" span={2}>
+          <select style={mSel} value={ratePlanType} onChange={e => setRatePlanType(e.target.value)}>
+            <option value="">— Type —</option>
+            <option>Daily</option>
+            <option>Weekly</option>
+            <option>Monthly</option>
+          </select>
+        </MField>
+        <MField label="Rate Code" span={1}>
+          <input style={mField} value={rateCode} onChange={e => setRateCode(e.target.value)} />
+        </MField>
+        <MField label="Rate Class" span={2}>
+          <select style={mSel} value={rateClass} onChange={e => setRateClass(e.target.value)}>
+            <option value="">— Class —</option>
+            {['Economy','Compact','Midsize','Standard','Fullsize','SUV','Van'].map(c => <option key={c}>{c}</option>)}
+          </select>
+        </MField>
+        <MField label="Est. Kms" span={1}>
+          <input style={mField} value={estKms} onChange={e => setEstKms(e.target.value)} />
+        </MField>
+        <MField label="Unit #" span={1}>
+          <select style={mSel} value={availUnits} onChange={e => setAvailUnits(e.target.value)}>
+            <option value="">—</option>
+          </select>
+        </MField>
+        <MField label="Unit Description" span={3}>
+          <input style={mField} value={unitDesc} onChange={e => setUnitDesc(e.target.value)} placeholder="Vehicle description" />
+        </MField>
+        <MField label="Unit Tag" span={2}>
+          <input style={mField} value={unit} onChange={e => setUnit(e.target.value)} />
+        </MField>
+      </MCard>
 
-          {/* Row 7 */}
-          <tr>
-            <td style={lbl}>Country</td>
-            <td style={tdc}><input style={inp} value={country} onChange={e => setCountry(e.target.value)} /></td>
-            <td style={lbl}>Available Units / Unit</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <select style={{ ...sel, width: '70px' }} value={availUnits} onChange={e => setAvailUnits(e.target.value)}>
-                  <option value="">—</option>
-                </select>
-                <input style={{ ...inp, width: '70px' }} placeholder="Unit #" value={unit} onChange={e => setUnit(e.target.value)} />
-                <input style={{ ...inp, flex: 1 }} placeholder="Description" value={unitDesc} onChange={e => setUnitDesc(e.target.value)} />
-              </div>
-            </td>
-            <td style={lbl}>Direct Bill</td>
-            <td style={tdc}>
-              <select style={sel} value={directBill} onChange={e => setDirectBill(e.target.value)}>
-                <option value="">— Select —</option>
-              </select>
-            </td>
-          </tr>
-
-          {/* Row 8 */}
-          <tr>
-            <td style={lbl}>State</td>
-            <td style={tdc}>
-              <select style={sel} value={stateVal} onChange={e => setStateVal(e.target.value)}>
-                <option value="">—</option>
-                {['ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
-              </select>
-            </td>
-            <td style={lbl}>Prepaid Fuel</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <input type="checkbox" checked={prepaidFuel} onChange={e => setPrepaidFuel(e.target.checked)} />
-                <input style={{ ...inp, width: '80px' }} placeholder="Amount" value={prepaidFuelAmt} onChange={e => setPrepaidFuelAmt(e.target.value)} disabled={!prepaidFuel} />
-              </div>
-            </td>
-            <td style={lbl}>P.O. / R.O. #</td>
-            <td style={tdc}><input style={inp} value={poNum} onChange={e => setPoNum(e.target.value)} /></td>
-          </tr>
-
-          {/* Row 9 */}
-          <tr>
-            <td style={lbl}>Postal Code</td>
-            <td style={tdc}><input style={inp} value={postal} onChange={e => setPostal(e.target.value)} /></td>
-            <td style={lbl}>Original Currency</td>
-            <td style={tdc}>
-              <select style={sel} value={origCurrency} onChange={e => setOrigCurrency(e.target.value)}>
-                <option>AUD</option><option>USD</option><option>GBP</option><option>EUR</option><option>NZD</option>
-              </select>
-            </td>
-            {/* Use Tax — rowspan 2, cols 5-6 */}
-            <td colSpan={2} rowSpan={2} style={{ ...tdc, verticalAlign: 'top' }}>
-              <div style={{ border: '1px solid #9ca3af', padding: '4px 6px', fontSize: '13px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
-                  <input type="checkbox" checked={useTax} onChange={e => setUseTax(e.target.checked)} />
-                  Use Tax Exempt
-                </label>
-              </div>
-            </td>
-          </tr>
-
-          {/* Row 10 */}
-          <tr>
-            <td style={lbl}>Home Phone</td>
-            <td style={tdc}><input style={inp} value={homePhone} onChange={e => setHomePhone(e.target.value)} /></td>
-            <td colSpan={2} style={tdc}></td>
-          </tr>
-
-          {/* Row 11 — Charge Grid starts (rowspan 9, cols 5-6) */}
-          <tr>
-            <td style={lbl}>Mobile Phone</td>
-            <td style={tdc}><input style={inp} value={mobile} onChange={e => setMobile(e.target.value)} /></td>
-            <td colSpan={2} style={tdc}></td>
-            {/* Charge Grid rowspan 9 */}
-            <td colSpan={2} rowSpan={9} style={{ verticalAlign: 'top', padding: '1px 2px' }}>
-              <div style={{ width: '100%', height: '210px', border: '1px solid #9ca3af', overflow: 'auto' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '13px' }}>
-                  <thead>
-                    <tr style={{ background: '#16a34a' }}>
-                      <th style={{ color: '#fff', padding: '2px 4px', textAlign: 'left', fontWeight: 600 }}>Description</th>
-                      <th style={{ color: '#fff', padding: '2px 4px', textAlign: 'right', fontWeight: 600 }}>Qty</th>
-                      <th style={{ color: '#fff', padding: '2px 4px', textAlign: 'right', fontWeight: 600 }}>Rate</th>
-                      <th style={{ color: '#fff', padding: '2px 4px', textAlign: 'right', fontWeight: 600 }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr><td colSpan={4} style={{ padding: '4px', color: '#6b7280', fontSize: '13px' }}>No charges added</td></tr>
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ background: '#e5e7eb', borderTop: '1px solid #9ca3af' }}>
-                      <td colSpan={3} style={{ padding: '2px 4px', fontWeight: 700, fontSize: '13px' }}>Total</td>
-                      <td style={{ padding: '2px 4px', fontWeight: 700, fontSize: '13px', textAlign: 'right' }}>0.00</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </td>
-          </tr>
-
-          {/* Row 12 */}
-          <tr>
-            <td style={lbl}>Work Phone</td>
-            <td style={tdc}><input style={inp} value={workPhone} onChange={e => setWorkPhone(e.target.value)} /></td>
-            <td colSpan={2} style={tdc} />
-          </tr>
-
-          {/* Row 13 */}
-          <tr>
-            <td style={lbl}>License # / State</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                <input style={{ ...inp, flex: 1 }} value={licNum} onChange={e => setLicNum(e.target.value)} />
-                <select style={{ ...sel, width: '50px' }} value={licState} onChange={e => setLicState(e.target.value)}>
-                  <option value="">—</option>
-                  {['International','ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
-                </select>
-              </div>
-            </td>
-            <td colSpan={2} style={tdc} />
-          </tr>
-
-          {/* Row 14 */}
-          <tr>
-            <td style={lbl}>Lic Expiry</td>
-            <td style={tdc}>
-              <input type="date" style={{ ...inp, width: '140px' }} value={licExpires} onChange={e => setLicExpires(e.target.value)} />
-            </td>
-            <td colSpan={2} style={{ ...tdc, fontWeight: 700, fontSize: '13px' }}>Broadcast Note</td>
-          </tr>
-
-          {/* Row 14b */}
-          <tr>
-            <td style={lbl}>Date of Birth</td>
-            <td style={tdc}>
-              <input type="date" style={{ ...inp, width: '140px' }} value={dob} onChange={e => setDob(e.target.value)} />
-            </td>
-            <td colSpan={2} style={tdc}></td>
-          </tr>
-
-          {/* Row 15 — Broadcast Note textarea rowspan 6 cols 3-4 */}
-          <tr>
-            <td style={lbl}>Email</td>
-            <td style={tdc}><input style={inp} value={email} onChange={e => setEmail(e.target.value)} /></td>
-            {/* Broadcast Note textarea rowspan 6 */}
-            <td colSpan={2} rowSpan={6} style={{ verticalAlign: 'top', padding: '1px 2px' }}>
-              <textarea
-                style={{ width: '100%', height: '90px', fontSize: '13px', border: '1px solid #9ca3af', padding: '2px 4px', resize: 'none', boxSizing: 'border-box' }}
-                value={broadcastNote}
-                onChange={e => setBroadcastNote(e.target.value)}
-              />
-            </td>
-          </tr>
-
-          {/* Row 16 */}
-          <tr>
-            <td style={lbl}>Alternate ID</td>
-            <td style={tdc}><input style={inp} value={passport} onChange={e => setPassport(e.target.value)} /></td>
-          </tr>
-
-          {/* Row 17 */}
-          <tr>
-            <td style={lbl}>Control #</td>
-            <td style={tdc}><input style={inp} value={altKNum} onChange={e => setAltKNum(e.target.value)} /></td>
-          </tr>
-
-          {/* Rows 18-20 spacers */}
-          <tr><td colSpan={2} style={{ height: '8px' }}></td></tr>
-          <tr><td colSpan={2} style={{ height: '8px' }}></td></tr>
-          <tr><td colSpan={2} style={{ height: '8px' }}></td></tr>
-        </tbody>
-      </table>
+      {/* Billing & Other */}
+      <MCard title="Billing & Other" cols={6}>
+        <MField label="Currency" span={1}>
+          <select style={mSel} value={origCurrency} onChange={e => setOrigCurrency(e.target.value)}>
+            {['AUD','USD','GBP','EUR','NZD'].map(c => <option key={c}>{c}</option>)}
+          </select>
+        </MField>
+        <MField label="P.O. / R.O. #" span={2}>
+          <input style={mField} value={poNum} onChange={e => setPoNum(e.target.value)} />
+        </MField>
+        <MField label="Referral Agency" span={2}>
+          <input style={mField} value={referralAgency} onChange={e => setReferralAgency(e.target.value)} />
+        </MField>
+        <MField label="Referral Agent" span={1}>
+          <input style={mField} value={referralAgent} onChange={e => setReferralAgent(e.target.value)} />
+        </MField>
+        <MField label="Control #" span={2}>
+          <input style={mField} value={altKNum} onChange={e => setAltKNum(e.target.value)} />
+        </MField>
+        <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '22px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+            <input type="checkbox" checked={prepaidFuel} onChange={e => setPrepaidFuel(e.target.checked)} />
+            Prepaid Fuel
+          </label>
+          {prepaidFuel && <input style={{ ...mField, width: '100px' }} placeholder="Amount" value={prepaidFuelAmt} onChange={e => setPrepaidFuelAmt(e.target.value)} />}
+        </div>
+        <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '22px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+            <input type="checkbox" checked={useTax} onChange={e => setUseTax(e.target.checked)} />
+            Tax Exempt
+          </label>
+        </div>
+        <MField label="Broadcast Note" span={6}>
+          <textarea
+            style={{ width: '100%', minHeight: '72px', padding: '8px 10px', fontSize: '14px', border: '1px solid #cbd5e1', borderRadius: '6px', resize: 'vertical', boxSizing: 'border-box', color: '#0f172a', fontFamily: 'inherit' }}
+            value={broadcastNote}
+            onChange={e => setBroadcastNote(e.target.value)}
+          />
+        </MField>
+      </MCard>
     </div>
   );
 }
@@ -1010,113 +758,115 @@ function MiscTab() {
   const [language, setLanguage] = useState('');
   const [passportNum, setPassportNum] = useState('');
 
-  const inp2: React.CSSProperties = { ...inp, width: '100%' };
+  const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
 
   return (
-    <div>
-      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
-        <colgroup>
-          <col style={{ width: '14%' }} />
-          <col style={{ width: '23%' }} />
-          <col style={{ width: '14%' }} />
-          <col style={{ width: '23%' }} />
-          <col style={{ width: '13%' }} />
-          <col />
-        </colgroup>
-        <tbody>
-          <tr><td colSpan={6} style={{ padding: '4px 0 2px' }}><span style={sectionHdr}>Insurance Details</span></td></tr>
-          <tr>
-            <td style={lbl}>Carrier</td>
-            <td style={tdc}><input style={inp2} value={insCarrier} onChange={e => setInsCarrier(e.target.value)} /></td>
-            <td style={lbl}>Agency</td>
-            <td style={tdc}><input style={inp2} value={insAgency} onChange={e => setInsAgency(e.target.value)} /></td>
-            <td style={lbl}>Agent</td>
-            <td style={tdc}><input style={inp2} value={insAgent} onChange={e => setInsAgent(e.target.value)} /></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Ins. Phone</td>
-            <td style={tdc}><input style={inp2} value={insPhone} onChange={e => setInsPhone(e.target.value)} /></td>
-            <td style={lbl}>Policy #</td>
-            <td style={tdc}><input style={inp2} value={insPolicy} onChange={e => setInsPolicy(e.target.value)} /></td>
-            <td style={lbl}>Policy Exp.</td>
-            <td style={tdc}><input type="date" style={inp2} value={insPolicyExp} onChange={e => setInsPolicyExp(e.target.value)} /></td>
-          </tr>
+    <div style={{ padding: '16px' }}>
+      <MCard title="Insurance Details" cols={6}>
+        <MField label="Carrier" span={2}>
+          <input style={mField} value={insCarrier} onChange={e => setInsCarrier(e.target.value)} />
+        </MField>
+        <MField label="Agency" span={2}>
+          <input style={mField} value={insAgency} onChange={e => setInsAgency(e.target.value)} />
+        </MField>
+        <MField label="Agent" span={2}>
+          <input style={mField} value={insAgent} onChange={e => setInsAgent(e.target.value)} />
+        </MField>
+        <MField label="Phone" span={2}>
+          <input type="tel" style={mField} value={insPhone} onChange={e => setInsPhone(e.target.value)} />
+        </MField>
+        <MField label="Policy #" span={2}>
+          <input style={mField} value={insPolicy} onChange={e => setInsPolicy(e.target.value)} />
+        </MField>
+        <MField label="Policy Expiry" span={2}>
+          <input type="date" style={mField} value={insPolicyExp} onChange={e => setInsPolicyExp(e.target.value)} />
+        </MField>
+      </MCard>
 
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Arrival</span></td></tr>
-          <tr>
-            <td style={lbl}>Arrival Date</td>
-            <td style={tdc}><input type="date" style={inp2} value={arrivalDate} onChange={e => setArrivalDate(e.target.value)} /></td>
-            <td style={lbl}>Arrival Time</td>
-            <td style={tdc}><input type="time" style={inp2} value={arrivalTime} onChange={e => setArrivalTime(e.target.value)} /></td>
-            <td colSpan={2}></td>
-          </tr>
+      <MCard title="Arrival" cols={6}>
+        <MField label="Arrival Date" span={2}>
+          <input type="date" style={mField} value={arrivalDate} onChange={e => setArrivalDate(e.target.value)} />
+        </MField>
+        <MField label="Arrival Time" span={2}>
+          <input type="time" style={mField} value={arrivalTime} onChange={e => setArrivalTime(e.target.value)} />
+        </MField>
+      </MCard>
 
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Vehicle Details (NAF)</span></td></tr>
-          <tr>
-            <td style={lbl}>Year</td>
-            <td style={tdc}><input style={inp2} value={vehYear} onChange={e => setVehYear(e.target.value)} maxLength={4} /></td>
-            <td style={lbl}>Make</td>
-            <td style={tdc}><input style={inp2} value={vehMake} onChange={e => setVehMake(e.target.value)} /></td>
-            <td style={lbl}>Model</td>
-            <td style={tdc}><input style={inp2} value={vehModel} onChange={e => setVehModel(e.target.value)} /></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Colour</td>
-            <td style={tdc}><input style={inp2} value={vehColor} onChange={e => setVehColor(e.target.value)} /></td>
-            <td style={lbl}>VIN</td>
-            <td style={tdc}><input style={inp2} value={vehVin} onChange={e => setVehVin(e.target.value)} /></td>
-            <td style={lbl}>Total Loss?</td>
-            <td style={tdc}><input type="checkbox" checked={totalLoss} onChange={e => setTotalLoss(e.target.checked)} /></td>
-          </tr>
+      <MCard title="Vehicle Details (NAF)" cols={6}>
+        <MField label="Year" span={1}>
+          <input style={mField} value={vehYear} onChange={e => setVehYear(e.target.value)} maxLength={4} />
+        </MField>
+        <MField label="Make" span={2}>
+          <input style={mField} value={vehMake} onChange={e => setVehMake(e.target.value)} />
+        </MField>
+        <MField label="Model" span={2}>
+          <input style={mField} value={vehModel} onChange={e => setVehModel(e.target.value)} />
+        </MField>
+        <MField label="Colour" span={1}>
+          <input style={mField} value={vehColor} onChange={e => setVehColor(e.target.value)} />
+        </MField>
+        <MField label="VIN" span={4}>
+          <input style={mField} value={vehVin} onChange={e => setVehVin(e.target.value)} />
+        </MField>
+        <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '22px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+            <input type="checkbox" checked={totalLoss} onChange={e => setTotalLoss(e.target.checked)} />
+            Total Loss
+          </label>
+        </div>
+      </MCard>
 
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Local Residence</span></td></tr>
-          <tr>
-            <td style={lbl}>Address</td>
-            <td colSpan={3} style={tdc}><input style={inp2} value={localResAddr} onChange={e => setLocalResAddr(e.target.value)} /></td>
-            <td style={lbl}>Phone</td>
-            <td style={tdc}><input style={inp2} value={localResPhone} onChange={e => setLocalResPhone(e.target.value)} /></td>
-          </tr>
+      <MCard title="Local Residence" cols={6}>
+        <MField label="Address" span={4}>
+          <input style={mField} value={localResAddr} onChange={e => setLocalResAddr(e.target.value)} />
+        </MField>
+        <MField label="Phone" span={2}>
+          <input type="tel" style={mField} value={localResPhone} onChange={e => setLocalResPhone(e.target.value)} />
+        </MField>
+      </MCard>
 
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Employer</span></td></tr>
-          <tr>
-            <td style={lbl}>Name</td>
-            <td style={tdc}><input style={inp2} value={employerName} onChange={e => setEmployerName(e.target.value)} /></td>
-            <td style={lbl}>Address</td>
-            <td style={tdc}><input style={inp2} value={employerAddr} onChange={e => setEmployerAddr(e.target.value)} /></td>
-            <td style={lbl}>Phone</td>
-            <td style={tdc}><input style={inp2} value={employerPhone} onChange={e => setEmployerPhone(e.target.value)} /></td>
-          </tr>
+      <MCard title="Employer" cols={6}>
+        <MField label="Name" span={2}>
+          <input style={mField} value={employerName} onChange={e => setEmployerName(e.target.value)} />
+        </MField>
+        <MField label="Address" span={2}>
+          <input style={mField} value={employerAddr} onChange={e => setEmployerAddr(e.target.value)} />
+        </MField>
+        <MField label="Phone" span={2}>
+          <input type="tel" style={mField} value={employerPhone} onChange={e => setEmployerPhone(e.target.value)} />
+        </MField>
+      </MCard>
 
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Repair Facility</span></td></tr>
-          <tr>
-            <td style={lbl}>Facility</td>
-            <td colSpan={2} style={tdc}><input style={inp2} value={repairFacility} onChange={e => setRepairFacility(e.target.value)} /></td>
-            <td style={{ ...lbl }}>Contact</td>
-            <td colSpan={2} style={tdc}><input style={inp2} value={repairContact} onChange={e => setRepairContact(e.target.value)} /></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Phone</td>
-            <td style={tdc}><input style={inp2} value={repairPhone} onChange={e => setRepairPhone(e.target.value)} /></td>
-            <td colSpan={4}></td>
-          </tr>
+      <MCard title="Repair Facility" cols={6}>
+        <MField label="Facility" span={3}>
+          <input style={mField} value={repairFacility} onChange={e => setRepairFacility(e.target.value)} />
+        </MField>
+        <MField label="Contact" span={2}>
+          <input style={mField} value={repairContact} onChange={e => setRepairContact(e.target.value)} />
+        </MField>
+        <MField label="Phone" span={1}>
+          <input type="tel" style={mField} value={repairPhone} onChange={e => setRepairPhone(e.target.value)} />
+        </MField>
+      </MCard>
 
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Other</span></td></tr>
-          <tr>
-            <td style={lbl}>Delivery</td>
-            <td style={tdc}><input type="checkbox" checked={delivery} onChange={e => setDelivery(e.target.checked)} /></td>
-            <td style={lbl}>Collection</td>
-            <td style={tdc}><input type="checkbox" checked={collection} onChange={e => setCollection(e.target.checked)} /></td>
-            <td style={lbl}>Language</td>
-            <td style={tdc}><input style={inp2} value={language} onChange={e => setLanguage(e.target.value)} /></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Passport #</td>
-            <td style={tdc}><input style={inp2} value={passportNum} onChange={e => setPassportNum(e.target.value)} /></td>
-            <td colSpan={4}></td>
-          </tr>
-          <tr><td style={{ height: '60px' }} colSpan={6}></td></tr>
-        </tbody>
-      </table>
+      <MCard title="Other" cols={6}>
+        <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '20px', paddingTop: '22px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+            <input type="checkbox" checked={delivery} onChange={e => setDelivery(e.target.checked)} />
+            Delivery
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+            <input type="checkbox" checked={collection} onChange={e => setCollection(e.target.checked)} />
+            Collection
+          </label>
+        </div>
+        <MField label="Language" span={2}>
+          <input style={mField} value={language} onChange={e => setLanguage(e.target.value)} />
+        </MField>
+        <MField label="Passport #" span={2}>
+          <input style={mField} value={passportNum} onChange={e => setPassportNum(e.target.value)} />
+        </MField>
+      </MCard>
     </div>
   );
 }
@@ -1179,329 +929,291 @@ function AccidentTab() {
   const [policeEventNum, setPoliceEventNum] = useState('');
   const [policeName, setPoliceName] = useState('');
 
-  const inp2: React.CSSProperties = { ...inp, width: '100%' };
+  const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
 
   function toggleFlag(f: string) {
     setFlags(prev => ({ ...prev, [f]: !prev[f] }));
   }
 
   return (
-    <div>
-      <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
-        <colgroup>
-          <col style={{ width: '14%' }} />
-          <col style={{ width: '23%' }} />
-          <col style={{ width: '14%' }} />
-          <col style={{ width: '23%' }} />
-          <col style={{ width: '13%' }} />
-          <col />
-        </colgroup>
-        <tbody>
-          {/* Credit / Direct Hire */}
-          <tr>
-            <td colSpan={6} style={{ padding: '4px 0' }}>
-              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <label style={{ fontSize: '13px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
-                  <input type="radio" name="hireType" value="credit" checked={hireType === 'credit'} onChange={() => setHireType('credit')} />
-                  Credit Hire
-                </label>
-                <label style={{ fontSize: '13px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
-                  <input type="radio" name="hireType" value="direct" checked={hireType === 'direct'} onChange={() => setHireType('direct')} />
-                  Direct Hire
-                </label>
-                <div style={{ display: 'flex', gap: '10px', marginLeft: '30px' }}>
-                  {Object.keys(flags).map(f => (
-                    <label key={f} style={{ fontSize: '13px', display: 'flex', gap: '3px', alignItems: 'center', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={flags[f]} onChange={() => toggleFlag(f)} />{f}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </td>
-          </tr>
+    <div style={{ padding: '16px' }}>
+      {/* Hire type + flags strip */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          {['credit', 'direct'].map(v => (
+            <label key={v} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+              <input type="radio" name="hireType" value={v} checked={hireType === v} onChange={() => setHireType(v)} />
+              {v === 'credit' ? 'Credit Hire' : 'Direct Hire'}
+            </label>
+          ))}
+        </div>
+        <div style={{ width: '1px', height: '20px', background: '#e2e8f0' }} />
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          {Object.keys(flags).map(f => (
+            <label key={f} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#475569', cursor: 'pointer' }}>
+              <input type="checkbox" checked={flags[f]} onChange={() => toggleFlag(f)} />{f}
+            </label>
+          ))}
+        </div>
+      </div>
 
-          {/* Is driver vehicle owner? */}
-          <tr>
-            <td colSpan={6} style={{ padding: '2px 0 4px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 500 }}>Is Driver the Vehicle Owner?&nbsp;&nbsp;</span>
-              <label style={{ fontSize: '13px', marginRight: '10px', cursor: 'pointer' }}>
-                <input type="radio" name="driverOwner" value="yes" checked={driverIsOwner === 'yes'} onChange={() => {
-                  setDriverIsOwner('yes');
-                  setOwnerName(`${firstName} ${lastName}`.trim());
-                  setOwnerPhone(mobile || homePhone);
-                  setOwnerEmail(email);
-                  setOwnerAddr(street1);
-                  setOwnerCity(city);
-                  setOwnerState(stateVal);
-                  setOwnerPostal(postal);
-                  setOwnerLicNum(licNum);
-                  setOwnerLicExpiry(licExpires);
-                  setOwnerDob(dob);
-                }} />&nbsp;Yes
-              </label>
-              <label style={{ fontSize: '13px', cursor: 'pointer' }}>
-                <input type="radio" name="driverOwner" value="no" checked={driverIsOwner === 'no'} onChange={() => {
-                  setDriverIsOwner('no');
-                  setOwnerName(''); setOwnerPhone(''); setOwnerEmail('');
-                  setOwnerAddr(''); setOwnerCity(''); setOwnerState(''); setOwnerPostal('');
-                  setOwnerLicNum(''); setOwnerLicExpiry(''); setOwnerDob('');
-                }} />&nbsp;No
-              </label>
-            </td>
-          </tr>
+      {/* Driver = owner? */}
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>Is Driver the Vehicle Owner?</span>
+        {(['yes', 'no'] as const).map(v => (
+          <label key={v} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+            <input type="radio" name="driverOwner" value={v} checked={driverIsOwner === v} onChange={() => {
+              setDriverIsOwner(v);
+              if (v === 'yes') {
+                setOwnerName(`${firstName} ${lastName}`.trim());
+                setOwnerPhone(mobile || homePhone);
+                setOwnerEmail(email);
+                setOwnerAddr(street1);
+                setOwnerCity(city);
+                setOwnerState(stateVal);
+                setOwnerPostal(postal);
+                setOwnerLicNum(licNum);
+                setOwnerLicExpiry(licExpires);
+                setOwnerDob(dob);
+              } else {
+                setOwnerName(''); setOwnerPhone(''); setOwnerEmail('');
+                setOwnerAddr(''); setOwnerCity(''); setOwnerState(''); setOwnerPostal('');
+                setOwnerLicNum(''); setOwnerLicExpiry(''); setOwnerDob('');
+              }
+            }} />
+            {v === 'yes' ? 'Yes' : 'No'}
+          </label>
+        ))}
+      </div>
 
-          {/* NAF Vehicle Owner */}
-          <tr><td colSpan={6} style={{ padding: '4px 0 2px' }}><span style={sectionHdr}>NAF Vehicle Owner Details</span></td></tr>
-          <tr>
-            <td style={lbl}>Name</td>
-            <td style={tdc}><input style={inp2} value={ownerName} onChange={e => setOwnerName(e.target.value)} /></td>
-            <td style={lbl}>Phone</td>
-            <td style={tdc}><input style={inp2} value={ownerPhone} onChange={e => setOwnerPhone(e.target.value)} /></td>
-            <td style={lbl}>Email</td>
-            <td style={tdc}><input style={inp2} type="email" value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)} /></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Address</td>
-            <td colSpan={3} style={tdc}>
-              <AddressAutocomplete
-                value={ownerAddr}
-                onChange={setOwnerAddr}
-                onSelect={r => { setOwnerAddr(r.address); setOwnerCity(r.suburb); setOwnerPostal(r.postcode); setOwnerState(r.state); }}
-                style={inp2}
-              />
-            </td>
-            <td colSpan={2} />
-          </tr>
-          <tr>
-            <td style={lbl}>City</td>
-            <td style={tdc}><input style={inp2} value={ownerCity} onChange={e => setOwnerCity(e.target.value)} /></td>
-            <td style={lbl}>State</td>
-            <td style={tdc}>
-              <select style={sel} value={ownerState} onChange={e => setOwnerState(e.target.value)}>
-                <option value="">—</option>
-                {['ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
-              </select>
-            </td>
-            <td style={lbl}>Postal</td>
-            <td style={tdc}><input style={inp2} value={ownerPostal} onChange={e => setOwnerPostal(e.target.value)} /></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Licence #</td>
-            <td style={tdc}><input style={inp2} value={ownerLicNum} onChange={e => setOwnerLicNum(e.target.value)} /></td>
-            <td style={lbl}>Lic Expiry</td>
-            <td style={tdc}><input type="date" style={inp2} value={ownerLicExpiry} onChange={e => setOwnerLicExpiry(e.target.value)} /></td>
-            <td style={lbl}>Date of Birth</td>
-            <td style={tdc}><input type="date" style={inp2} value={ownerDob} onChange={e => setOwnerDob(e.target.value)} /></td>
-          </tr>
+      <MCard title="NAF Vehicle Owner Details" cols={6}>
+        <MField label="Name" span={2}>
+          <input style={mField} value={ownerName} onChange={e => setOwnerName(e.target.value)} />
+        </MField>
+        <MField label="Phone" span={2}>
+          <input type="tel" style={mField} value={ownerPhone} onChange={e => setOwnerPhone(e.target.value)} />
+        </MField>
+        <MField label="Email" span={2}>
+          <input type="email" style={mField} value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)} />
+        </MField>
+        <MField label="Address" span={4}>
+          <AddressAutocomplete
+            value={ownerAddr}
+            onChange={setOwnerAddr}
+            onSelect={r => { setOwnerAddr(r.address); setOwnerCity(r.suburb); setOwnerPostal(r.postcode); setOwnerState(r.state); }}
+            style={{ ...mField }}
+          />
+        </MField>
+        <MField label="Suburb" span={2}>
+          <input style={mField} value={ownerCity} onChange={e => setOwnerCity(e.target.value)} />
+        </MField>
+        <MField label="State" span={1}>
+          <select style={mSel} value={ownerState} onChange={e => setOwnerState(e.target.value)}>
+            <option value="">—</option>
+            {['ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </MField>
+        <MField label="Postcode" span={1}>
+          <input style={mField} value={ownerPostal} onChange={e => setOwnerPostal(e.target.value)} maxLength={4} />
+        </MField>
+        <MField label="Licence #" span={2}>
+          <input style={mField} value={ownerLicNum} onChange={e => setOwnerLicNum(e.target.value)} />
+        </MField>
+        <MField label="Lic Expiry" span={2}>
+          <input type="date" style={mField} value={ownerLicExpiry} onChange={e => setOwnerLicExpiry(e.target.value)} />
+        </MField>
+        <MField label="Date of Birth" span={2}>
+          <input type="date" style={mField} value={ownerDob} onChange={e => setOwnerDob(e.target.value)} />
+        </MField>
+      </MCard>
 
-          {/* NAF Vehicle Details */}
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>NAF Vehicle Details</span></td></tr>
-          <tr>
-            <td style={lbl}>Rego</td>
-            <td style={tdc}>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <input
-                  style={{ ...inp2, flex: 1 }}
-                  value={nafRego}
-                  onChange={e => { setNafRego(e.target.value.toUpperCase()); setRegoResult(null); }}
-                />
-                <button
-                  type="button"
-                  disabled={regoChecking || !nafRego.trim()}
-                  onClick={async () => {
-                    setRegoChecking(true);
-                    setRegoResult(null);
-                    try {
-                      const res = await fetch('/api/check-rego', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ rego: nafRego.trim() }),
-                      });
-                      const data = await res.json();
-                      if (data.year) setNafYear(data.year);
-                      if (data.make) setNafMake(data.make);
-                      if (data.model) setNafModel(data.model);
-                      if (data.bodyType) setNafBodyType(data.bodyType);
-                      setRegoResult(data);
-                    } catch {
-                      setRegoResult({ valid: false, message: 'Check failed. Please try again.' });
-                    } finally {
-                      setRegoChecking(false);
-                    }
-                  }}
-                  style={{
-                    padding: '1px 8px', fontSize: '13px', fontWeight: 600, height: '22px',
-                    background: '#16a34a', color: '#fff', border: 'none',
-                    borderRadius: '3px', cursor: 'pointer', whiteSpace: 'nowrap',
-                    opacity: (regoChecking || !nafRego.trim()) ? 0.5 : 1,
-                  }}
-                >
-                  {regoChecking ? 'Checking…' : 'Check'}
-                </button>
-              </div>
-            </td>
-            <td style={lbl}>Year</td>
-            <td style={tdc}><input style={{ ...inp2, width: '60px' }} value={nafYear} onChange={e => setNafYear(e.target.value)} maxLength={4} /></td>
-            <td style={lbl}>Make</td>
-            <td style={tdc}><input style={inp2} value={nafMake} onChange={e => setNafMake(e.target.value)} /></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Model</td>
-            <td style={tdc}><input style={inp2} value={nafModel} onChange={e => setNafModel(e.target.value)} /></td>
-            <td style={lbl}>Body Type</td>
-            <td style={tdc}><input style={inp2} value={nafBodyType} onChange={e => setNafBodyType(e.target.value)} /></td>
-            <td colSpan={2} />
-          </tr>
-          {regoResult && (
-            <tr>
-              <td colSpan={6} style={{ padding: '2px 0' }}>
-                <div style={{
-                  fontSize: '13px', padding: '4px 8px', borderRadius: '3px',
-                  background: regoResult.valid ? '#dcfce7' : '#fee2e2',
-                  color: regoResult.valid ? '#166534' : '#991b1b',
-                  border: `1px solid ${regoResult.valid ? '#86efac' : '#fca5a5'}`,
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                }}>
-                  <span>{regoResult.valid ? '✓' : '✗'}</span>
-                  <span>{regoResult.message}</span>
-                </div>
-              </td>
-            </tr>
-          )}
+      <MCard title="NAF Vehicle Details" cols={6}>
+        <MField label="Rego" span={2}>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <input
+              style={{ ...mField, flex: 1 }}
+              value={nafRego}
+              onChange={e => { setNafRego(e.target.value.toUpperCase()); setRegoResult(null); }}
+            />
+            <button
+              type="button"
+              disabled={regoChecking || !nafRego.trim()}
+              onClick={async () => {
+                setRegoChecking(true);
+                setRegoResult(null);
+                try {
+                  const res = await fetch('/api/check-rego', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rego: nafRego.trim() }),
+                  });
+                  const data = await res.json();
+                  if (data.year) setNafYear(data.year);
+                  if (data.make) setNafMake(data.make);
+                  if (data.model) setNafModel(data.model);
+                  if (data.bodyType) setNafBodyType(data.bodyType);
+                  setRegoResult(data);
+                } catch {
+                  setRegoResult({ valid: false, message: 'Check failed. Please try again.' });
+                } finally {
+                  setRegoChecking(false);
+                }
+              }}
+              style={{
+                padding: '0 12px', fontSize: '13px', fontWeight: 600, height: '36px',
+                background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px',
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                opacity: (regoChecking || !nafRego.trim()) ? 0.5 : 1,
+              }}
+            >
+              {regoChecking ? 'Checking…' : 'Check'}
+            </button>
+          </div>
+        </MField>
+        <MField label="Year" span={1}>
+          <input style={mField} value={nafYear} onChange={e => setNafYear(e.target.value)} maxLength={4} />
+        </MField>
+        <MField label="Make" span={2}>
+          <input style={mField} value={nafMake} onChange={e => setNafMake(e.target.value)} />
+        </MField>
+        <MField label="Model" span={2}>
+          <input style={mField} value={nafModel} onChange={e => setNafModel(e.target.value)} />
+        </MField>
+        <MField label="Body Type" span={2}>
+          <input style={mField} value={nafBodyType} onChange={e => setNafBodyType(e.target.value)} />
+        </MField>
+        {regoResult && (
+          <div style={{ gridColumn: 'span 6' }}>
+            <div style={{
+              fontSize: '13px', padding: '8px 12px', borderRadius: '6px',
+              background: regoResult.valid ? '#dcfce7' : '#fee2e2',
+              color: regoResult.valid ? '#166534' : '#991b1b',
+              border: `1px solid ${regoResult.valid ? '#86efac' : '#fca5a5'}`,
+              display: 'flex', alignItems: 'center', gap: '8px',
+            }}>
+              <span>{regoResult.valid ? '✓' : '✗'}</span>
+              <span>{regoResult.message}</span>
+            </div>
+          </div>
+        )}
+      </MCard>
 
-          {/* NAF Insurance */}
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>NAF Insurance Details</span></td></tr>
-          <tr>
-            <td style={lbl}>Carrier</td>
-            <td style={tdc}><input style={inp2} value={nafInsCarrier} onChange={e => setNafInsCarrier(e.target.value)} /></td>
-            <td style={lbl}>Policy #</td>
-            <td style={tdc}><input style={inp2} value={nafInsPolicy} onChange={e => setNafInsPolicy(e.target.value)} /></td>
-            <td style={lbl}>Phone</td>
-            <td style={tdc}><input style={inp2} value={nafInsPhone} onChange={e => setNafInsPhone(e.target.value)} /></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Agency</td>
-            <td style={tdc}><input style={inp2} value={nafInsAgency} onChange={e => setNafInsAgency(e.target.value)} /></td>
-            <td style={lbl}>Agent</td>
-            <td style={tdc}><input style={inp2} value={nafInsAgent} onChange={e => setNafInsAgent(e.target.value)} /></td>
-            <td colSpan={2}></td>
-          </tr>
+      <MCard title="NAF Insurance Details" cols={6}>
+        <MField label="Carrier" span={2}>
+          <input style={mField} value={nafInsCarrier} onChange={e => setNafInsCarrier(e.target.value)} />
+        </MField>
+        <MField label="Policy #" span={2}>
+          <input style={mField} value={nafInsPolicy} onChange={e => setNafInsPolicy(e.target.value)} />
+        </MField>
+        <MField label="Phone" span={2}>
+          <input type="tel" style={mField} value={nafInsPhone} onChange={e => setNafInsPhone(e.target.value)} />
+        </MField>
+        <MField label="Agency" span={2}>
+          <input style={mField} value={nafInsAgency} onChange={e => setNafInsAgency(e.target.value)} />
+        </MField>
+        <MField label="Agent" span={2}>
+          <input style={mField} value={nafInsAgent} onChange={e => setNafInsAgent(e.target.value)} />
+        </MField>
+      </MCard>
 
-          {/* Type of Cover */}
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Type of Cover</span></td></tr>
-          <tr>
-            <td colSpan={6} style={{ padding: '2px 0 4px' }}>
-              {['CTP', 'TPP', 'COMP'].map(c => (
-                <label key={c} style={{ fontSize: '13px', marginRight: '16px', cursor: 'pointer' }}>
-                  <input type="radio" name="coverType" value={c} checked={coverType === c} onChange={() => setCoverType(c)} />&nbsp;{c}
-                </label>
-              ))}
-            </td>
-          </tr>
+      <MCard title="Type of Cover" cols={6}>
+        <div style={{ gridColumn: 'span 6', display: 'flex', gap: '24px' }}>
+          {['CTP', 'TPP', 'COMP'].map(c => (
+            <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+              <input type="radio" name="coverType" value={c} checked={coverType === c} onChange={() => setCoverType(c)} />
+              {c}
+            </label>
+          ))}
+        </div>
+      </MCard>
 
-          {/* Accident Details */}
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Accident Details</span></td></tr>
-          <tr>
-            <td style={lbl}>Description</td>
-            <td colSpan={5} style={tdc}>
-              <textarea style={{ width: '100%', height: '50px', fontSize: '13px', border: '1px solid #9ca3af', padding: '2px 4px', boxSizing: 'border-box' }}
-                value={accDescription} onChange={e => setAccDescription(e.target.value)} />
-            </td>
-          </tr>
-          <tr>
-            <td style={lbl}>Damage Desc.</td>
-            <td colSpan={5} style={tdc}>
-              <textarea style={{ width: '100%', height: '40px', fontSize: '13px', border: '1px solid #9ca3af', padding: '2px 4px', boxSizing: 'border-box' }}
-                value={accDamageDesc} onChange={e => setAccDamageDesc(e.target.value)} />
-            </td>
-          </tr>
-          <tr>
-            <td style={lbl}>Date / Time</td>
-            <td style={tdc}><input type="date" style={inp2} value={accDate} onChange={e => setAccDate(e.target.value)} /></td>
-            <td style={tdc} colSpan={1}><input type="time" style={inp2} value={accTime} onChange={e => setAccTime(e.target.value)} /></td>
-            <td colSpan={3}></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Street</td>
-            <td colSpan={2} style={tdc}><input style={inp2} value={accStreet} onChange={e => setAccStreet(e.target.value)} /></td>
-            <td style={lbl}>Cross Street</td>
-            <td colSpan={2} style={tdc}><input style={inp2} value={accCrossStreet} onChange={e => setAccCrossStreet(e.target.value)} /></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Suburb</td>
-            <td style={tdc}><input style={inp2} value={accSuburb} onChange={e => setAccSuburb(e.target.value)} /></td>
-            <td style={lbl}>State</td>
-            <td style={tdc}>
-              <select style={sel} value={accState} onChange={e => setAccState(e.target.value)}>
-                <option value="">—</option>
-                {['ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
-              </select>
-            </td>
-            <td style={lbl}>Postcode</td>
-            <td style={tdc}><input style={inp2} value={accPostal} onChange={e => setAccPostal(e.target.value)} /></td>
-          </tr>
-          <tr>
-            <td style={lbl}>Drivable?</td>
-            <td style={tdc}>
-              {['Yes', 'No'].map(o => (
-                <label key={o} style={{ fontSize: '13px', marginRight: '10px', cursor: 'pointer' }}>
-                  <input type="radio" name="drivable" value={o} checked={drivable === o} onChange={() => setDrivable(o)} />&nbsp;{o}
+      <MCard title="Accident Details" cols={6}>
+        <MField label="Description" span={6}>
+          <textarea
+            style={{ width: '100%', minHeight: '72px', padding: '8px 10px', fontSize: '14px', border: '1px solid #cbd5e1', borderRadius: '6px', resize: 'vertical', boxSizing: 'border-box', color: '#0f172a', fontFamily: 'inherit' }}
+            value={accDescription} onChange={e => setAccDescription(e.target.value)}
+          />
+        </MField>
+        <MField label="Damage Description" span={6}>
+          <textarea
+            style={{ width: '100%', minHeight: '56px', padding: '8px 10px', fontSize: '14px', border: '1px solid #cbd5e1', borderRadius: '6px', resize: 'vertical', boxSizing: 'border-box', color: '#0f172a', fontFamily: 'inherit' }}
+            value={accDamageDesc} onChange={e => setAccDamageDesc(e.target.value)}
+          />
+        </MField>
+        <MField label="Date" span={2}>
+          <input type="date" style={mField} value={accDate} onChange={e => setAccDate(e.target.value)} />
+        </MField>
+        <MField label="Time" span={1}>
+          <input type="time" style={mField} value={accTime} onChange={e => setAccTime(e.target.value)} />
+        </MField>
+        <MField label="Street" span={3}>
+          <input style={mField} value={accStreet} onChange={e => setAccStreet(e.target.value)} />
+        </MField>
+        <MField label="Cross Street" span={3}>
+          <input style={mField} value={accCrossStreet} onChange={e => setAccCrossStreet(e.target.value)} />
+        </MField>
+        <MField label="Suburb" span={2}>
+          <input style={mField} value={accSuburb} onChange={e => setAccSuburb(e.target.value)} />
+        </MField>
+        <MField label="State" span={1}>
+          <select style={mSel} value={accState} onChange={e => setAccState(e.target.value)}>
+            <option value="">—</option>
+            {['ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </MField>
+        <MField label="Postcode" span={1}>
+          <input style={mField} value={accPostal} onChange={e => setAccPostal(e.target.value)} maxLength={4} />
+        </MField>
+        <div style={{ gridColumn: 'span 6', display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+          {[
+            { label: 'Drivable?', name: 'drivable', val: drivable, set: setDrivable },
+            { label: 'Total Loss?', name: 'totalLossAcc', val: totalLossAcc, set: setTotalLossAcc },
+            { label: 'Settlement Letter?', name: 'settlementLetter', val: settlementLetter, set: setSettlementLetter },
+          ].map(g => (
+            <div key={g.name} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{g.label}</span>
+              {['Yes','No'].map(o => (
+                <label key={o} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+                  <input type="radio" name={g.name} value={o} checked={g.val === o} onChange={() => g.set(o)} />{o}
                 </label>
               ))}
-            </td>
-            <td style={lbl}>Total Loss?</td>
-            <td style={tdc}>
-              {['Yes', 'No'].map(o => (
-                <label key={o} style={{ fontSize: '13px', marginRight: '10px', cursor: 'pointer' }}>
-                  <input type="radio" name="totalLossAcc" value={o} checked={totalLossAcc === o} onChange={() => setTotalLossAcc(o)} />&nbsp;{o}
-                </label>
-              ))}
-            </td>
-            <td style={lbl}>Settlement Ltr?</td>
-            <td style={tdc}>
-              {['Yes', 'No'].map(o => (
-                <label key={o} style={{ fontSize: '13px', marginRight: '10px', cursor: 'pointer' }}>
-                  <input type="radio" name="settlementLetter" value={o} checked={settlementLetter === o} onChange={() => setSettlementLetter(o)} />&nbsp;{o}
-                </label>
-              ))}
-            </td>
-          </tr>
+            </div>
+          ))}
+        </div>
+      </MCard>
 
-          {/* Repair Facility */}
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Repair Facility</span></td></tr>
-          <tr>
-            <td style={lbl}>Facility</td>
-            <td style={tdc}><input style={inp2} value={repFacility} onChange={e => setRepFacility(e.target.value)} /></td>
-            <td style={lbl}>Contact</td>
-            <td style={tdc}><input style={inp2} value={repContact} onChange={e => setRepContact(e.target.value)} /></td>
-            <td style={lbl}>Phone</td>
-            <td style={tdc}><input style={inp2} value={repPhone} onChange={e => setRepPhone(e.target.value)} /></td>
-          </tr>
+      <MCard title="Repair Facility" cols={6}>
+        <MField label="Facility" span={3}>
+          <input style={mField} value={repFacility} onChange={e => setRepFacility(e.target.value)} />
+        </MField>
+        <MField label="Contact" span={2}>
+          <input style={mField} value={repContact} onChange={e => setRepContact(e.target.value)} />
+        </MField>
+        <MField label="Phone" span={1}>
+          <input type="tel" style={mField} value={repPhone} onChange={e => setRepPhone(e.target.value)} />
+        </MField>
+      </MCard>
 
-          {/* Witness */}
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Witness Details</span></td></tr>
-          <tr>
-            <td style={lbl}>Name</td>
-            <td style={tdc}><input style={inp2} value={witnessName} onChange={e => setWitnessName(e.target.value)} /></td>
-            <td style={lbl}>Phone</td>
-            <td style={tdc}><input style={inp2} value={witnessPhone} onChange={e => setWitnessPhone(e.target.value)} /></td>
-            <td colSpan={2}></td>
-          </tr>
+      <MCard title="Witness Details" cols={6}>
+        <MField label="Name" span={3}>
+          <input style={mField} value={witnessName} onChange={e => setWitnessName(e.target.value)} />
+        </MField>
+        <MField label="Phone" span={3}>
+          <input type="tel" style={mField} value={witnessPhone} onChange={e => setWitnessPhone(e.target.value)} />
+        </MField>
+      </MCard>
 
-          {/* Police */}
-          <tr><td colSpan={6} style={{ padding: '6px 0 2px' }}><span style={sectionHdr}>Police Details</span></td></tr>
-          <tr>
-            <td style={lbl}>Station</td>
-            <td style={tdc}><input style={inp2} value={policeStation} onChange={e => setPoliceStation(e.target.value)} /></td>
-            <td style={lbl}>Event #</td>
-            <td style={tdc}><input style={inp2} value={policeEventNum} onChange={e => setPoliceEventNum(e.target.value)} /></td>
-            <td style={lbl}>Officer Name</td>
-            <td style={tdc}><input style={inp2} value={policeName} onChange={e => setPoliceName(e.target.value)} /></td>
-          </tr>
-
-          <tr><td style={{ height: '60px' }} colSpan={6}></td></tr>
-        </tbody>
-      </table>
+      <MCard title="Police Details" cols={6}>
+        <MField label="Station" span={2}>
+          <input style={mField} value={policeStation} onChange={e => setPoliceStation(e.target.value)} />
+        </MField>
+        <MField label="Event #" span={2}>
+          <input style={mField} value={policeEventNum} onChange={e => setPoliceEventNum(e.target.value)} />
+        </MField>
+        <MField label="Officer Name" span={2}>
+          <input style={mField} value={policeName} onChange={e => setPoliceName(e.target.value)} />
+        </MField>
+      </MCard>
     </div>
   );
 }
@@ -1529,93 +1241,40 @@ function CardDetailsTab() {
     setTimeout(() => setSaved(false), 2500);
   }
 
-  const field: React.CSSProperties = { ...inp, width: '100%' };
-  const row: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '10px' };
-  const fieldLbl: React.CSSProperties = { fontSize: '13px', fontWeight: 600, color: '#374151' };
-
   return (
-    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '20px', maxWidth: '400px' }}>
-      <div style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-        Customer Card Details
-      </div>
-
-      <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: '5px', padding: '8px 10px', fontSize: '13px', color: '#92400e', marginBottom: '14px' }}>
+    <div style={{ padding: '16px' }}>
+      <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#92400e', marginBottom: '16px' }}>
         Card details are stored securely and not shared without authorisation.
       </div>
-
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-        <colgroup>
-          <col style={{ width: '130px' }} />
-          <col />
-        </colgroup>
-        <tbody>
-          <tr>
-            <td style={lbl}>Name on Card</td>
-            <td style={tdc}>
-              <input
-                style={field}
-                value={nameOnCard}
-                onChange={e => setNameOnCard(e.target.value)}
-                placeholder="As it appears on card"
-                maxLength={60}
-              />
-            </td>
-          </tr>
-          <tr>
-            <td style={lbl}>Card Type</td>
-            <td style={tdc}>
-              <select style={field} value={cardType} onChange={e => setCardType(e.target.value)}>
-                <option value="">— Select —</option>
-                <option>Visa</option>
-                <option>Mastercard</option>
-                <option>American Express</option>
-                <option>eftpos</option>
-                <option>Other</option>
-              </select>
-            </td>
-          </tr>
-          <tr>
-            <td style={lbl}>Card Number</td>
-            <td style={tdc}>
-              <input
-                style={field}
-                value={cardNumber}
-                onChange={e => setCardNumber(formatCardNumber(e.target.value))}
-                placeholder="•••• •••• •••• ••••"
-                maxLength={19}
-                inputMode="numeric"
-              />
-            </td>
-          </tr>
-          <tr>
-            <td style={lbl}>Expiry Date</td>
-            <td style={tdc}>
-              <input
-                style={{ ...field, width: '80px' }}
-                value={expiry}
-                onChange={e => setExpiry(formatExpiry(e.target.value))}
-                placeholder="MM/YY"
-                maxLength={5}
-                inputMode="numeric"
-              />
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={2} style={{ paddingTop: '14px' }}>
-              <button
-                onClick={handleSave}
-                style={{
-                  padding: '5px 20px', fontSize: '13px', fontWeight: 700,
-                  background: '#16a34a', color: '#fff', border: 'none',
-                  borderRadius: '4px', cursor: 'pointer',
-                }}
-              >
-                {saved ? '✓ Saved' : 'Save Card Details'}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <MCard title="Card Details" cols={4}>
+        <MField label="Name on Card" span={4}>
+          <input style={mField} value={nameOnCard} onChange={e => setNameOnCard(e.target.value)} placeholder="As it appears on card" maxLength={60} />
+        </MField>
+        <MField label="Card Type" span={2}>
+          <select style={{ ...mField, cursor: 'pointer' }} value={cardType} onChange={e => setCardType(e.target.value)}>
+            <option value="">— Select —</option>
+            <option>Visa</option>
+            <option>Mastercard</option>
+            <option>American Express</option>
+            <option>eftpos</option>
+            <option>Other</option>
+          </select>
+        </MField>
+        <MField label="Card Number" span={3}>
+          <input style={mField} value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))} placeholder="•••• •••• •••• ••••" maxLength={19} inputMode="numeric" />
+        </MField>
+        <MField label="Expiry" span={1}>
+          <input style={mField} value={expiry} onChange={e => setExpiry(formatExpiry(e.target.value))} placeholder="MM/YY" maxLength={5} inputMode="numeric" />
+        </MField>
+        <div style={{ gridColumn: 'span 4', paddingTop: '4px' }}>
+          <button
+            onClick={handleSave}
+            style={{ padding: '8px 24px', fontSize: '13px', fontWeight: 700, background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+          >
+            {saved ? '✓ Saved' : 'Save Card Details'}
+          </button>
+        </div>
+      </MCard>
     </div>
   );
 }
@@ -1784,33 +1443,57 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
 
   return (
     <RezFormContext.Provider value={formCtx}>
-      <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '13px', paddingBottom: '50px' }}>
+      <div style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: '14px', background: '#f8fafc', minHeight: '100vh', paddingBottom: '70px' }}>
         {/* Page header */}
-        <div style={{ background: '#16a34a', color: '#fff', padding: '4px 10px', fontSize: '13px', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>Reservation Detail</span>
-          <span style={{ fontSize: '13px', fontWeight: 400 }}>{initialData?.reservationNumber ?? (reservationId ? `Rez #${reservationId}` : 'New Reservation')}</span>
+        <div style={{
+          background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '10px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          position: 'sticky', top: 0, zIndex: 20,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: '12px', padding: '3px 8px', borderRadius: '5px', letterSpacing: '0.05em' }}>
+              {reservationId ? 'EDIT' : 'NEW'}
+            </div>
+            <div>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>
+                {initialData?.reservationNumber ?? (reservationId ? `Reservation #${reservationId}` : 'New Reservation')}
+              </div>
+              {rezNumber && !reservationId && (
+                <div style={{ fontSize: '12px', color: '#64748b' }}>Next # · {rezNumber}</div>
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {saveError && <span style={{ fontSize: '13px', color: '#dc2626' }}>{saveError}</span>}
+            {saveSuccess && <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: 600 }}>✓ Saved</span>}
+            <button
+              onClick={save}
+              disabled={isSaving}
+              style={{ padding: '7px 20px', fontSize: '13px', fontWeight: 700, border: 'none', borderRadius: '6px', background: isSaving ? '#94a3b8' : '#16a34a', color: '#fff', cursor: isSaving ? 'not-allowed' : 'pointer', transition: 'background 0.15s' }}
+            >
+              {isSaving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
         </div>
 
         {/* Tab bar */}
-        <div style={{ display: 'flex', borderBottom: '2px solid #16a34a', marginBottom: '6px', background: '#fff' }}>
+        <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 20px', display: 'flex', gap: '2px', position: 'sticky', top: '53px', zIndex: 19 }}>
           {TABS.map((t, i) => {
             const active = activeTab === i;
             const hasData = tabHasData(i);
             return (
               <button key={t} type="button" onClick={() => setActiveTab(i)} style={{
-                padding: '5px 14px', fontSize: '12px', fontWeight: active ? 700 : 400,
-                color: active ? '#fff' : '#475569',
-                background: active ? '#16a34a' : 'transparent',
-                border: 'none', borderRight: '1px solid #e2e8f0',
+                padding: '11px 16px', fontSize: '13px', fontWeight: active ? 700 : 500,
+                color: active ? '#16a34a' : '#64748b',
+                background: 'transparent', border: 'none',
+                borderBottom: active ? '2px solid #16a34a' : '2px solid transparent',
                 cursor: 'pointer', whiteSpace: 'nowrap',
-                display: 'flex', alignItems: 'center', gap: '5px',
+                marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '6px',
+                transition: 'color 0.15s',
               }}>
                 {t}
                 {hasData && !active && (
-                  <span style={{
-                    width: '7px', height: '7px', borderRadius: '50%',
-                    background: '#16a34a', display: 'inline-block', flexShrink: 0,
-                  }} />
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a', display: 'inline-block', flexShrink: 0 }} />
                 )}
               </button>
             );
