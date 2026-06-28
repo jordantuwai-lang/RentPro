@@ -25,6 +25,36 @@ const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 
 const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' };
 const fullSpan: React.CSSProperties = { gridColumn: '1 / -1' };
 
+// ── Dense row styles (TSD-style label-left layout) ───────────────────────────
+const cinp: React.CSSProperties = {
+  width: '100%', padding: '3px 5px', border: '1px solid #cbd5e1',
+  borderRadius: '3px', fontSize: '12px', color: '#0f172a',
+  background: '#fff', boxSizing: 'border-box',
+};
+const rowStyle: React.CSSProperties = {
+  display: 'grid', gridTemplateColumns: '100px 1fr',
+  alignItems: 'center', gap: '1px 4px', marginBottom: '3px',
+};
+const rowLbl: React.CSSProperties = {
+  fontSize: '11px', fontWeight: 500, color: '#374151',
+  textAlign: 'right' as const, paddingRight: '6px', whiteSpace: 'nowrap' as const,
+};
+const colHdr: React.CSSProperties = {
+  fontSize: '11px', fontWeight: 700, color: '#fff',
+  background: '#475569', padding: '3px 8px', marginBottom: '6px',
+  borderRadius: '3px', letterSpacing: '0.04em',
+};
+
+function R({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={rowStyle}>
+      <span style={rowLbl}>{label}</span>
+      <div>{children}</div>
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function F({ label, children, full, span2 }: {
   label: string; children: React.ReactNode; full?: boolean; span2?: boolean;
 }) {
@@ -378,6 +408,50 @@ function DamageSelector({ bodyType, damaged, onToggle, description, onDescriptio
   );
 }
 
+function DocSlot({ label, desc, icon, val, set }: { label: string; desc: string; icon: string; val: string | null; set: (v: string | null) => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const camRef = useRef<HTMLInputElement>(null);
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => set(reader.result as string);
+    reader.readAsDataURL(f);
+    e.target.value = '';
+  };
+  return (
+    <div style={{ border: `2px solid ${val ? '#86efac' : '#e2e8f0'}`, borderRadius: '12px', overflow: 'hidden', background: val ? '#f0fdf4' : '#f8fafc' }}>
+      <input ref={camRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
+      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+      {val ? (
+        <div>
+          <div style={{ position: 'relative' }}>
+            <img src={val} alt={label} style={{ width: '100%', height: '160px', objectFit: 'cover', display: 'block' }} />
+            <button type="button" onClick={() => set(null)} style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '16px' }}>×</button>
+          </div>
+          <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>✅</span><span style={{ fontSize: '12px', fontWeight: 500, color: '#16a34a' }}>Uploaded</span>
+            <button type="button" onClick={() => fileRef.current?.click()} style={{ marginLeft: 'auto', fontSize: '11px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Replace</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: '20px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <span style={{ fontSize: '24px' }}>{icon}</span>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{label}<span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: 600, color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', padding: '1px 5px' }}>REQUIRED</span></div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>{desc}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button type="button" onClick={() => camRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #01ae42', background: '#fff', color: '#01ae42', fontSize: '12px', cursor: 'pointer' }}>📷 Take photo</button>
+            <button type="button" onClick={() => fileRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#fff', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>📁 Upload</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TabBar({ tabs, active, onChange }: { tabs: string[]; active: number; onChange: (i: number) => void }) {
   return (
     <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', overflowX: 'auto' }}>
@@ -477,7 +551,7 @@ export interface ReservationDetailProps {
   onSaveSuccess?: () => void;
 }
 
-const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Notes', 'Documents'];
+const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Notes', 'Card Details', 'Documents'];
 
 export default function ReservationDetail({
   reservationId,
@@ -511,10 +585,33 @@ export default function ReservationDetail({
     },
   });
 
+  // ── Branches query ────────────────────────────────────────────────────────────
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/branches', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
+
   // Tab 0 — Main
   const [sourceOfBusiness, setSourceOfBusiness] = useState(r?.sourceOfBusiness || '');
   const [partnerName, setPartnerName] = useState(r?.partnerName || '');
   const [startDate, setStartDate] = useState(r?.startDate ? r.startDate.split('T')[0] : '');
+  const [startTime, setStartTime] = useState(r?.startDate ? new Date(r.startDate).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }) : '');
+  const [endDate, setEndDate] = useState(r?.endDate ? r.endDate.split('T')[0] : '');
+  const [endTime, setEndTime] = useState(r?.endDate ? new Date(r.endDate).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }) : '');
+  const [branchId, setBranchId] = useState(r?.branchId || '');
+  const [reminderDate, setReminderDate] = useState('');
+  const [reminderTime, setReminderTime] = useState('');
+  const [broadcastNote, setBroadcastNote] = useState(r?.broadcastNote || '');
+  // Card Details tab
+  const [cardName, setCardName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardType, setCardType] = useState('');
 
   // Tab 1 — Customer / NAF Vehicle
   const [nafRego, setNafRego] = useState('');
@@ -620,13 +717,16 @@ export default function ReservationDetail({
     sourceOfBusiness,
     partnerName,
     startDate,
+    endDate,
+    broadcastNote,
+    branchId: branchId || undefined,
     customer: driver,
     nafVehicle: { registration: nafRego, make: nafMake, model: nafModel, year: nafYear, bodyType: nafBodyType },
     atFault,
     accident,
     additional: { policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes },
     damages: { panels: Array.from(damagedPanels), description: damageDescription },
-  }), [sourceOfBusiness, partnerName, startDate, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType, atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription]);
+  }), [sourceOfBusiness, partnerName, startDate, endDate, broadcastNote, branchId, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType, atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone, witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription]);
 
   const doSave = useCallback(async () => {
     setSaveState('saving');
@@ -649,13 +749,13 @@ export default function ReservationDetail({
   }, [doSave]);
 
   useEffect(() => { scheduleAutoSave(); }, [
-    sourceOfBusiness, partnerName, startDate, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType,
+    sourceOfBusiness, partnerName, startDate, endDate, branchId, broadcastNote, driver, nafRego, nafMake, nafModel, nafYear, nafBodyType,
     atFault, accident, policeReportNo, policeStation, policeOfficerName, policeOfficerPhone,
     witnessName, witnessPhone, witnessEmail, additionalNotes, damagedPanels, damageDescription,
   ]);
 
   return (
-    <div style={{ maxWidth: '860px', paddingBottom: '80px' }}>
+    <div style={{ maxWidth: '1100px', paddingBottom: '80px' }}>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', minHeight: '20px' }}>
         <SaveIndicator state={saveState} />
@@ -665,39 +765,214 @@ export default function ReservationDetail({
 
       {/* ── Tab 0: Main ── */}
       {activeTab === 0 && (
-        <SectionBlock title="Booking Details">
-          <div style={grid2}>
-            <F label="Source">
-              <select style={inp} value={sourceOfBusiness} onChange={e => { setSourceOfBusiness(e.target.value); setPartnerName(''); }}>
-                <option value="">Select source...</option>
-                <option value="Repairer">Repairer</option>
-                <option value="Tow Operator">Tow Operator</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Corporate Partnerships">Corporate Partnerships</option>
-              </select>
-            </F>
-            <F label="Hire start date">
-              <input type="date" style={inp} value={startDate} onChange={e => setStartDate(e.target.value)} />
-            </F>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0 20px', alignItems: 'start' }}>
 
-            {sourceOfBusiness === 'Repairer' && (
-              <F label="Repairer" full>
-                <select style={inp} value={partnerName} onChange={e => setPartnerName(e.target.value)}>
-                  <option value="">Select repairer...</option>
-                  {repairers.map((rep: any) => (
-                    <option key={rep.id} value={rep.name}>{rep.name}</option>
+            {/* ── Column 1: Customer ── */}
+            <div>
+              <div style={colHdr}>Customer</div>
+              <R label="Last Name">
+                <input style={cinp} value={driver.lastName} onChange={e => updDriver('lastName', e.target.value)} />
+              </R>
+              <R label="First Name">
+                <input style={cinp} value={driver.firstName} onChange={e => updDriver('firstName', e.target.value)} />
+              </R>
+              <R label="Street">
+                <input style={cinp} value={driver.address} onChange={e => updDriver('address', e.target.value)} />
+              </R>
+              <R label="City / Suburb">
+                <input style={cinp} value={driver.suburb} onChange={e => updDriver('suburb', e.target.value)} />
+              </R>
+              <R label="State">
+                <select style={cinp} value={driver.state} onChange={e => updDriver('state', e.target.value)}>
+                  <option value="">—</option>
+                  {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </R>
+              <R label="Postcode">
+                <input style={cinp} value={driver.postcode} onChange={e => updDriver('postcode', e.target.value)} />
+              </R>
+              <R label="Mobile Phone">
+                <input style={cinp} value={driver.phone} onChange={e => updDriver('phone', e.target.value)} />
+              </R>
+              <R label="E-Mail">
+                <input style={cinp} value={driver.email} onChange={e => updDriver('email', e.target.value)} />
+              </R>
+              <R label="Licence #">
+                <input style={cinp} value={driver.licenceNumber} onChange={e => updDriver('licenceNumber', e.target.value)} />
+              </R>
+              <R label="Lic State">
+                <select style={cinp} value={driver.licenceState} onChange={e => updDriver('licenceState', e.target.value)}>
+                  <option value="">—</option>
+                  {LICENCE_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </R>
+              <R label="Lic Expiry">
+                <input type="date" style={cinp} value={driver.licenceExpiry} onChange={e => updDriver('licenceExpiry', e.target.value)} />
+              </R>
+              <R label="Date of Birth">
+                <input type="date" style={cinp} value={driver.dob} onChange={e => updDriver('dob', e.target.value)} />
+              </R>
+            </div>
+
+            {/* ── Column 2: Hire Details ── */}
+            <div>
+              <div style={colHdr}>Hire Details</div>
+              <R label="Pickup Location">
+                <select style={cinp} value={branchId} onChange={e => setBranchId(e.target.value)}>
+                  <option value="">— Select branch —</option>
+                  {branches.map((b: any) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
-              </F>
-            )}
+              </R>
+              <R label="Return Location">
+                <select style={cinp} value={branchId} onChange={e => setBranchId(e.target.value)}>
+                  <option value="">Return to pickup</option>
+                  {branches.map((b: any) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </R>
+              <R label="Pickup Date">
+                <div style={{ display: 'flex', gap: '3px' }}>
+                  <input type="date" style={{ ...cinp, flex: '1 1 auto' }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                  <input type="time" style={{ ...cinp, width: '80px', flexShrink: 0 }} value={startTime} onChange={e => setStartTime(e.target.value)} />
+                </div>
+              </R>
+              <R label="Drop Off Date">
+                <div style={{ display: 'flex', gap: '3px' }}>
+                  <input type="date" style={{ ...cinp, flex: '1 1 auto' }} value={endDate} onChange={e => setEndDate(e.target.value)} />
+                  <input type="time" style={{ ...cinp, width: '80px', flexShrink: 0 }} value={endTime} onChange={e => setEndTime(e.target.value)} />
+                </div>
+              </R>
+              <R label="Set Reminder">
+                <div style={{ display: 'flex', gap: '3px' }}>
+                  <input type="date" style={{ ...cinp, flex: '1 1 auto' }} value={reminderDate} onChange={e => setReminderDate(e.target.value)} />
+                  <input type="time" style={{ ...cinp, width: '80px', flexShrink: 0 }} value={reminderTime} onChange={e => setReminderTime(e.target.value)} />
+                </div>
+              </R>
+              {r?.vehicle && (
+                <>
+                  <R label="Vehicle">
+                    <input style={{ ...cinp, background: '#f8fafc', color: '#64748b' }} readOnly
+                      value={`${r.vehicle.year || ''} ${r.vehicle.make || ''} ${r.vehicle.model || ''}`.trim()} />
+                  </R>
+                  <R label="Registration">
+                    <input style={{ ...cinp, background: '#f8fafc', color: '#64748b' }} readOnly
+                      value={r.vehicle.registration || ''} />
+                  </R>
+                  <R label="Category">
+                    <input style={{ ...cinp, background: '#f8fafc', color: '#64748b' }} readOnly
+                      value={r.vehicle.category || r.vehicle.class || ''} />
+                  </R>
+                </>
+              )}
+              <R label="NAF Rego">
+                <input style={cinp} value={nafRego} onChange={e => setNafRego(e.target.value)} placeholder="Not-at-fault vehicle" />
+              </R>
+              <R label="NAF Make">
+                <input style={cinp} value={nafMake} onChange={e => setNafMake(e.target.value)} />
+              </R>
+              <R label="NAF Model">
+                <input style={cinp} value={nafModel} onChange={e => setNafModel(e.target.value)} />
+              </R>
+            </div>
 
-            {sourceOfBusiness === 'Tow Operator' && (
-              <F label="Tow operator name" full>
-                <input style={inp} value={partnerName} onChange={e => setPartnerName(e.target.value)} placeholder="e.g. Smith's Towing" />
-              </F>
-            )}
+            {/* ── Column 3: Administration + Charges ── */}
+            <div>
+              <div style={colHdr}>Administration</div>
+              <R label="Rez Number">
+                <input style={{ ...cinp, background: '#f8fafc', color: '#64748b', fontWeight: 600 }} readOnly
+                  value={r?.reservationNumber || ''} />
+              </R>
+              <R label="File Number">
+                <input style={{ ...cinp, background: '#f8fafc', color: '#64748b' }} readOnly
+                  value={r?.fileNumber || ''} />
+              </R>
+              <R label="Status">
+                <input style={{ ...cinp, background: '#f8fafc', color: '#64748b' }} readOnly
+                  value={r?.status || ''} />
+              </R>
+              <R label="Booked">
+                <input style={{ ...cinp, background: '#f8fafc', color: '#64748b' }} readOnly
+                  value={r?.createdAt ? new Date(r.createdAt).toLocaleDateString('en-AU') : ''} />
+              </R>
+              <R label="Agent Out">
+                <input style={{ ...cinp, background: '#f8fafc', color: '#64748b' }} readOnly
+                  value={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : ''} />
+              </R>
+              <R label="Source">
+                <select style={cinp} value={sourceOfBusiness} onChange={e => { setSourceOfBusiness(e.target.value); setPartnerName(''); }}>
+                  <option value="">— Select —</option>
+                  <option value="Repairer">Repairer</option>
+                  <option value="Tow Operator">Tow Operator</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Corporate Partnerships">Corporate Partnerships</option>
+                </select>
+              </R>
+              {sourceOfBusiness === 'Repairer' && (
+                <R label="Repairer">
+                  <select style={cinp} value={partnerName} onChange={e => setPartnerName(e.target.value)}>
+                    <option value="">— Select repairer —</option>
+                    {repairers.map((rep: any) => (
+                      <option key={rep.id} value={rep.name}>{rep.name}</option>
+                    ))}
+                  </select>
+                </R>
+              )}
+              {sourceOfBusiness === 'Tow Operator' && (
+                <R label="Tow Operator">
+                  <input style={cinp} value={partnerName} onChange={e => setPartnerName(e.target.value)} />
+                </R>
+              )}
+
+              {/* Charges summary panel */}
+              {r?.charges && r.charges.length > 0 && (
+                <div style={{ marginTop: '12px', border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                    <thead>
+                      <tr style={{ background: '#475569' }}>
+                        <th style={{ padding: '4px 8px', color: '#fff', textAlign: 'left', fontWeight: 600 }}>Description</th>
+                        <th style={{ padding: '4px 8px', color: '#fff', textAlign: 'right', fontWeight: 600 }}>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {r.charges.map((c: any, i: number) => (
+                        <tr key={i} style={{ background: i % 2 === 0 ? '#f8fafc' : '#fff' }}>
+                          <td style={{ padding: '3px 8px', color: '#374151' }}>{c.description || c.name}</td>
+                          <td style={{ padding: '3px 8px', color: '#374151', textAlign: 'right' }}>
+                            {typeof c.amount === 'number' ? c.amount.toFixed(2) : c.amount}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: '#e2e8f0' }}>
+                        <td style={{ padding: '4px 8px', fontWeight: 700, fontSize: '12px', color: '#0f172a' }}>Total</td>
+                        <td style={{ padding: '4px 8px', fontWeight: 700, fontSize: '12px', color: '#0f172a', textAlign: 'right' }}>
+                          {r.charges.reduce((sum: number, c: any) => sum + (Number(c.amount) || 0), 0).toFixed(2)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+
+              {/* Broadcast Note */}
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#fff', background: '#475569', padding: '2px 8px', marginBottom: '4px', borderRadius: '3px', letterSpacing: '0.04em' }}>Broadcast Note</div>
+                <textarea
+                  style={{ ...cinp, height: '80px', resize: 'vertical', width: '100%' }}
+                  value={broadcastNote}
+                  onChange={e => setBroadcastNote(e.target.value)}
+                  placeholder="Broadcast message visible to all staff..."
+                />
+              </div>
+            </div>
+
           </div>
-        </SectionBlock>
+        </div>
       )}
 
       {/* ── Tab 1: Customer ── */}
@@ -918,52 +1193,8 @@ export default function ReservationDetail({
           )}
           <SectionBlock title="Required Documents">
             <div style={grid2}>
-              {[
-                { label: "Driver's Licence", desc: "Front of the customer's licence", icon: '🪪', val: licencePhoto, set: setLicencePhoto },
-                { label: 'Vehicle Registration Papers', desc: 'Current registration certificate', icon: '📄', val: regoPhoto, set: setRegoPhoto }
-              ].map(slot => {
-                const fileRef = useRef<HTMLInputElement>(null);
-                const camRef = useRef<HTMLInputElement>(null);
-                const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-                  const f = e.target.files?.[0]; if (!f) return;
-                  const reader = new FileReader();
-                  reader.onload = () => slot.set(reader.result as string);
-                  reader.readAsDataURL(f);
-                  e.target.value = '';
-                };
-                return (
-                  <div key={slot.label} style={{ border: `2px solid ${slot.val ? '#86efac' : '#e2e8f0'}`, borderRadius: '12px', overflow: 'hidden', background: slot.val ? '#f0fdf4' : '#f8fafc' }}>
-                    <input ref={camRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
-                    <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
-                    {slot.val ? (
-                      <div>
-                        <div style={{ position: 'relative' }}>
-                          <img src={slot.val} alt={slot.label} style={{ width: '100%', height: '160px', objectFit: 'cover', display: 'block' }} />
-                          <button type="button" onClick={() => slot.set(null)} style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '16px' }}>×</button>
-                        </div>
-                        <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span>✅</span><span style={{ fontSize: '12px', fontWeight: 500, color: '#16a34a' }}>Uploaded</span>
-                          <button type="button" onClick={() => fileRef.current?.click()} style={{ marginLeft: 'auto', fontSize: '11px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Replace</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ padding: '20px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                          <span style={{ fontSize: '24px' }}>{slot.icon}</span>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{slot.label}<span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: 600, color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', padding: '1px 5px' }}>REQUIRED</span></div>
-                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>{slot.desc}</div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button type="button" onClick={() => camRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #01ae42', background: '#fff', color: '#01ae42', fontSize: '12px', cursor: 'pointer' }}>📷 Take photo</button>
-                          <button type="button" onClick={() => fileRef.current?.click()} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px dashed #cbd5e1', background: '#fff', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>📁 Upload</button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              <DocSlot label="Driver's Licence" desc="Front of the customer's licence" icon="🪪" val={licencePhoto} set={setLicencePhoto} />
+              <DocSlot label="Vehicle Registration Papers" desc="Current registration certificate" icon="📄" val={regoPhoto} set={setRegoPhoto} />
             </div>
           </SectionBlock>
           <SectionBlock title="Additional Photos">
@@ -1031,10 +1262,71 @@ export default function ReservationDetail({
       {/* ── Tab 8: Notes ── */}
       {activeTab === 8 && <NotesTab reservationId={reservationId} authorName={user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Staff'} />}
 
-      {/* ── Tab 9+: Extra or Documents ── */}
-      {activeTab >= 9 && extraTabContent && extraTabContent(activeTab)}
+      {/* ── Tab 9: Card Details ── */}
+      {activeTab === 9 && (
+        <SectionBlock title="Card Details">
+          <div style={{ maxWidth: '420px' }}>
+            <div style={{ padding: '10px 12px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', marginBottom: '14px', fontSize: '11px', color: '#92400e' }}>
+              Card details are stored locally and not transmitted without explicit action.
+            </div>
+            <R label="Cardholder Name">
+              <input style={cinp} value={cardName} onChange={e => setCardName(e.target.value)} placeholder="As it appears on card" />
+            </R>
+            <R label="Card Type">
+              <select style={cinp} value={cardType} onChange={e => setCardType(e.target.value)}>
+                <option value="">— Select —</option>
+                <option value="Visa">Visa</option>
+                <option value="Mastercard">Mastercard</option>
+                <option value="Amex">American Express</option>
+                <option value="eftpos">eftpos</option>
+                <option value="Other">Other</option>
+              </select>
+            </R>
+            <R label="Card Number">
+              <input
+                style={cinp}
+                value={cardNumber}
+                onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 16);
+                  setCardNumber(digits.replace(/(.{4})/g, '$1 ').trim());
+                }}
+                placeholder="•••• •••• •••• ••••"
+                maxLength={19}
+                inputMode="numeric"
+              />
+            </R>
+            <R label="Expiry">
+              <input
+                style={{ ...cinp, width: '90px' }}
+                value={cardExpiry}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                  setCardExpiry(val.length > 2 ? val.slice(0, 2) + '/' + val.slice(2) : val);
+                }}
+                placeholder="MM/YY"
+                maxLength={5}
+                inputMode="numeric"
+              />
+            </R>
+            <R label="CVV">
+              <input
+                style={{ ...cinp, width: '70px' }}
+                value={cardCvv}
+                onChange={e => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="•••"
+                maxLength={4}
+                inputMode="numeric"
+                type="password"
+              />
+            </R>
+          </div>
+        </SectionBlock>
+      )}
 
-      {activeTab === tabs.length - 1 && !extraTabContent && (
+      {/* ── Tab 10+: Extra or Documents ── */}
+      {activeTab >= 10 && extraTabContent && extraTabContent(activeTab)}
+
+      {activeTab === 10 && !extraTabContent && (
         <>
           <SectionBlock title="Authority to Act">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '20px', border: '1.5px dashed #e2e8f0', borderRadius: '10px', background: '#f8fafc' }}>
