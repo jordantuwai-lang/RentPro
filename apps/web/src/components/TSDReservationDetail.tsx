@@ -618,6 +618,21 @@ function MainTab() {
   const [useTax, setUseTax] = useState(false);
   const [broadcastNote, setBroadcastNote] = useState('');
   const [booked] = useState(new Date().toLocaleDateString('en-AU'));
+  // NAF Vehicle
+  const [nafRego, setNafRego] = useState('');
+  const [nafYear, setNafYear] = useState('');
+  const [nafMake, setNafMake] = useState('');
+  const [nafModel, setNafModel] = useState('');
+  const [nafBodyType, setNafBodyType] = useState('');
+  const [regoChecking, setRegoChecking] = useState(false);
+  const [regoResult, setRegoResult] = useState<{ valid: boolean; message: string; details?: Record<string, string> } | null>(null);
+  // NAF Insurance & Cover
+  const [nafInsCarrier, setNafInsCarrier] = useState('');
+  const [nafInsPolicy, setNafInsPolicy] = useState('');
+  const [nafInsPhone, setNafInsPhone] = useState('');
+  const [nafInsAgent, setNafInsAgent] = useState('');
+  const [nafInsAgency, setNafInsAgency] = useState('');
+  const [nafCoverType, setNafCoverType] = useState('CTP');
 
   const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
 
@@ -842,6 +857,106 @@ function MainTab() {
         <MField label="Expiry Date" span={2}>
           <input type="date" style={mField} value={roLicExpires} onChange={e => setRoLicExpires(e.target.value)} />
         </MField>
+      </MCard>
+
+      {/* NAF Vehicle Details */}
+      <MCard title="NAF Vehicle Details" cols={6}>
+        <MField label="Rego" span={2}>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <input
+              style={{ ...mField, flex: 1 }}
+              value={nafRego}
+              onChange={e => { setNafRego(e.target.value.toUpperCase()); setRegoResult(null); }}
+            />
+            <button
+              type="button"
+              disabled={regoChecking || !nafRego.trim()}
+              onClick={async () => {
+                setRegoChecking(true);
+                setRegoResult(null);
+                try {
+                  const res = await fetch('/api/check-rego', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rego: nafRego.trim() }),
+                  });
+                  const data = await res.json();
+                  if (data.year) setNafYear(data.year);
+                  if (data.make) setNafMake(data.make);
+                  if (data.model) setNafModel(data.model);
+                  if (data.bodyType) setNafBodyType(data.bodyType);
+                  setRegoResult(data);
+                } catch {
+                  setRegoResult({ valid: false, message: 'Check failed. Please try again.' });
+                } finally {
+                  setRegoChecking(false);
+                }
+              }}
+              style={{
+                padding: '0 12px', fontSize: '13px', fontWeight: 600, height: '36px',
+                background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px',
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                opacity: (regoChecking || !nafRego.trim()) ? 0.5 : 1,
+              }}
+            >
+              {regoChecking ? 'Checking…' : 'Check'}
+            </button>
+          </div>
+        </MField>
+        <MField label="Year" span={1}>
+          <input style={mField} value={nafYear} onChange={e => setNafYear(e.target.value)} maxLength={4} />
+        </MField>
+        <MField label="Make" span={2}>
+          <input style={mField} value={nafMake} onChange={e => setNafMake(e.target.value)} />
+        </MField>
+        <MField label="Model" span={2}>
+          <input style={mField} value={nafModel} onChange={e => setNafModel(e.target.value)} />
+        </MField>
+        <MField label="Body Type" span={2}>
+          <input style={mField} value={nafBodyType} onChange={e => setNafBodyType(e.target.value)} />
+        </MField>
+        {regoResult && (
+          <div style={{ gridColumn: 'span 6' }}>
+            <div style={{
+              fontSize: '13px', padding: '8px 12px', borderRadius: '6px',
+              background: regoResult.valid ? '#dcfce7' : '#fee2e2',
+              color: regoResult.valid ? '#166534' : '#991b1b',
+              border: `1px solid ${regoResult.valid ? '#86efac' : '#fca5a5'}`,
+              display: 'flex', alignItems: 'center', gap: '8px',
+            }}>
+              <span>{regoResult.valid ? '✓' : '✗'}</span>
+              <span>{regoResult.message}</span>
+            </div>
+          </div>
+        )}
+      </MCard>
+
+      {/* NAF Insurance & Cover */}
+      <MCard title="NAF Insurance & Cover" cols={6}>
+        <MField label="Carrier" span={2}>
+          <input style={mField} value={nafInsCarrier} onChange={e => setNafInsCarrier(e.target.value)} />
+        </MField>
+        <MField label="Policy #" span={2}>
+          <input style={mField} value={nafInsPolicy} onChange={e => setNafInsPolicy(e.target.value)} />
+        </MField>
+        <MField label="Phone" span={2}>
+          <input type="tel" style={mField} value={nafInsPhone} onChange={e => setNafInsPhone(e.target.value)} />
+        </MField>
+        <MField label="Agency" span={2}>
+          <input style={mField} value={nafInsAgency} onChange={e => setNafInsAgency(e.target.value)} />
+        </MField>
+        <MField label="Agent" span={2}>
+          <input style={mField} value={nafInsAgent} onChange={e => setNafInsAgent(e.target.value)} />
+        </MField>
+        <div style={{ gridColumn: 'span 6', display: 'flex', alignItems: 'center', gap: '24px', paddingTop: '4px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>Type of Cover</span>
+          {['CTP', 'TPP', 'COMP'].map(c => (
+            <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+              <input type="radio" name="nafCoverType" value={c} checked={nafCoverType === c} onChange={() => setNafCoverType(c)} />
+              {c}
+            </label>
+          ))}
+        </div>
       </MCard>
 
       {/* Rate & Vehicle */}
@@ -1069,39 +1184,10 @@ function MiscTab() {
 function AccidentTab() {
   const {
     hireType, setHireType, accDate, setAccDate, accStreet, setAccStreet, accSuburb, setAccSuburb, accDescription, setAccDescription,
-    firstName, lastName, homePhone, mobile, email, street1, city, stateVal, postal, licNum, licExpires, dob,
   } = useRezForm();
   const [flags, setFlags] = useState<Record<string, boolean>>({
     AFR: false, AFC: false, MAV: false, VAL: false, SIG: false, REG: false, INS: false, DLS: false,
   });
-  const [driverIsOwner, setDriverIsOwner] = useState<'yes' | 'no' | ''>('');
-  // NAF Owner
-  const [ownerName, setOwnerName] = useState('');
-  const [ownerPhone, setOwnerPhone] = useState('');
-  const [ownerEmail, setOwnerEmail] = useState('');
-  const [ownerAddr, setOwnerAddr] = useState('');
-  const [ownerCity, setOwnerCity] = useState('');
-  const [ownerState, setOwnerState] = useState('');
-  const [ownerPostal, setOwnerPostal] = useState('');
-  const [ownerLicNum, setOwnerLicNum] = useState('');
-  const [ownerLicExpiry, setOwnerLicExpiry] = useState('');
-  const [ownerDob, setOwnerDob] = useState('');
-  // NAF Vehicle
-  const [nafRego, setNafRego] = useState('');
-  const [nafYear, setNafYear] = useState('');
-  const [nafMake, setNafMake] = useState('');
-  const [nafModel, setNafModel] = useState('');
-  const [nafBodyType, setNafBodyType] = useState('');
-  const [regoChecking, setRegoChecking] = useState(false);
-  const [regoResult, setRegoResult] = useState<{ valid: boolean; message: string; details?: Record<string, string> } | null>(null);
-  // NAF Insurance
-  const [nafInsCarrier, setNafInsCarrier] = useState('');
-  const [nafInsPolicy, setNafInsPolicy] = useState('');
-  const [nafInsPhone, setNafInsPhone] = useState('');
-  const [nafInsAgent, setNafInsAgent] = useState('');
-  const [nafInsAgency, setNafInsAgency] = useState('');
-  // Type of Cover
-  const [coverType, setCoverType] = useState('');
   // Accident Details (local-only extras)
   const [accDamageDesc, setAccDamageDesc] = useState('');
   const [accTime, setAccTime] = useState('');
@@ -1150,176 +1236,6 @@ function AccidentTab() {
           ))}
         </div>
       </div>
-
-      {/* Driver = owner? */}
-      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>Is Driver the Vehicle Owner?</span>
-        {(['yes', 'no'] as const).map(v => (
-          <label key={v} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
-            <input type="radio" name="driverOwner" value={v} checked={driverIsOwner === v} onChange={() => {
-              setDriverIsOwner(v);
-              if (v === 'yes') {
-                setOwnerName(`${firstName} ${lastName}`.trim());
-                setOwnerPhone(mobile || homePhone);
-                setOwnerEmail(email);
-                setOwnerAddr(street1);
-                setOwnerCity(city);
-                setOwnerState(stateVal);
-                setOwnerPostal(postal);
-                setOwnerLicNum(licNum);
-                setOwnerLicExpiry(licExpires);
-                setOwnerDob(dob);
-              } else {
-                setOwnerName(''); setOwnerPhone(''); setOwnerEmail('');
-                setOwnerAddr(''); setOwnerCity(''); setOwnerState(''); setOwnerPostal('');
-                setOwnerLicNum(''); setOwnerLicExpiry(''); setOwnerDob('');
-              }
-            }} />
-            {v === 'yes' ? 'Yes' : 'No'}
-          </label>
-        ))}
-      </div>
-
-      <MCard title="NAF Vehicle Owner Details" cols={6}>
-        <MField label="Name" span={2}>
-          <input style={mField} value={ownerName} onChange={e => setOwnerName(e.target.value)} />
-        </MField>
-        <MField label="Phone" span={2}>
-          <input type="tel" style={mField} value={ownerPhone} onChange={e => setOwnerPhone(e.target.value)} />
-        </MField>
-        <MField label="Email" span={2}>
-          <input type="email" style={mField} value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)} />
-        </MField>
-        <MField label="Address" span={4}>
-          <AddressAutocomplete
-            value={ownerAddr}
-            onChange={setOwnerAddr}
-            onSelect={r => { setOwnerAddr(r.address); setOwnerCity(r.suburb); setOwnerPostal(r.postcode); setOwnerState(r.state); }}
-            style={{ ...mField }}
-          />
-        </MField>
-        <MField label="Suburb" span={2}>
-          <input style={mField} value={ownerCity} onChange={e => setOwnerCity(e.target.value)} />
-        </MField>
-        <MField label="State" span={1}>
-          <select style={mSel} value={ownerState} onChange={e => setOwnerState(e.target.value)}>
-            <option value="">—</option>
-            {['ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
-          </select>
-        </MField>
-        <MField label="Postcode" span={1}>
-          <input style={mField} value={ownerPostal} onChange={e => setOwnerPostal(e.target.value)} maxLength={4} />
-        </MField>
-        <MField label="Licence #" span={2}>
-          <input style={mField} value={ownerLicNum} onChange={e => setOwnerLicNum(e.target.value)} />
-        </MField>
-        <MField label="Lic Expiry" span={2}>
-          <input type="date" style={mField} value={ownerLicExpiry} onChange={e => setOwnerLicExpiry(e.target.value)} />
-        </MField>
-        <MField label="Date of Birth" span={2}>
-          <input type="date" style={mField} value={ownerDob} onChange={e => setOwnerDob(e.target.value)} />
-        </MField>
-      </MCard>
-
-      <MCard title="NAF Vehicle Details" cols={6}>
-        <MField label="Rego" span={2}>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <input
-              style={{ ...mField, flex: 1 }}
-              value={nafRego}
-              onChange={e => { setNafRego(e.target.value.toUpperCase()); setRegoResult(null); }}
-            />
-            <button
-              type="button"
-              disabled={regoChecking || !nafRego.trim()}
-              onClick={async () => {
-                setRegoChecking(true);
-                setRegoResult(null);
-                try {
-                  const res = await fetch('/api/check-rego', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ rego: nafRego.trim() }),
-                  });
-                  const data = await res.json();
-                  if (data.year) setNafYear(data.year);
-                  if (data.make) setNafMake(data.make);
-                  if (data.model) setNafModel(data.model);
-                  if (data.bodyType) setNafBodyType(data.bodyType);
-                  setRegoResult(data);
-                } catch {
-                  setRegoResult({ valid: false, message: 'Check failed. Please try again.' });
-                } finally {
-                  setRegoChecking(false);
-                }
-              }}
-              style={{
-                padding: '0 12px', fontSize: '13px', fontWeight: 600, height: '36px',
-                background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px',
-                cursor: 'pointer', whiteSpace: 'nowrap',
-                opacity: (regoChecking || !nafRego.trim()) ? 0.5 : 1,
-              }}
-            >
-              {regoChecking ? 'Checking…' : 'Check'}
-            </button>
-          </div>
-        </MField>
-        <MField label="Year" span={1}>
-          <input style={mField} value={nafYear} onChange={e => setNafYear(e.target.value)} maxLength={4} />
-        </MField>
-        <MField label="Make" span={2}>
-          <input style={mField} value={nafMake} onChange={e => setNafMake(e.target.value)} />
-        </MField>
-        <MField label="Model" span={2}>
-          <input style={mField} value={nafModel} onChange={e => setNafModel(e.target.value)} />
-        </MField>
-        <MField label="Body Type" span={2}>
-          <input style={mField} value={nafBodyType} onChange={e => setNafBodyType(e.target.value)} />
-        </MField>
-        {regoResult && (
-          <div style={{ gridColumn: 'span 6' }}>
-            <div style={{
-              fontSize: '13px', padding: '8px 12px', borderRadius: '6px',
-              background: regoResult.valid ? '#dcfce7' : '#fee2e2',
-              color: regoResult.valid ? '#166534' : '#991b1b',
-              border: `1px solid ${regoResult.valid ? '#86efac' : '#fca5a5'}`,
-              display: 'flex', alignItems: 'center', gap: '8px',
-            }}>
-              <span>{regoResult.valid ? '✓' : '✗'}</span>
-              <span>{regoResult.message}</span>
-            </div>
-          </div>
-        )}
-      </MCard>
-
-      <MCard title="NAF Insurance Details" cols={6}>
-        <MField label="Carrier" span={2}>
-          <input style={mField} value={nafInsCarrier} onChange={e => setNafInsCarrier(e.target.value)} />
-        </MField>
-        <MField label="Policy #" span={2}>
-          <input style={mField} value={nafInsPolicy} onChange={e => setNafInsPolicy(e.target.value)} />
-        </MField>
-        <MField label="Phone" span={2}>
-          <input type="tel" style={mField} value={nafInsPhone} onChange={e => setNafInsPhone(e.target.value)} />
-        </MField>
-        <MField label="Agency" span={2}>
-          <input style={mField} value={nafInsAgency} onChange={e => setNafInsAgency(e.target.value)} />
-        </MField>
-        <MField label="Agent" span={2}>
-          <input style={mField} value={nafInsAgent} onChange={e => setNafInsAgent(e.target.value)} />
-        </MField>
-      </MCard>
-
-      <MCard title="Type of Cover" cols={6}>
-        <div style={{ gridColumn: 'span 6', display: 'flex', gap: '24px' }}>
-          {['CTP', 'TPP', 'COMP'].map(c => (
-            <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
-              <input type="radio" name="coverType" value={c} checked={coverType === c} onChange={() => setCoverType(c)} />
-              {c}
-            </label>
-          ))}
-        </div>
-      </MCard>
 
       <MCard title="Accident Details" cols={6}>
         <MField label="Description" span={6}>
