@@ -316,34 +316,6 @@ function AtFaultThirdPartyTab() {
         </MField>
       </MCard>
 
-      <MCard title="Licence" cols={6}>
-        <MField label="Licence #" span={3}>
-          <input style={mField} value={licNum} onChange={e => setLicNum(e.target.value)} />
-        </MField>
-        <MField label="State" span={1}>
-          <input style={mField} value={licState} onChange={e => setLicState(e.target.value)} maxLength={3} />
-        </MField>
-        <MField label="Expiry" span={2}>
-          <input type="date" style={mField} value={licExpires} onChange={e => setLicExpires(e.target.value)} />
-        </MField>
-        <MField label="Issue Date" span={2}>
-          <input type="date" style={mField} value={licIssueDate} onChange={e => setLicIssueDate(e.target.value)} />
-        </MField>
-        <MField label="Issue Country" span={2}>
-          <select style={mSel} value={licCountry} onChange={e => setLicCountry(e.target.value)}>
-            {COUNTRIES.filter(([c]) => c).map(([code]) => (
-              <option key={code} value={code}>{code}</option>
-            ))}
-          </select>
-        </MField>
-        <MField label="Issue City" span={2}>
-          <input style={mField} value={licIssueCity} onChange={e => setLicIssueCity(e.target.value)} maxLength={35} />
-        </MField>
-        <MField label="Alternate ID" span={2}>
-          <input style={mField} value={altId} onChange={e => setAltId(e.target.value)} maxLength={40} />
-        </MField>
-      </MCard>
-
       <MCard title="Insurance Details" cols={6}>
         <MField label="Carrier" span={2}>
           <input style={mField} value={insCarrier} onChange={e => setInsCarrier(e.target.value)} maxLength={40} />
@@ -384,6 +356,34 @@ function AtFaultThirdPartyTab() {
             </select>
           </div>
         </div>
+      </MCard>
+
+      <MCard title="Licence" cols={6}>
+        <MField label="Licence #" span={3}>
+          <input style={mField} value={licNum} onChange={e => setLicNum(e.target.value)} />
+        </MField>
+        <MField label="State" span={1}>
+          <input style={mField} value={licState} onChange={e => setLicState(e.target.value)} maxLength={3} />
+        </MField>
+        <MField label="Expiry" span={2}>
+          <input type="date" style={mField} value={licExpires} onChange={e => setLicExpires(e.target.value)} />
+        </MField>
+        <MField label="Issue Date" span={2}>
+          <input type="date" style={mField} value={licIssueDate} onChange={e => setLicIssueDate(e.target.value)} />
+        </MField>
+        <MField label="Issue Country" span={2}>
+          <select style={mSel} value={licCountry} onChange={e => setLicCountry(e.target.value)}>
+            {COUNTRIES.filter(([c]) => c).map(([code]) => (
+              <option key={code} value={code}>{code}</option>
+            ))}
+          </select>
+        </MField>
+        <MField label="Issue City" span={2}>
+          <input style={mField} value={licIssueCity} onChange={e => setLicIssueCity(e.target.value)} maxLength={35} />
+        </MField>
+        <MField label="Alternate ID" span={2}>
+          <input style={mField} value={altId} onChange={e => setAltId(e.target.value)} maxLength={40} />
+        </MField>
       </MCard>
 
       <MCard title="Company Details" cols={6}>
