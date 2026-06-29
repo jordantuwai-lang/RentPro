@@ -27,13 +27,16 @@ export enum BranchCode {
 
 export class CustomerInputDto {
   @IsString()
-  firstName: string;
+  @IsOptional()
+  firstName?: string;
 
   @IsString()
-  lastName: string;
+  @IsOptional()
+  lastName?: string;
 
   @IsString()
-  phone: string;
+  @IsOptional()
+  phone?: string;
 
   @IsEmail()
   @IsOptional()

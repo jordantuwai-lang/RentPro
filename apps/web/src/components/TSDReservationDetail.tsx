@@ -1497,8 +1497,8 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
-      const msg = err?.response?.data?.message;
-      setSaveError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Save failed. Please try again.'));
+      const msg = err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message;
+      setSaveError(Array.isArray(msg) ? msg.join(', ') : (msg || `Save failed (${err?.response?.status ?? 'network error'}). Please try again.`));
     } finally {
       setIsSaving(false);
     }

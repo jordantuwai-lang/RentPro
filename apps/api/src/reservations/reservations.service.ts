@@ -81,7 +81,7 @@ export class ReservationsService {
     const reservation = await this.prisma.reservation.create({
       data: {
         reservationNumber,
-        customer: { create: customerData },
+        customer: { create: { firstName: '', lastName: '', phone: '', ...customerData } },
         vehicle: data.vehicleId ? { connect: { id: data.vehicleId } } : undefined,
         startDate: data.startDate ? new Date(data.startDate) : new Date(),
         endDate: data.endDate ? new Date(data.endDate) : null,
