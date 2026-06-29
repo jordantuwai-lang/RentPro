@@ -1,6 +1,6 @@
 'use client';
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useAuth, useUser } from '@clerk/nextjs';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import api from '@/lib/api';
 
@@ -408,6 +408,97 @@ function AtFaultThirdPartyTab() {
   );
 }
 
+/* ─── Notes Modal ────────────────────────────────────────── */
+function NotesModal({ onClose }: { onClose: () => void }) {
+  const { reservationId } = useRezForm();
+  const { getToken } = useAuth();
+  const { user } = useUser();
+  const authorName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.emailAddresses[0]?.emailAddress || 'Staff' : 'Staff';
+
+  const [notes, setNotes] = useState<{ id: string; note: string; authorName: string; createdAt: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [noteText, setNoteText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!reservationId) { setLoading(false); return; }
+    getToken().then(token =>
+      api.get(`/reservations/${reservationId}/notes`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => setNotes(r.data))
+        .finally(() => setLoading(false))
+    );
+  }, [reservationId]);
+
+  async function handleAdd() {
+    if (!noteText.trim() || !reservationId) return;
+    setSaving(true);
+    const token = await getToken();
+    const res = await api.post(`/reservations/${reservationId}/notes`, { note: noteText.trim(), authorName }, { headers: { Authorization: `Bearer ${token}` } });
+    setNotes(prev => [res.data, ...prev]);
+    setNoteText('');
+    setSaving(false);
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: '#fff', borderRadius: '12px', width: '560px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>Notes</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '18px', color: '#94a3b8', cursor: 'pointer', lineHeight: 1 }}>×</button>
+        </div>
+
+        {/* Notes list */}
+        <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {loading ? (
+            <div style={{ color: '#94a3b8', fontSize: '13px' }}>Loading…</div>
+          ) : notes.length === 0 ? (
+            <div style={{ color: '#94a3b8', fontSize: '13px' }}>No notes yet.</div>
+          ) : notes.map(n => (
+            <div key={n.id} style={{ background: '#f8fafc', borderRadius: '8px', padding: '12px 14px', borderLeft: '3px solid #16a34a' }}>
+              <div style={{ fontSize: '13px', color: '#0f172a', lineHeight: 1.5, marginBottom: '6px' }}>{n.note}</div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                {n.authorName} · {new Date(n.createdAt).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Add note */}
+        <div style={{ padding: '16px 20px', borderTop: '1px solid #e2e8f0' }}>
+          {!reservationId && (
+            <div style={{ fontSize: '12px', color: '#f59e0b', marginBottom: '8px' }}>Save the reservation first before adding notes.</div>
+          )}
+          <textarea
+            value={noteText}
+            onChange={e => setNoteText(e.target.value)}
+            disabled={!reservationId}
+            placeholder="Write a note…"
+            style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', color: '#0f172a', boxSizing: 'border-box', height: '80px', resize: 'vertical', background: reservationId ? '#fff' : '#f8fafc' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+            <button onClick={onClose} style={{ padding: '7px 16px', fontSize: '13px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#fff', color: '#334155', cursor: 'pointer' }}>Cancel</button>
+            <button
+              onClick={handleAdd}
+              disabled={!noteText.trim() || saving || !reservationId}
+              style={{ padding: '7px 16px', fontSize: '13px', fontWeight: 600, borderRadius: '6px', border: 'none', background: noteText.trim() && reservationId ? '#16a34a' : '#e2e8f0', color: noteText.trim() && reservationId ? '#fff' : '#94a3b8', cursor: noteText.trim() && reservationId ? 'pointer' : 'not-allowed' }}
+            >
+              {saving ? 'Saving…' : 'Add Note'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── TSD bottom button bar ─────────────────────────────── */
 function BtnBar() {
   const {
@@ -423,6 +514,7 @@ function BtnBar() {
   const [scanError, setScanError] = useState('');
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanTarget, setScanTarget] = useState<'driver' | 'owner' | null>(null);
+  const [showNotes, setShowNotes] = useState(false);
 
   const secondary: React.CSSProperties = {
     padding: '6px 12px', fontSize: '13px', fontWeight: 500, borderRadius: '6px',
@@ -551,9 +643,11 @@ function BtnBar() {
 
         <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
 
-        {['Opt. Services','Addl Drivers','Discount','Notes','Events','Payments','Print','Email','Invoice','Open R/A','Duplicate'].map(lbl => (
+        {['Opt. Services','Addl Drivers','Discount','Events','Payments','Print','Email','Invoice','Open R/A','Duplicate'].map(lbl => (
           <button key={lbl} style={secondary}>{lbl}</button>
         ))}
+        <button style={secondary} onClick={() => setShowNotes(true)}>Notes</button>
+        {showNotes && <NotesModal onClose={() => setShowNotes(false)} />}
 
         <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
 
