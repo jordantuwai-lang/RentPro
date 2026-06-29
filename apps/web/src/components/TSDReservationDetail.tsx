@@ -241,7 +241,30 @@ function AtFaultThirdPartyTab() {
 
   return (
     <div style={{ padding: '16px' }}>
-      <MCard title="Personal Details" cols={6}>
+      <MCard title="Vehicle Details" cols={6}>
+        <MField label="Registration" span={2}>
+          <input style={mField} value={vehRego} onChange={e => setVehRego(e.target.value)} maxLength={29} />
+        </MField>
+        <MField label="Year" span={1}>
+          <input style={mField} value={vehYear} onChange={e => setVehYear(e.target.value)} maxLength={4} />
+        </MField>
+        <MField label="Make" span={2}>
+          <input style={mField} value={vehMake} onChange={e => setVehMake(e.target.value)} maxLength={20} />
+        </MField>
+        <MField label="Model" span={2}>
+          <input style={mField} value={vehModel} onChange={e => setVehModel(e.target.value)} maxLength={20} />
+        </MField>
+        <div style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', gap: '20px', paddingTop: '22px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>Reg. Type</span>
+          {['Private','Business'].map(r => (
+            <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+              <input type="radio" name="afRegoType" value={r} checked={regoType === r} onChange={() => setRegoType(r)} />{r}
+            </label>
+          ))}
+        </div>
+      </MCard>
+
+      <MCard title="At Fault Party" cols={6}>
         <MField label="Last Name" span={2}>
           <input style={mField} value={lastName} onChange={e => setLastName(e.target.value)} maxLength={40} />
         </MField>
@@ -269,9 +292,6 @@ function AtFaultThirdPartyTab() {
         <MField label="Email" span={6}>
           <input type="email" style={mField} value={email} onChange={e => setEmail(e.target.value)} maxLength={50} />
         </MField>
-      </MCard>
-
-      <MCard title="Address" cols={6}>
         <MField label="Street 1" span={4}>
           <input style={mField} value={street1} onChange={e => setStreet1(e.target.value)} maxLength={100} />
         </MField>
@@ -322,29 +342,6 @@ function AtFaultThirdPartyTab() {
         <MField label="Alternate ID" span={2}>
           <input style={mField} value={altId} onChange={e => setAltId(e.target.value)} maxLength={40} />
         </MField>
-      </MCard>
-
-      <MCard title="Vehicle Details" cols={6}>
-        <MField label="Registration" span={2}>
-          <input style={mField} value={vehRego} onChange={e => setVehRego(e.target.value)} maxLength={29} />
-        </MField>
-        <MField label="Year" span={1}>
-          <input style={mField} value={vehYear} onChange={e => setVehYear(e.target.value)} maxLength={4} />
-        </MField>
-        <MField label="Make" span={2}>
-          <input style={mField} value={vehMake} onChange={e => setVehMake(e.target.value)} maxLength={20} />
-        </MField>
-        <MField label="Model" span={2}>
-          <input style={mField} value={vehModel} onChange={e => setVehModel(e.target.value)} maxLength={20} />
-        </MField>
-        <div style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', gap: '20px', paddingTop: '22px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>Reg. Type</span>
-          {['Private','Business'].map(r => (
-            <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
-              <input type="radio" name="afRegoType" value={r} checked={regoType === r} onChange={() => setRegoType(r)} />{r}
-            </label>
-          ))}
-        </div>
       </MCard>
 
       <MCard title="Insurance Details" cols={6}>
