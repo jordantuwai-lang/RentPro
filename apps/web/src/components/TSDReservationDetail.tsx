@@ -386,7 +386,7 @@ function AtFaultThirdPartyTab() {
         </MField>
       </MCard>
 
-      <MCard title="Company Details" cols={6}>
+      {regoType === 'Business' && <MCard title="Company Details" cols={6}>
         <div style={{ gridColumn: 'span 1', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '22px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
             <input type="checkbox" checked={validated} onChange={e => setValidated(e.target.checked)} />
@@ -402,7 +402,7 @@ function AtFaultThirdPartyTab() {
         <MField label="Company Phone" span={2}>
           <input type="tel" style={mField} value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} maxLength={40} />
         </MField>
-      </MCard>
+      </MCard>}
     </div>
   );
 }
