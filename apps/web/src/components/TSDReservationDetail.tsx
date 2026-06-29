@@ -490,6 +490,25 @@ function MainTab() {
 
   const [preferredNum, setPreferredNum] = useState('');
   const [passport, setPassport] = useState('');
+  // Registered Owner
+  const [roFirstName, setRoFirstName] = useState('');
+  const [roLastName, setRoLastName] = useState('');
+  const [roMi, setRoMi] = useState('');
+  const [roDob, setRoDob] = useState('');
+  const [roMobile, setRoMobile] = useState('');
+  const [roHomePhone, setRoHomePhone] = useState('');
+  const [roWorkPhone, setRoWorkPhone] = useState('');
+  const [roEmail, setRoEmail] = useState('');
+  const [roAltId, setRoAltId] = useState('');
+  const [roStreet1, setRoStreet1] = useState('');
+  const [roStreet2, setRoStreet2] = useState('');
+  const [roCity, setRoCity] = useState('');
+  const [roState, setRoState] = useState('');
+  const [roPostal, setRoPostal] = useState('');
+  const [roCountry, setRoCountry] = useState('');
+  const [roLicNum, setRoLicNum] = useState('');
+  const [roLicState, setRoLicState] = useState('');
+  const [roLicExpires, setRoLicExpires] = useState('');
   const [altKNum, setAltKNum] = useState('');
   const [pickupLoc, setPickupLoc] = useState('');
   const [dropLoc, setDropLoc] = useState('');
@@ -655,6 +674,86 @@ function MainTab() {
         </MField>
         <MField label="Expiry Date" span={2}>
           <input type="date" style={mField} value={licExpires} onChange={e => setLicExpires(e.target.value)} />
+        </MField>
+      </MCard>
+
+      {/* Registered Owner */}
+      <MCard title="Registered Owner" cols={6}>
+        {/* Personal */}
+        <MField label="First Name" span={2}>
+          <input style={mField} value={roFirstName} onChange={e => setRoFirstName(e.target.value)} placeholder="First name" />
+        </MField>
+        <MField label="Last Name" span={2}>
+          <input style={mField} value={roLastName} onChange={e => setRoLastName(e.target.value)} placeholder="Last name" />
+        </MField>
+        <MField label="MI" span={1}>
+          <input style={mField} value={roMi} onChange={e => setRoMi(e.target.value)} maxLength={1} placeholder="MI" />
+        </MField>
+        <MField label="Date of Birth" span={1}>
+          <input type="date" style={mField} value={roDob} onChange={e => setRoDob(e.target.value)} />
+        </MField>
+        <MField label="Mobile" span={2}>
+          <input type="tel" style={mField} value={roMobile} onChange={e => setRoMobile(e.target.value)} placeholder="0400 000 000" />
+        </MField>
+        <MField label="Home Phone" span={2}>
+          <input type="tel" style={mField} value={roHomePhone} onChange={e => setRoHomePhone(e.target.value)} placeholder="02 0000 0000" />
+        </MField>
+        <MField label="Work Phone" span={2}>
+          <input type="tel" style={mField} value={roWorkPhone} onChange={e => setRoWorkPhone(e.target.value)} placeholder="02 0000 0000" />
+        </MField>
+        <MField label="Email" span={4}>
+          <input type="email" style={mField} value={roEmail} onChange={e => setRoEmail(e.target.value)} placeholder="owner@email.com" />
+        </MField>
+        <MField label="Alternate ID" span={2}>
+          <input style={mField} value={roAltId} onChange={e => setRoAltId(e.target.value)} />
+        </MField>
+
+        {/* Divider */}
+        <div style={{ gridColumn: 'span 6', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
+
+        {/* Address */}
+        <MField label="Street 1" span={4}>
+          <AddressAutocomplete
+            value={roStreet1}
+            onChange={setRoStreet1}
+            onSelect={r => { setRoStreet1(r.address); setRoCity(r.suburb); setRoState(r.state); setRoPostal(r.postcode); }}
+            style={{ ...mField }}
+          />
+        </MField>
+        <MField label="Street 2" span={2}>
+          <input style={mField} value={roStreet2} onChange={e => setRoStreet2(e.target.value)} />
+        </MField>
+        <MField label="Suburb" span={2}>
+          <input style={mField} value={roCity} onChange={e => setRoCity(e.target.value)} />
+        </MField>
+        <MField label="State" span={1}>
+          <select style={mSel} value={roState} onChange={e => setRoState(e.target.value)}>
+            <option value="">—</option>
+            {['ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </MField>
+        <MField label="Postcode" span={1}>
+          <input style={mField} value={roPostal} onChange={e => setRoPostal(e.target.value)} maxLength={4} />
+        </MField>
+        <MField label="Country" span={2}>
+          <input style={mField} value={roCountry} onChange={e => setRoCountry(e.target.value)} placeholder="Australia" />
+        </MField>
+
+        {/* Divider */}
+        <div style={{ gridColumn: 'span 6', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
+
+        {/* Licence */}
+        <MField label="Licence Number" span={3}>
+          <input style={mField} value={roLicNum} onChange={e => setRoLicNum(e.target.value)} />
+        </MField>
+        <MField label="Issuing State" span={1}>
+          <select style={mSel} value={roLicState} onChange={e => setRoLicState(e.target.value)}>
+            <option value="">—</option>
+            {['International','ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </MField>
+        <MField label="Expiry Date" span={2}>
+          <input type="date" style={mField} value={roLicExpires} onChange={e => setRoLicExpires(e.target.value)} />
         </MField>
       </MCard>
 
