@@ -264,6 +264,24 @@ function AtFaultThirdPartyTab() {
         </div>
       </MCard>
 
+      {regoType === 'Business' && <MCard title="Company Details" cols={6}>
+        <div style={{ gridColumn: 'span 1', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '22px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
+            <input type="checkbox" checked={validated} onChange={e => setValidated(e.target.checked)} />
+            Validated
+          </label>
+        </div>
+        <MField label="Company" span={3}>
+          <input style={mField} value={company} onChange={e => setCompany(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="ABN" span={2}>
+          <input style={mField} value={abn} onChange={e => setAbn(e.target.value)} maxLength={40} />
+        </MField>
+        <MField label="Company Phone" span={2}>
+          <input type="tel" style={mField} value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} maxLength={40} />
+        </MField>
+      </MCard>}
+
       <MCard title="At Fault Party" cols={6}>
         <MField label="Last Name" span={2}>
           <input style={mField} value={lastName} onChange={e => setLastName(e.target.value)} maxLength={40} />
@@ -386,23 +404,6 @@ function AtFaultThirdPartyTab() {
         </MField>
       </MCard>
 
-      {regoType === 'Business' && <MCard title="Company Details" cols={6}>
-        <div style={{ gridColumn: 'span 1', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '22px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
-            <input type="checkbox" checked={validated} onChange={e => setValidated(e.target.checked)} />
-            Validated
-          </label>
-        </div>
-        <MField label="Company" span={3}>
-          <input style={mField} value={company} onChange={e => setCompany(e.target.value)} maxLength={40} />
-        </MField>
-        <MField label="ABN" span={2}>
-          <input style={mField} value={abn} onChange={e => setAbn(e.target.value)} maxLength={40} />
-        </MField>
-        <MField label="Company Phone" span={2}>
-          <input type="tel" style={mField} value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} maxLength={40} />
-        </MField>
-      </MCard>}
     </div>
   );
 }
