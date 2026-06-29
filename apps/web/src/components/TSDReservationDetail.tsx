@@ -104,6 +104,25 @@ interface RezForm {
   tpVehYear: string; setTpVehYear: (v: string) => void;
   tpInsCarrier: string; setTpInsCarrier: (v: string) => void;
   tpClaimNo: string; setTpClaimNo: (v: string) => void;
+  // Registered Owner
+  roFirstName: string; setRoFirstName: (v: string) => void;
+  roLastName: string; setRoLastName: (v: string) => void;
+  roMi: string; setRoMi: (v: string) => void;
+  roDob: string; setRoDob: (v: string) => void;
+  roMobile: string; setRoMobile: (v: string) => void;
+  roHomePhone: string; setRoHomePhone: (v: string) => void;
+  roWorkPhone: string; setRoWorkPhone: (v: string) => void;
+  roEmail: string; setRoEmail: (v: string) => void;
+  roAltId: string; setRoAltId: (v: string) => void;
+  roStreet1: string; setRoStreet1: (v: string) => void;
+  roStreet2: string; setRoStreet2: (v: string) => void;
+  roCity: string; setRoCity: (v: string) => void;
+  roState: string; setRoState: (v: string) => void;
+  roPostal: string; setRoPostal: (v: string) => void;
+  roCountry: string; setRoCountry: (v: string) => void;
+  roLicNum: string; setRoLicNum: (v: string) => void;
+  roLicState: string; setRoLicState: (v: string) => void;
+  roLicExpires: string; setRoLicExpires: (v: string) => void;
   // Meta
   rezNumber: string;
   tabHasData: (tab: number) => boolean;
@@ -393,20 +412,62 @@ function AtFaultThirdPartyTab() {
 
 /* ─── TSD bottom button bar ─────────────────────────────── */
 function BtnBar() {
-  const { save, isSaving, saveError, saveSuccess, setFirstName, setLastName, setStreet1, setCity, setStateVal, setPostal, setLicNum, setLicExpires, setDob } = useRezForm();
+  const {
+    save, isSaving, saveError, saveSuccess,
+    setFirstName, setLastName, setMi, setDob, setMobile, setHomePhone, setWorkPhone,
+    setEmail, setStreet1, setCity, setStateVal, setPostal, setLicNum, setLicExpires,
+    setRoFirstName, setRoLastName, setRoMi, setRoDob, setRoMobile, setRoHomePhone,
+    setRoWorkPhone, setRoEmail, setRoStreet1, setRoCity, setRoState, setRoPostal,
+    setRoLicNum, setRoLicExpires,
+  } = useRezForm();
+
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState('');
-  const btn = (label: string, primary = false): React.CSSProperties => ({
-    padding: '3px 10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-    border: '1px solid #9ca3af',
-    background: primary ? '#16a34a' : '#e5e7eb',
-    color: primary ? '#fff' : '#111',
-    borderRadius: '2px',
-  });
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [scanTarget, setScanTarget] = useState<'driver' | 'owner' | null>(null);
+
+  const secondary: React.CSSProperties = {
+    padding: '6px 12px', fontSize: '13px', fontWeight: 500, borderRadius: '6px',
+    border: '1px solid #e2e8f0', background: '#fff', color: '#334155', cursor: 'pointer',
+  };
+
+  function applyScannedData(data: Record<string, string>, target: 'driver' | 'owner') {
+    if (target === 'driver') {
+      if (data.firstName) setFirstName(data.firstName);
+      if (data.lastName) setLastName(data.lastName);
+      if (data.mi) setMi(data.mi);
+      if (data.dob) setDob(data.dob);
+      if (data.mobile) setMobile(data.mobile);
+      if (data.homePhone) setHomePhone(data.homePhone);
+      if (data.workPhone) setWorkPhone(data.workPhone);
+      if (data.email) setEmail(data.email);
+      if (data.street1) setStreet1(data.street1);
+      if (data.city) setCity(data.city);
+      if (data.state) setStateVal(data.state);
+      if (data.postcode) setPostal(data.postcode);
+      if (data.licenceNumber) setLicNum(data.licenceNumber);
+      if (data.licenceExpiry) setLicExpires(data.licenceExpiry);
+    } else {
+      if (data.firstName) setRoFirstName(data.firstName);
+      if (data.lastName) setRoLastName(data.lastName);
+      if (data.mi) setRoMi(data.mi);
+      if (data.dob) setRoDob(data.dob);
+      if (data.mobile) setRoMobile(data.mobile);
+      if (data.homePhone) setRoHomePhone(data.homePhone);
+      if (data.workPhone) setRoWorkPhone(data.workPhone);
+      if (data.email) setRoEmail(data.email);
+      if (data.street1) setRoStreet1(data.street1);
+      if (data.city) setRoCity(data.city);
+      if (data.state) setRoState(data.state);
+      if (data.postcode) setRoPostal(data.postcode);
+      if (data.licenceNumber) setRoLicNum(data.licenceNumber);
+      if (data.licenceExpiry) setRoLicExpires(data.licenceExpiry);
+    }
+  }
 
   const handleScanChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !scanTarget) return;
     setScanLoading(true); setScanError('');
     try {
       const reader = new FileReader();
@@ -415,15 +476,7 @@ function BtnBar() {
         const res = await fetch('/api/scan-licence', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: base64 }) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Scan failed');
-        if (data.firstName) setFirstName(data.firstName);
-        if (data.lastName) setLastName(data.lastName);
-        if (data.street1) setStreet1(data.street1);
-        if (data.city) setCity(data.city);
-        if (data.state) setStateVal(data.state);
-        if (data.postcode) setPostal(data.postcode);
-        if (data.licenceNumber) setLicNum(data.licenceNumber);
-        if (data.licenceExpiry) setLicExpires(data.licenceExpiry);
-        if (data.dob) setDob(data.dob);
+        applyScannedData(data, scanTarget);
         setScanLoading(false);
       };
       reader.readAsDataURL(file);
@@ -432,47 +485,94 @@ function BtnBar() {
       setScanLoading(false);
     }
     e.target.value = '';
+    setScanTarget(null);
   };
 
-  const secondary: React.CSSProperties = {
-    padding: '6px 12px', fontSize: '13px', fontWeight: 500, borderRadius: '6px',
-    border: '1px solid #e2e8f0', background: '#fff', color: '#334155', cursor: 'pointer',
-  };
+  function handleTargetSelect(target: 'driver' | 'owner') {
+    setScanTarget(target);
+    setShowScanModal(false);
+    setTimeout(() => document.getElementById('scan-licence-input')?.click(), 50);
+  }
 
   return (
-    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e2e8f0', padding: '8px 20px', display: 'flex', alignItems: 'center', gap: '6px', zIndex: 100 }}>
+    <>
+      {/* Scan target modal */}
+      {showScanModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowScanModal(false)}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: '12px', padding: '28px 32px', width: '340px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Scan Licence</div>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>Which licence would you like to scan?</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                onClick={() => handleTargetSelect('driver')}
+                style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600, borderRadius: '8px', border: '2px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#16a34a')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '#e2e8f0')}
+              >
+                🪪 Driver's Licence
+                <div style={{ fontSize: '12px', fontWeight: 400, color: '#64748b', marginTop: '2px' }}>Fill in the Driver Details section</div>
+              </button>
+              <button
+                onClick={() => handleTargetSelect('owner')}
+                style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600, borderRadius: '8px', border: '2px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#16a34a')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '#e2e8f0')}
+              >
+                🪪 Registered Owner's Licence
+                <div style={{ fontSize: '12px', fontWeight: 400, color: '#64748b', marginTop: '2px' }}>Fill in the Registered Owner section</div>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowScanModal(false)}
+              style={{ marginTop: '16px', width: '100%', padding: '8px', fontSize: '13px', color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <input id="scan-licence-input" type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleScanChange} />
-      {/* Primary save */}
-      <button
-        onClick={save}
-        disabled={isSaving}
-        style={{ padding: '7px 18px', fontSize: '13px', fontWeight: 700, borderRadius: '6px', border: 'none', background: isSaving ? '#94a3b8' : '#16a34a', color: '#fff', cursor: isSaving ? 'not-allowed' : 'pointer' }}
-      >
-        {isSaving ? 'Saving…' : saveSuccess ? '✓ Saved' : 'Save'}
-      </button>
-      {saveError && <span style={{ fontSize: '12px', color: '#dc2626' }}>{saveError}</span>}
 
-      <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e2e8f0', padding: '8px 20px', display: 'flex', alignItems: 'center', gap: '6px', zIndex: 100 }}>
+        {/* Primary save */}
+        <button
+          onClick={save}
+          disabled={isSaving}
+          style={{ padding: '7px 18px', fontSize: '13px', fontWeight: 700, borderRadius: '6px', border: 'none', background: isSaving ? '#94a3b8' : '#16a34a', color: '#fff', cursor: isSaving ? 'not-allowed' : 'pointer' }}
+        >
+          {isSaving ? 'Saving…' : saveSuccess ? '✓ Saved' : 'Save'}
+        </button>
+        {saveError && <span style={{ fontSize: '12px', color: '#dc2626' }}>{saveError}</span>}
 
-      {['Opt. Services','Addl Drivers','Discount','Notes','Events','Payments','Print','Email','Invoice','Open R/A','Duplicate'].map(lbl => (
-        <button key={lbl} style={secondary}>{lbl}</button>
-      ))}
+        <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
 
-      <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
+        {['Opt. Services','Addl Drivers','Discount','Notes','Events','Payments','Print','Email','Invoice','Open R/A','Duplicate'].map(lbl => (
+          <button key={lbl} style={secondary}>{lbl}</button>
+        ))}
 
-      <button
-        style={{ ...secondary, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', opacity: scanLoading ? 0.6 : 1 }}
-        disabled={scanLoading}
-        onClick={() => document.getElementById('scan-licence-input')?.click()}
-      >
-        {scanLoading ? 'Scanning…' : '📷 Scan Licence'}
-      </button>
-      {scanError && <span style={{ fontSize: '12px', color: '#dc2626' }}>{scanError}</span>}
+        <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
 
-      <div style={{ flex: 1 }} />
+        <button
+          style={{ ...secondary, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', opacity: scanLoading ? 0.6 : 1 }}
+          disabled={scanLoading}
+          onClick={() => setShowScanModal(true)}
+        >
+          {scanLoading ? 'Scanning…' : '📷 Scan Licence'}
+        </button>
+        {scanError && <span style={{ fontSize: '12px', color: '#dc2626' }}>{scanError}</span>}
 
-      <button style={{ ...secondary, color: '#dc2626', border: '1px solid #fca5a5', background: '#fff5f5' }}>Cancel Reservation</button>
-    </div>
+        <div style={{ flex: 1 }} />
+
+        <button style={{ ...secondary, color: '#dc2626', border: '1px solid #fca5a5', background: '#fff5f5' }}>Cancel Reservation</button>
+      </div>
+    </>
   );
 }
 
@@ -485,30 +585,17 @@ function MainTab() {
     city, setCity, stateVal, setStateVal, postal, setPostal, country, setCountry,
     licNum, setLicNum, licState, setLicState, licExpires, setLicExpires, dob, setDob,
     pickupDate, setPickupDate, dropDate, setDropDate, source, setSource,
+    roFirstName, setRoFirstName, roLastName, setRoLastName, roMi, setRoMi,
+    roDob, setRoDob, roMobile, setRoMobile, roHomePhone, setRoHomePhone,
+    roWorkPhone, setRoWorkPhone, roEmail, setRoEmail, roAltId, setRoAltId,
+    roStreet1, setRoStreet1, roStreet2, setRoStreet2, roCity, setRoCity,
+    roState, setRoState, roPostal, setRoPostal, roCountry, setRoCountry,
+    roLicNum, setRoLicNum, roLicState, setRoLicState, roLicExpires, setRoLicExpires,
     rezNumber,
   } = useRezForm();
 
   const [preferredNum, setPreferredNum] = useState('');
   const [passport, setPassport] = useState('');
-  // Registered Owner
-  const [roFirstName, setRoFirstName] = useState('');
-  const [roLastName, setRoLastName] = useState('');
-  const [roMi, setRoMi] = useState('');
-  const [roDob, setRoDob] = useState('');
-  const [roMobile, setRoMobile] = useState('');
-  const [roHomePhone, setRoHomePhone] = useState('');
-  const [roWorkPhone, setRoWorkPhone] = useState('');
-  const [roEmail, setRoEmail] = useState('');
-  const [roAltId, setRoAltId] = useState('');
-  const [roStreet1, setRoStreet1] = useState('');
-  const [roStreet2, setRoStreet2] = useState('');
-  const [roCity, setRoCity] = useState('');
-  const [roState, setRoState] = useState('');
-  const [roPostal, setRoPostal] = useState('');
-  const [roCountry, setRoCountry] = useState('');
-  const [roLicNum, setRoLicNum] = useState('');
-  const [roLicState, setRoLicState] = useState('');
-  const [roLicExpires, setRoLicExpires] = useState('');
   const [altKNum, setAltKNum] = useState('');
   const [pickupLoc, setPickupLoc] = useState('');
   const [dropLoc, setDropLoc] = useState('');
@@ -1441,6 +1528,26 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const [tpInsCarrier, setTpInsCarrier] = useState(af.insuranceProvider ?? '');
   const [tpClaimNo, setTpClaimNo] = useState(af.claimNumber ?? '');
 
+  // ── Registered Owner ────────────────────────────────────
+  const [roFirstName, setRoFirstName] = useState('');
+  const [roLastName, setRoLastName] = useState('');
+  const [roMi, setRoMi] = useState('');
+  const [roDob, setRoDob] = useState('');
+  const [roMobile, setRoMobile] = useState('');
+  const [roHomePhone, setRoHomePhone] = useState('');
+  const [roWorkPhone, setRoWorkPhone] = useState('');
+  const [roEmail, setRoEmail] = useState('');
+  const [roAltId, setRoAltId] = useState('');
+  const [roStreet1, setRoStreet1] = useState('');
+  const [roStreet2, setRoStreet2] = useState('');
+  const [roCity, setRoCity] = useState('');
+  const [roState, setRoState] = useState('');
+  const [roPostal, setRoPostal] = useState('');
+  const [roCountry, setRoCountry] = useState('');
+  const [roLicNum, setRoLicNum] = useState('');
+  const [roLicState, setRoLicState] = useState('');
+  const [roLicExpires, setRoLicExpires] = useState('');
+
   // ── Save state ──────────────────────────────────────────
   const [reservationId, setReservationId] = useState<string | null>(initialResId ?? null);
   const [isSaving, setIsSaving] = useState(false);
@@ -1545,6 +1652,12 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     tpAddress, setTpAddress, tpSuburb, setTpSuburb, tpPostal, setTpPostal, tpState, setTpState,
     tpVehRego, setTpVehRego, tpVehMake, setTpVehMake, tpVehModel, setTpVehModel, tpVehYear, setTpVehYear,
     tpInsCarrier, setTpInsCarrier, tpClaimNo, setTpClaimNo,
+    roFirstName, setRoFirstName, roLastName, setRoLastName, roMi, setRoMi,
+    roDob, setRoDob, roMobile, setRoMobile, roHomePhone, setRoHomePhone,
+    roWorkPhone, setRoWorkPhone, roEmail, setRoEmail, roAltId, setRoAltId,
+    roStreet1, setRoStreet1, roStreet2, setRoStreet2, roCity, setRoCity,
+    roState, setRoState, roPostal, setRoPostal, roCountry, setRoCountry,
+    roLicNum, setRoLicNum, roLicState, setRoLicState, roLicExpires, setRoLicExpires,
     rezNumber, tabHasData, reservationId, isSaving, saveError, saveSuccess, save,
   };
 
