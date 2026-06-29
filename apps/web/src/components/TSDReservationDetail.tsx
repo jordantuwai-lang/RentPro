@@ -519,33 +519,44 @@ function MainTab() {
     <div style={{ padding: '16px' }}>
       {/* Reservation summary strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-        {[
-          { label: 'Reservation #', value: rezNumber || 'Generating…', mono: true, green: true },
-          { label: 'Booked', value: booked },
-          { label: 'Pickup Date', value: null, input: true, type: 'date', val: pickupDate, set: setPickupDate },
-          { label: 'Return Date', value: null, input: true, type: 'date', val: dropDate, set: setDropDate },
-        ].map((c, i) => (
-          <div key={i} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>{c.label}</div>
-            {c.input
-              ? <input type={c.type} style={{ border: 'none', padding: 0, fontSize: '15px', fontWeight: 600, color: '#0f172a', background: 'transparent', width: '100%', outline: 'none' }} value={c.val} onChange={e => c.set!(e.target.value)} />
-              : <div style={{ fontSize: '18px', fontWeight: 800, color: c.green ? '#16a34a' : '#0f172a', letterSpacing: c.mono ? '0.03em' : undefined }}>{c.value}</div>
-            }
+        {/* Reservation # */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Reservation #</div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>{rezNumber || 'Generating…'}</div>
+        </div>
+        {/* Booked */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Booked</div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{booked}</div>
+        </div>
+        {/* Pickup Date + Time */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Pickup Date</div>
+          <input type="date" style={{ border: 'none', padding: 0, fontSize: '13px', fontWeight: 600, color: '#0f172a', background: 'transparent', width: '100%', outline: 'none' }} value={pickupDate} onChange={e => setPickupDate(e.target.value)} />
+          <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '8px', paddingTop: '8px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Time</div>
+            <input type="time" style={{ border: 'none', padding: 0, fontSize: '13px', fontWeight: 600, color: '#0f172a', background: 'transparent', width: '100%', outline: 'none' }} value={pickupTime} onChange={e => setPickupTime(e.target.value)} />
           </div>
-        ))}
+        </div>
+        {/* Return Date + Time */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Return Date</div>
+          <input type="date" style={{ border: 'none', padding: 0, fontSize: '13px', fontWeight: 600, color: '#0f172a', background: 'transparent', width: '100%', outline: 'none' }} value={dropDate} onChange={e => setDropDate(e.target.value)} />
+          <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '8px', paddingTop: '8px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Time</div>
+            <input type="time" style={{ border: 'none', padding: 0, fontSize: '13px', fontWeight: 600, color: '#0f172a', background: 'transparent', width: '100%', outline: 'none' }} value={dropTime} onChange={e => setDropTime(e.target.value)} />
+          </div>
+        </div>
       </div>
 
-      {/* Pickup / Return locations + time */}
+      {/* Pickup / Return locations */}
       <MCard title="Pickup & Return" cols={4}>
         <MField label="Pickup Location" span={2}>
           <select style={mSel} value={pickupLoc} onChange={e => setPickupLoc(e.target.value)}>
             <option value="">— Select location —</option>
           </select>
         </MField>
-        <MField label="Pickup Time" span={1}>
-          <input type="time" style={mField} value={pickupTime} onChange={e => setPickupTime(e.target.value)} />
-        </MField>
-        <MField label="Source of Business" span={1}>
+        <MField label="Source of Business" span={2}>
           <select style={mSel} value={source} onChange={e => setSource(e.target.value)}>
             <option value="">— Select —</option>
             <option>Insurance</option>
@@ -560,10 +571,7 @@ function MainTab() {
             <option value="">Return to pickup</option>
           </select>
         </MField>
-        <MField label="Return Time" span={1}>
-          <input type="time" style={mField} value={dropTime} onChange={e => setDropTime(e.target.value)} />
-        </MField>
-        <MField label="Direct Bill" span={1}>
+        <MField label="Direct Bill" span={2}>
           <select style={mSel} value={directBill} onChange={e => setDirectBill(e.target.value)}>
             <option value="">— Select —</option>
           </select>
