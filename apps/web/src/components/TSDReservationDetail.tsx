@@ -578,8 +578,9 @@ function MainTab() {
         </MField>
       </MCard>
 
-      {/* Driver Details */}
+      {/* Driver Details + Address + Licence */}
       <MCard title="Driver Details" cols={6}>
+        {/* Personal */}
         <MField label="First Name" span={2}>
           <input style={mField} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" />
         </MField>
@@ -601,19 +602,17 @@ function MainTab() {
         <MField label="Work Phone" span={2}>
           <input type="tel" style={mField} value={workPhone} onChange={e => setWorkPhone(e.target.value)} placeholder="02 0000 0000" />
         </MField>
-        <MField label="Email" span={3}>
+        <MField label="Email" span={4}>
           <input type="email" style={mField} value={email} onChange={e => setEmail(e.target.value)} placeholder="driver@email.com" />
         </MField>
-        <MField label="Preferred Renter #" span={2}>
-          <input style={mField} value={preferredNum} onChange={e => setPreferredNum(e.target.value)} />
-        </MField>
-        <MField label="Alternate ID" span={1}>
+        <MField label="Alternate ID" span={2}>
           <input style={mField} value={passport} onChange={e => setPassport(e.target.value)} />
         </MField>
-      </MCard>
 
-      {/* Address */}
-      <MCard title="Address" cols={6}>
+        {/* Divider */}
+        <div style={{ gridColumn: 'span 6', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
+
+        {/* Address */}
         <MField label="Street 1" span={4}>
           <AddressAutocomplete
             value={street1}
@@ -640,10 +639,11 @@ function MainTab() {
         <MField label="Country" span={2}>
           <input style={mField} value={country} onChange={e => setCountry(e.target.value)} placeholder="Australia" />
         </MField>
-      </MCard>
 
-      {/* Licence */}
-      <MCard title="Licence" cols={6}>
+        {/* Divider */}
+        <div style={{ gridColumn: 'span 6', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
+
+        {/* Licence */}
         <MField label="Licence Number" span={3}>
           <input style={mField} value={licNum} onChange={e => setLicNum(e.target.value)} />
         </MField>
