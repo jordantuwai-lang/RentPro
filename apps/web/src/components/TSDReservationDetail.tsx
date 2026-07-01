@@ -1397,41 +1397,45 @@ function CardDetailsTab() {
       <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#92400e', marginBottom: '16px' }}>
         Card details are stored securely and not shared without authorisation.
       </div>
-      <MCard title="Card Details" cols={4}>
-        <MField label="Name on Card" span={4}>
-          <input style={mField} value={nameOnCard} onChange={e => setNameOnCard(e.target.value)} placeholder="As it appears on card" maxLength={60} />
-        </MField>
-        <MField label="Card Type" span={2}>
-          <select style={{ ...mField, cursor: 'pointer' }} value={cardType} onChange={e => setCardType(e.target.value)}>
-            <option value="">— Select —</option>
-            <option>Visa</option>
-            <option>Mastercard</option>
-            <option>American Express</option>
-            <option>eftpos</option>
-            <option>Other</option>
-          </select>
-        </MField>
-        <MField label="Card Number" span={3}>
-          <input style={mField} value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))} placeholder="•••• •••• •••• ••••" maxLength={19} inputMode="numeric" />
-        </MField>
-        <MField label="Expiry" span={1}>
-          <input style={mField} value={expiry} onChange={e => setExpiry(formatExpiry(e.target.value))} placeholder="MM/YY" maxLength={5} inputMode="numeric" />
-        </MField>
-        <div style={{ gridColumn: 'span 4', paddingTop: '4px' }}>
-          <button
-            onClick={handleSave}
-            style={{ padding: '8px 24px', fontSize: '13px', fontWeight: 700, background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-          >
-            {saved ? '✓ Saved' : 'Save Card Details'}
-          </button>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
+        <MCard title="Card Details" cols={4}>
+          <MField label="Name on Card" span={4}>
+            <input style={mField} value={nameOnCard} onChange={e => setNameOnCard(e.target.value)} placeholder="As it appears on card" maxLength={60} />
+          </MField>
+          <MField label="Card Type" span={2}>
+            <select style={{ ...mField, cursor: 'pointer' }} value={cardType} onChange={e => setCardType(e.target.value)}>
+              <option value="">— Select —</option>
+              <option>Visa</option>
+              <option>Mastercard</option>
+              <option>American Express</option>
+              <option>eftpos</option>
+              <option>Other</option>
+            </select>
+          </MField>
+          <MField label="Card Number" span={3}>
+            <input style={mField} value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))} placeholder="•••• •••• •••• ••••" maxLength={19} inputMode="numeric" />
+          </MField>
+          <MField label="Expiry" span={1}>
+            <input style={mField} value={expiry} onChange={e => setExpiry(formatExpiry(e.target.value))} placeholder="MM/YY" maxLength={5} inputMode="numeric" />
+          </MField>
+          <div style={{ gridColumn: 'span 4', paddingTop: '4px' }}>
+            <button
+              onClick={handleSave}
+              style={{ padding: '8px 24px', fontSize: '13px', fontWeight: 700, background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+            >
+              {saved ? '✓ Saved' : 'Save Card Details'}
+            </button>
+          </div>
+        </MCard>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <MCard title="Driver's Licence" cols={1}>
+            <DocUploadSlot label="Driver's Licence Photo" desc="Upload a photo of the customer's driver's licence" icon="🪪" val={licencePhoto} onChange={setLicencePhoto} />
+          </MCard>
+          <MCard title="Vehicle Registration" cols={1}>
+            <DocUploadSlot label="Vehicle Registration Papers" desc="Upload the vehicle's registration certificate" icon="📄" val={regoPhoto} onChange={setRegoPhoto} />
+          </MCard>
         </div>
-      </MCard>
-      <MCard title="Driver's Licence" cols={1}>
-        <DocUploadSlot label="Driver's Licence Photo" desc="Upload a photo of the customer's driver's licence" icon="🪪" val={licencePhoto} onChange={setLicencePhoto} />
-      </MCard>
-      <MCard title="Vehicle Registration" cols={1}>
-        <DocUploadSlot label="Vehicle Registration Papers" desc="Upload the vehicle's registration certificate" icon="📄" val={regoPhoto} onChange={setRegoPhoto} />
-      </MCard>
+      </div>
     </div>
   );
 }
