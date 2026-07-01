@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import api from '@/lib/api';
@@ -1328,6 +1328,45 @@ function AccidentTab() {
   );
 }
 
+/* ─── Reusable document photo upload slot ────────────────── */
+function DocUploadSlot({ label, desc, icon, val, onChange }: { label: string; desc: string; icon: string; val: string | null; onChange: (v: string | null) => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => onChange(reader.result as string);
+    reader.readAsDataURL(f);
+    e.target.value = '';
+  };
+  return (
+    <div style={{ border: `1px solid ${val ? '#86efac' : '#e2e8f0'}`, borderRadius: '8px', overflow: 'hidden', background: val ? '#f0fdf4' : '#fff' }}>
+      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+      {val ? (
+        <div>
+          <img src={val} alt={label} style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }} />
+          <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#16a34a' }}>✅ Uploaded</span>
+            <button type="button" onClick={() => fileRef.current?.click()} style={{ marginLeft: 'auto', fontSize: '11px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Replace</button>
+            <button type="button" onClick={() => onChange(null)} style={{ fontSize: '11px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Remove</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <span style={{ fontSize: '22px' }}>{icon}</span>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{label}</div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>{desc}</div>
+            </div>
+          </div>
+          <button type="button" onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px dashed #cbd5e1', background: '#f8fafc', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>📁 Upload photo</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Card Details Tab ───────────────────────────────────── */
 function CardDetailsTab() {
   const [nameOnCard, setNameOnCard] = useState('');
@@ -1335,6 +1374,8 @@ function CardDetailsTab() {
   const [expiry, setExpiry] = useState('');
   const [cardType, setCardType] = useState('');
   const [saved, setSaved] = useState(false);
+  const [licencePhoto, setLicencePhoto] = useState<string | null>(null);
+  const [regoPhoto, setRegoPhoto] = useState<string | null>(null);
 
   function formatCardNumber(raw: string) {
     const digits = raw.replace(/\D/g, '').slice(0, 16);
@@ -1384,6 +1425,12 @@ function CardDetailsTab() {
             {saved ? '✓ Saved' : 'Save Card Details'}
           </button>
         </div>
+      </MCard>
+      <MCard title="Driver's Licence" cols={1}>
+        <DocUploadSlot label="Driver's Licence Photo" desc="Upload a photo of the customer's driver's licence" icon="🪪" val={licencePhoto} onChange={setLicencePhoto} />
+      </MCard>
+      <MCard title="Vehicle Registration" cols={1}>
+        <DocUploadSlot label="Vehicle Registration Papers" desc="Upload the vehicle's registration certificate" icon="📄" val={regoPhoto} onChange={setRegoPhoto} />
       </MCard>
     </div>
   );

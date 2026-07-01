@@ -1322,6 +1322,20 @@ export default function ReservationDetail({
           </div>
         </SectionBlock>
       )}
+      {activeTab === 9 && (
+        <SectionBlock title="Driver's Licence">
+          <div style={{ maxWidth: '420px' }}>
+            <DocSlot label="Driver's Licence" desc="Front of the customer's licence" icon="🪪" val={licencePhoto} set={setLicencePhoto} />
+          </div>
+        </SectionBlock>
+      )}
+      {activeTab === 9 && (
+        <SectionBlock title="Vehicle Registration Papers">
+          <div style={{ maxWidth: '420px' }}>
+            <DocSlot label="Vehicle Registration Papers" desc="Current registration certificate" icon="📄" val={regoPhoto} set={setRegoPhoto} />
+          </div>
+        </SectionBlock>
+      )}
 
       {/* ── Tab 10+: Extra or Documents ── */}
       {activeTab >= 10 && extraTabContent && extraTabContent(activeTab)}
