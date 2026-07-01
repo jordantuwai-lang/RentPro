@@ -57,7 +57,7 @@ function MCard({ title, children, cols = 6 }: { title: string; children: React.R
   );
 }
 
-const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Card Details'];
+const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Requirements'];
 
 /* ─── Reservation form context ───────────────────────────── */
 interface RezForm {

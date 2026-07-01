@@ -551,7 +551,7 @@ export interface ReservationDetailProps {
   onSaveSuccess?: () => void;
 }
 
-const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Notes', 'Card Details', 'Documents'];
+const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Notes', 'Requirements', 'Documents'];
 
 export default function ReservationDetail({
   reservationId,
