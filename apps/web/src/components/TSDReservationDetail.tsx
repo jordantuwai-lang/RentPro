@@ -598,7 +598,6 @@ function MainTab() {
   const { getToken } = useAuth();
 
   const [preferredNum, setPreferredNum] = useState('');
-  const [passport, setPassport] = useState('');
   const [altKNum, setAltKNum] = useState('');
   const [repairerName, setRepairerName] = useState('');
   const [showRepairerSearch, setShowRepairerSearch] = useState(false);
@@ -793,17 +792,8 @@ function MainTab() {
         <MField label="Mobile" span={2}>
           <input type="tel" style={mField} value={mobile} onChange={e => setMobile(e.target.value)} placeholder="0400 000 000" />
         </MField>
-        <MField label="Home Phone" span={2}>
-          <input type="tel" style={mField} value={homePhone} onChange={e => setHomePhone(e.target.value)} placeholder="02 0000 0000" />
-        </MField>
-        <MField label="Work Phone" span={2}>
-          <input type="tel" style={mField} value={workPhone} onChange={e => setWorkPhone(e.target.value)} placeholder="02 0000 0000" />
-        </MField>
         <MField label="Email" span={4}>
           <input type="email" style={mField} value={email} onChange={e => setEmail(e.target.value)} placeholder="driver@email.com" />
-        </MField>
-        <MField label="Alternate ID" span={2}>
-          <input style={mField} value={passport} onChange={e => setPassport(e.target.value)} />
         </MField>
 
         {/* Divider */}
@@ -873,17 +863,8 @@ function MainTab() {
         <MField label="Mobile" span={2}>
           <input type="tel" style={mField} value={roMobile} onChange={e => setRoMobile(e.target.value)} placeholder="0400 000 000" />
         </MField>
-        <MField label="Home Phone" span={2}>
-          <input type="tel" style={mField} value={roHomePhone} onChange={e => setRoHomePhone(e.target.value)} placeholder="02 0000 0000" />
-        </MField>
-        <MField label="Work Phone" span={2}>
-          <input type="tel" style={mField} value={roWorkPhone} onChange={e => setRoWorkPhone(e.target.value)} placeholder="02 0000 0000" />
-        </MField>
         <MField label="Email" span={4}>
           <input type="email" style={mField} value={roEmail} onChange={e => setRoEmail(e.target.value)} placeholder="owner@email.com" />
-        </MField>
-        <MField label="Alternate ID" span={2}>
-          <input style={mField} value={roAltId} onChange={e => setRoAltId(e.target.value)} />
         </MField>
 
         {/* Divider */}
