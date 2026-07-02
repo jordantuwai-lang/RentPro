@@ -775,32 +775,32 @@ function MainTab() {
       )}
 
       {/* Driver Details + Address + Licence */}
-      <MCard title="Driver Details" cols={6}>
+      <MCard title="Driver Details" cols={3}>
         {/* Personal */}
-        <MField label="First Name" span={2}>
+        <MField label="First Name">
           <input style={mField} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" />
         </MField>
-        <MField label="Last Name" span={2}>
+        <MField label="Last Name">
           <input style={mField} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" />
         </MField>
-        <MField label="MI" span={1}>
+        <MField label="MI">
           <input style={mField} value={mi} onChange={e => setMi(e.target.value)} maxLength={1} placeholder="MI" />
         </MField>
-        <MField label="Date of Birth" span={1}>
+        <MField label="Date of Birth">
           <input type="date" style={mField} value={dob} onChange={e => setDob(e.target.value)} />
         </MField>
-        <MField label="Mobile" span={2}>
+        <MField label="Mobile">
           <input type="tel" style={mField} value={mobile} onChange={e => setMobile(e.target.value)} placeholder="0400 000 000" />
         </MField>
-        <MField label="Email" span={4}>
+        <MField label="Email">
           <input type="email" style={mField} value={email} onChange={e => setEmail(e.target.value)} placeholder="driver@email.com" />
         </MField>
 
         {/* Divider */}
-        <div style={{ gridColumn: 'span 6', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
+        <div style={{ gridColumn: 'span 3', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
 
         {/* Address */}
-        <MField label="Street 1" span={4}>
+        <MField label="Street 1">
           <AddressAutocomplete
             value={street1}
             onChange={setStreet1}
@@ -808,70 +808,70 @@ function MainTab() {
             style={{ ...mField }}
           />
         </MField>
-        <MField label="Street 2" span={2}>
+        <MField label="Street 2">
           <input style={mField} value={street2} onChange={e => setStreet2(e.target.value)} />
         </MField>
-        <MField label="Suburb" span={2}>
+        <MField label="Suburb">
           <input style={mField} value={city} onChange={e => setCity(e.target.value)} />
         </MField>
-        <MField label="State" span={1}>
+        <MField label="State">
           <select style={mSel} value={stateVal} onChange={e => setStateVal(e.target.value)}>
             <option value="">—</option>
             {['ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
           </select>
         </MField>
-        <MField label="Postcode" span={1}>
+        <MField label="Postcode">
           <input style={mField} value={postal} onChange={e => setPostal(e.target.value)} maxLength={4} />
         </MField>
-        <MField label="Country" span={2}>
+        <MField label="Country">
           <input style={mField} value={country} onChange={e => setCountry(e.target.value)} placeholder="Australia" />
         </MField>
 
         {/* Divider */}
-        <div style={{ gridColumn: 'span 6', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
+        <div style={{ gridColumn: 'span 3', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
 
         {/* Licence */}
-        <MField label="Licence Number" span={3}>
+        <MField label="Licence Number">
           <input style={mField} value={licNum} onChange={e => setLicNum(e.target.value)} />
         </MField>
-        <MField label="Issuing State" span={1}>
+        <MField label="Issuing State">
           <select style={mSel} value={licState} onChange={e => setLicState(e.target.value)}>
             <option value="">—</option>
             {['International','ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
           </select>
         </MField>
-        <MField label="Expiry Date" span={2}>
+        <MField label="Expiry Date">
           <input type="date" style={mField} value={licExpires} onChange={e => setLicExpires(e.target.value)} />
         </MField>
       </MCard>
 
       {/* Registered Owner */}
-      <MCard title="Registered Owner" cols={6}>
+      <MCard title="Registered Owner" cols={3}>
         {/* Personal */}
-        <MField label="First Name" span={2}>
+        <MField label="First Name">
           <input style={mField} value={roFirstName} onChange={e => setRoFirstName(e.target.value)} placeholder="First name" />
         </MField>
-        <MField label="Last Name" span={2}>
+        <MField label="Last Name">
           <input style={mField} value={roLastName} onChange={e => setRoLastName(e.target.value)} placeholder="Last name" />
         </MField>
-        <MField label="MI" span={1}>
+        <MField label="MI">
           <input style={mField} value={roMi} onChange={e => setRoMi(e.target.value)} maxLength={1} placeholder="MI" />
         </MField>
-        <MField label="Date of Birth" span={1}>
+        <MField label="Date of Birth">
           <input type="date" style={mField} value={roDob} onChange={e => setRoDob(e.target.value)} />
         </MField>
-        <MField label="Mobile" span={2}>
+        <MField label="Mobile">
           <input type="tel" style={mField} value={roMobile} onChange={e => setRoMobile(e.target.value)} placeholder="0400 000 000" />
         </MField>
-        <MField label="Email" span={4}>
+        <MField label="Email">
           <input type="email" style={mField} value={roEmail} onChange={e => setRoEmail(e.target.value)} placeholder="owner@email.com" />
         </MField>
 
         {/* Divider */}
-        <div style={{ gridColumn: 'span 6', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
+        <div style={{ gridColumn: 'span 3', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
 
         {/* Address */}
-        <MField label="Street 1" span={4}>
+        <MField label="Street 1">
           <AddressAutocomplete
             value={roStreet1}
             onChange={setRoStreet1}
@@ -879,39 +879,39 @@ function MainTab() {
             style={{ ...mField }}
           />
         </MField>
-        <MField label="Street 2" span={2}>
+        <MField label="Street 2">
           <input style={mField} value={roStreet2} onChange={e => setRoStreet2(e.target.value)} />
         </MField>
-        <MField label="Suburb" span={2}>
+        <MField label="Suburb">
           <input style={mField} value={roCity} onChange={e => setRoCity(e.target.value)} />
         </MField>
-        <MField label="State" span={1}>
+        <MField label="State">
           <select style={mSel} value={roState} onChange={e => setRoState(e.target.value)}>
             <option value="">—</option>
             {['ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
           </select>
         </MField>
-        <MField label="Postcode" span={1}>
+        <MField label="Postcode">
           <input style={mField} value={roPostal} onChange={e => setRoPostal(e.target.value)} maxLength={4} />
         </MField>
-        <MField label="Country" span={2}>
+        <MField label="Country">
           <input style={mField} value={roCountry} onChange={e => setRoCountry(e.target.value)} placeholder="Australia" />
         </MField>
 
         {/* Divider */}
-        <div style={{ gridColumn: 'span 6', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
+        <div style={{ gridColumn: 'span 3', borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
 
         {/* Licence */}
-        <MField label="Licence Number" span={3}>
+        <MField label="Licence Number">
           <input style={mField} value={roLicNum} onChange={e => setRoLicNum(e.target.value)} />
         </MField>
-        <MField label="Issuing State" span={1}>
+        <MField label="Issuing State">
           <select style={mSel} value={roLicState} onChange={e => setRoLicState(e.target.value)}>
             <option value="">—</option>
             {['International','ACT','NSW','NT','QLD','SA','TAS','VIC','WA'].map(s => <option key={s}>{s}</option>)}
           </select>
         </MField>
-        <MField label="Expiry Date" span={2}>
+        <MField label="Expiry Date">
           <input type="date" style={mField} value={roLicExpires} onChange={e => setRoLicExpires(e.target.value)} />
         </MField>
       </MCard>
