@@ -124,6 +124,9 @@ interface RezForm {
   roLicNum: string; setRoLicNum: (v: string) => void;
   roLicState: string; setRoLicState: (v: string) => void;
   roLicExpires: string; setRoLicExpires: (v: string) => void;
+  // Documents
+  authorityToAct: DocFile | null; setAuthorityToAct: (v: DocFile | null) => void;
+  rentalAgreement: DocFile | null; setRentalAgreement: (v: DocFile | null) => void;
   // Meta
   rezNumber: string;
   tabHasData: (tab: number) => boolean;
@@ -420,10 +423,12 @@ function BtnBar() {
     setRoFirstName, setRoLastName, setRoMi, setRoDob, setRoMobile, setRoHomePhone,
     setRoWorkPhone, setRoEmail, setRoStreet1, setRoCity, setRoState, setRoPostal,
     setRoLicNum, setRoLicExpires,
+    rezNumber, setAuthorityToAct, setRentalAgreement,
   } = useRezForm();
 
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState('');
+  const [showRAModal, setShowRAModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanTarget, setScanTarget] = useState<'driver' | 'owner' | null>(null);
 
@@ -495,6 +500,16 @@ function BtnBar() {
     setTimeout(() => document.getElementById('scan-licence-input')?.click(), 50);
   }
 
+  function signDocument(kind: 'authority' | 'agreement') {
+    const signedAt = new Date().toLocaleString('en-AU');
+    const title = kind === 'authority' ? 'Authority to Act' : 'Rental Agreement';
+    const text = `${title}\nReservation: ${rezNumber || 'Pending'}\nSigned electronically on ${signedAt}.`;
+    const doc = { name: `${title} — Signed.txt`, dataUrl: `data:text/plain;charset=utf-8,${encodeURIComponent(text)}` };
+    if (kind === 'authority') setAuthorityToAct(doc);
+    else setRentalAgreement(doc);
+    setShowRAModal(false);
+  }
+
   return (
     <>
       {/* Scan target modal */}
@@ -539,6 +554,48 @@ function BtnBar() {
         </div>
       )}
 
+      {/* Open R/A modal */}
+      {showRAModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowRAModal(false)}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: '12px', padding: '28px 32px', width: '340px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Open R/A</div>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>Which document would you like to sign?</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                onClick={() => signDocument('authority')}
+                style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600, borderRadius: '8px', border: '2px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#16a34a')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '#e2e8f0')}
+              >
+                📝 Authority to Act
+                <div style={{ fontSize: '12px', fontWeight: 400, color: '#64748b', marginTop: '2px' }}>Sign and save to the Documents tab</div>
+              </button>
+              <button
+                onClick={() => signDocument('agreement')}
+                style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600, borderRadius: '8px', border: '2px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#16a34a')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '#e2e8f0')}
+              >
+                📃 Rental Agreement
+                <div style={{ fontSize: '12px', fontWeight: 400, color: '#64748b', marginTop: '2px' }}>Sign and save to the Documents tab</div>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowRAModal(false)}
+              style={{ marginTop: '16px', width: '100%', padding: '8px', fontSize: '13px', color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <input id="scan-licence-input" type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleScanChange} />
 
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e2e8f0', padding: '8px 20px', display: 'flex', alignItems: 'center', gap: '6px', zIndex: 100 }}>
@@ -555,7 +612,13 @@ function BtnBar() {
         <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
 
         {['Opt. Services','Addl Drivers','Discount','Notes','Events','Payments','Print','Email','Invoice','Open R/A','Duplicate'].map(lbl => (
-          <button key={lbl} style={secondary}>{lbl}</button>
+          <button
+            key={lbl}
+            style={secondary}
+            onClick={lbl === 'Open R/A' ? () => setShowRAModal(true) : undefined}
+          >
+            {lbl}
+          </button>
         ))}
 
         <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
@@ -1269,8 +1332,7 @@ function DocFileSlot({ label, desc, icon, val, onChange }: { label: string; desc
 
 /* ─── Documents Tab ──────────────────────────────────────── */
 function DocumentsTab() {
-  const [authorityToAct, setAuthorityToAct] = useState<DocFile | null>(null);
-  const [rentalAgreement, setRentalAgreement] = useState<DocFile | null>(null);
+  const { authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement } = useRezForm();
 
   return (
     <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
@@ -1619,6 +1681,10 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const [roLicState, setRoLicState] = useState('');
   const [roLicExpires, setRoLicExpires] = useState('');
 
+  // ── Documents ─────────────────────────────────────────
+  const [authorityToAct, setAuthorityToAct] = useState<DocFile | null>(null);
+  const [rentalAgreement, setRentalAgreement] = useState<DocFile | null>(null);
+
   // ── Save state ──────────────────────────────────────────
   const [reservationId, setReservationId] = useState<string | null>(initialResId ?? null);
   const [isSaving, setIsSaving] = useState(false);
@@ -1729,6 +1795,7 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     roStreet1, setRoStreet1, roStreet2, setRoStreet2, roCity, setRoCity,
     roState, setRoState, roPostal, setRoPostal, roCountry, setRoCountry,
     roLicNum, setRoLicNum, roLicState, setRoLicState, roLicExpires, setRoLicExpires,
+    authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement,
     rezNumber, tabHasData, reservationId, isSaving, saveError, saveSuccess, save,
   };
 
