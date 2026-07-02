@@ -718,7 +718,7 @@ function MainTab() {
           </select>
         </MField>
         {source === 'Repairer' && (
-          <MField label="Repairer Name" span={4}>
+          <MField label="Repairer Name" span={2}>
             <div style={{ display: 'flex', gap: '6px' }}>
               <input
                 style={{ ...mField, flex: '1 1 auto' }}
