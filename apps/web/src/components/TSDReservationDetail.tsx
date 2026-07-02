@@ -58,7 +58,7 @@ function MCard({ title, children, cols = 6 }: { title: string; children: React.R
   );
 }
 
-const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Requirements'];
+const TABS = ['Main', 'Booking Detail', 'Misc', 'Accident Details', 'At Fault Third Party', 'Requirements'];
 
 /* ─── Reservation form context ───────────────────────────── */
 interface RezForm {
@@ -600,8 +600,6 @@ function MainTab() {
   const [preferredNum, setPreferredNum] = useState('');
   const [passport, setPassport] = useState('');
   const [altKNum, setAltKNum] = useState('');
-  const [pickupLoc, setPickupLoc] = useState('');
-  const [dropLoc, setDropLoc] = useState('');
   const [repairerName, setRepairerName] = useState('');
   const [showRepairerSearch, setShowRepairerSearch] = useState(false);
   const [repairerSearchQuery, setRepairerSearchQuery] = useState('');
@@ -695,13 +693,8 @@ function MainTab() {
         </div>
       </div>
 
-      {/* Pickup / Return locations */}
+      {/* Reservation detail */}
       <MCard title="Reservation Detail" cols={4}>
-        <MField label="Pickup Location" span={2}>
-          <select style={mSel} value={pickupLoc} onChange={e => setPickupLoc(e.target.value)}>
-            <option value="">— Select location —</option>
-          </select>
-        </MField>
         <MField label="Source of Business" span={2}>
           <select style={mSel} value={source} onChange={e => setSource(e.target.value)}>
             <option value="">— Select —</option>
@@ -710,11 +703,6 @@ function MainTab() {
             <option>Walk-in</option>
             <option>Internet</option>
             <option>Repairer</option>
-          </select>
-        </MField>
-        <MField label="Return Location" span={2}>
-          <select style={mSel} value={dropLoc} onChange={e => setDropLoc(e.target.value)}>
-            <option value="">Return to pickup</option>
           </select>
         </MField>
         {source === 'Repairer' && (
@@ -1120,6 +1108,31 @@ function MainTab() {
             value={broadcastNote}
             onChange={e => setBroadcastNote(e.target.value)}
           />
+        </MField>
+      </MCard>
+    </div>
+  );
+}
+
+/* ─── Booking Detail Tab ─────────────────────────────────── */
+function BookingDetailTab() {
+  const [pickupLoc, setPickupLoc] = useState('');
+  const [dropLoc, setDropLoc] = useState('');
+
+  const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
+
+  return (
+    <div style={{ padding: '16px' }}>
+      <MCard title="Pickup & Return" cols={4}>
+        <MField label="Pickup Location" span={2}>
+          <select style={mSel} value={pickupLoc} onChange={e => setPickupLoc(e.target.value)}>
+            <option value="">— Select location —</option>
+          </select>
+        </MField>
+        <MField label="Return Location" span={2}>
+          <select style={mSel} value={dropLoc} onChange={e => setDropLoc(e.target.value)}>
+            <option value="">Return to pickup</option>
+          </select>
         </MField>
       </MCard>
     </div>
@@ -1613,9 +1626,9 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const tabHasData = (tab: number): boolean => {
     switch (tab) {
       case 0: return !!(firstName || lastName || homePhone || email || street1 || pickupDate || dropDate);
-      case 2: return !!(accDate || accStreet || accDescription || hireType);
-      case 3: return !!(tpFirstName || tpLastName || tpVehRego || tpInsCarrier);
-      case 4: return false; // Card Details: local state only, can't inspect from here
+      case 3: return !!(accDate || accStreet || accDescription || hireType);
+      case 4: return !!(tpFirstName || tpLastName || tpVehRego || tpInsCarrier);
+      case 5: return false; // Card Details: local state only, can't inspect from here
       default: return false;
     }
   };
@@ -1777,10 +1790,11 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
 
         {/* Tab content */}
         {activeTab === 0 && <MainTab />}
-        {activeTab === 1 && <MiscTab />}
-        {activeTab === 2 && <AccidentTab />}
-        {activeTab === 3 && <AtFaultThirdPartyTab />}
-        {activeTab === 4 && <CardDetailsTab />}
+        {activeTab === 1 && <BookingDetailTab />}
+        {activeTab === 2 && <MiscTab />}
+        {activeTab === 3 && <AccidentTab />}
+        {activeTab === 4 && <AtFaultThirdPartyTab />}
+        {activeTab === 5 && <CardDetailsTab />}
 
         <BtnBar />
       </div>
