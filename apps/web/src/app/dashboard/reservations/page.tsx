@@ -136,7 +136,7 @@ export default function ReservationsPage() {
           <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Reservations</h1>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={() => router.push('/dashboard/tsd-reservation')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>+ TSD Reservation</button>
+          <button onClick={() => router.push('/dashboard/tsd-reservation')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>+ New Reservation</button>
         </div>
       </div>
 
