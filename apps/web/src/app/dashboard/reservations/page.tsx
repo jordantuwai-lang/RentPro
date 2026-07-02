@@ -136,9 +136,7 @@ export default function ReservationsPage() {
           <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Reservations</h1>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={() => router.push('/dashboard/reservations/new/credit-hire')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>+ Credit Hire</button>
-          <button onClick={() => router.push('/dashboard/tsd-reservation')} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>+ TSD Reservation</button>
-          <button onClick={() => router.push('/dashboard/reservations/new/direct-hire')} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>+ Direct Hire</button>
+          <button onClick={() => router.push('/dashboard/tsd-reservation')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#01ae42', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>+ TSD Reservation</button>
         </div>
       </div>
 
