@@ -613,7 +613,6 @@ function MainTab() {
   const [origCurrency, setOrigCurrency] = useState('AUD');
   const [referralAgency, setReferralAgency] = useState('');
   const [referralAgent, setReferralAgent] = useState('');
-  const [directBill, setDirectBill] = useState('');
   const [poNum, setPoNum] = useState('');
   const [useTax, setUseTax] = useState(false);
   const [broadcastNote, setBroadcastNote] = useState('');
@@ -690,11 +689,6 @@ function MainTab() {
         <MField label="Return Location" span={2}>
           <select style={mSel} value={dropLoc} onChange={e => setDropLoc(e.target.value)}>
             <option value="">Return to pickup</option>
-          </select>
-        </MField>
-        <MField label="Direct Bill" span={2}>
-          <select style={mSel} value={directBill} onChange={e => setDirectBill(e.target.value)}>
-            <option value="">— Select —</option>
           </select>
         </MField>
       </MCard>
