@@ -12,6 +12,7 @@ import {
   AddPaymentCardDto,
   AddAdditionalDriverDto,
   AddToScheduleDto,
+  UploadDocumentDto,
 } from './reservations.dto';
 
 @Controller('reservations')
@@ -123,6 +124,30 @@ export class ReservationsController {
   @Roles(...ALL_STAFF)
   getLicencePhoto(@Param('id') id: string) {
     return this.reservationsService.getLicencePhoto(id);
+  }
+
+  @Post(':id/authority-to-act')
+  @Roles(...ALL_STAFF)
+  uploadAuthorityToAct(@Param('id') id: string, @Body() body: UploadDocumentDto) {
+    return this.reservationsService.uploadDocument(id, 'authorityToAct', body);
+  }
+
+  @Delete(':id/authority-to-act')
+  @Roles(...ALL_STAFF)
+  removeAuthorityToAct(@Param('id') id: string) {
+    return this.reservationsService.removeDocument(id, 'authorityToAct');
+  }
+
+  @Post(':id/rental-agreement')
+  @Roles(...ALL_STAFF)
+  uploadRentalAgreement(@Param('id') id: string, @Body() body: UploadDocumentDto) {
+    return this.reservationsService.uploadDocument(id, 'rentalAgreement', body);
+  }
+
+  @Delete(':id/rental-agreement')
+  @Roles(...ALL_STAFF)
+  removeRentalAgreement(@Param('id') id: string) {
+    return this.reservationsService.removeDocument(id, 'rentalAgreement');
   }
 
   @Post(':id/schedule')

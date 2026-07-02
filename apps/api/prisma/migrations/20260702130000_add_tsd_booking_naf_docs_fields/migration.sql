@@ -20,6 +20,6 @@ ADD COLUMN     "nafInsAgent" TEXT,
 ADD COLUMN     "nafInsAgency" TEXT,
 ADD COLUMN     "nafCoverType" TEXT,
 ADD COLUMN     "authorityToActName" TEXT,
-ADD COLUMN     "authorityToActUrl" TEXT,
+ADD COLUMN     "authorityToActKey" TEXT,
 ADD COLUMN     "rentalAgreementName" TEXT,
-ADD COLUMN     "rentalAgreementUrl" TEXT;
+ADD COLUMN     "rentalAgreementKey" TEXT;

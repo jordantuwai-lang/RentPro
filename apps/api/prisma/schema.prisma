@@ -282,11 +282,11 @@ model Reservation {
   nafInsAgency  String?
   nafCoverType  String?
 
-  // Booking & Docs — signed documents
+  // Booking & Docs — signed documents (stored in object storage; these hold the storage key)
   authorityToActName String?
-  authorityToActUrl  String?
+  authorityToActKey  String?
   rentalAgreementName String?
-  rentalAgreementUrl  String?
+  rentalAgreementKey  String?
 
   // Relations
   claim             Claim?

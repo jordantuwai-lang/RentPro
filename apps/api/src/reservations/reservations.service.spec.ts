@@ -2,7 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { ReservationStatus } from './reservations.dto';
+
+const mockStorage = {
+  upload: jest.fn(),
+  getPresignedUrl: jest.fn(),
+  getBuffer: jest.fn(),
+  delete: jest.fn(),
+};
 
 const mockPrisma = {
   $transaction: jest.fn(),
@@ -68,6 +76,7 @@ describe('ReservationsService', () => {
       providers: [
         ReservationsService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: StorageService, useValue: mockStorage },
       ],
     }).compile();
 

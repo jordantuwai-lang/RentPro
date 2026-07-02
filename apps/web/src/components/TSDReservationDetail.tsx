@@ -163,11 +163,16 @@ interface RezForm {
   isSaving: boolean;
   saveError: string;
   saveSuccess: boolean;
-  save: () => Promise<void>;
+  save: () => Promise<string | null>;
   reservationStatus: string;
   putOnHire: () => Promise<void>;
   puttingOnHire: boolean;
   onHireError: string;
+  uploadDocument: (kind: 'authorityToAct' | 'rentalAgreement', file: File) => Promise<void>;
+  removeDocument: (kind: 'authorityToAct' | 'rentalAgreement') => Promise<void>;
+  uploadingAuthorityToAct: boolean;
+  uploadingRentalAgreement: boolean;
+  docError: string;
 }
 
 const RezFormContext = createContext<RezForm | null>(null);
@@ -456,7 +461,7 @@ function BtnBar() {
     setRoFirstName, setRoLastName, setRoMi, setRoDob, setRoMobile, setRoHomePhone,
     setRoWorkPhone, setRoEmail, setRoStreet1, setRoCity, setRoState, setRoPostal,
     setRoLicNum, setRoLicExpires,
-    rezNumber, setAuthorityToAct, setRentalAgreement,
+    rezNumber, uploadDocument, uploadingAuthorityToAct, uploadingRentalAgreement, docError,
   } = useRezForm();
 
   const [scanLoading, setScanLoading] = useState(false);
@@ -537,9 +542,8 @@ function BtnBar() {
     const signedAt = new Date().toLocaleString('en-AU');
     const title = kind === 'authority' ? 'Authority to Act' : 'Rental Agreement';
     const text = `${title}\nReservation: ${rezNumber || 'Pending'}\nSigned electronically on ${signedAt}.`;
-    const doc = { name: `${title} — Signed.txt`, dataUrl: `data:text/plain;charset=utf-8,${encodeURIComponent(text)}` };
-    if (kind === 'authority') setAuthorityToAct(doc);
-    else setRentalAgreement(doc);
+    const file = new File([text], `${title} - Signed.txt`, { type: 'text/plain' });
+    uploadDocument(kind === 'authority' ? 'authorityToAct' : 'rentalAgreement', file);
     setShowRAModal(false);
   }
 
@@ -647,12 +651,14 @@ function BtnBar() {
         {['Opt. Services','Addl Drivers','Discount','Notes','Events','Payments','Print','Email','Invoice','Open R/A','Duplicate'].map(lbl => (
           <button
             key={lbl}
-            style={secondary}
+            style={{ ...secondary, opacity: lbl === 'Open R/A' && (uploadingAuthorityToAct || uploadingRentalAgreement) ? 0.6 : 1 }}
+            disabled={lbl === 'Open R/A' && (uploadingAuthorityToAct || uploadingRentalAgreement)}
             onClick={lbl === 'Open R/A' ? () => setShowRAModal(true) : undefined}
           >
-            {lbl}
+            {lbl === 'Open R/A' && (uploadingAuthorityToAct || uploadingRentalAgreement) ? 'Signing…' : lbl}
           </button>
         ))}
+        {docError && <span style={{ fontSize: '12px', color: '#dc2626' }}>{docError}</span>}
 
         <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 2px' }} />
 
@@ -1141,11 +1147,12 @@ function BookingDetailTab() {
   const { getToken } = useAuth();
   const {
     assignedRego, setAssignedRego, setAssignedVehicleId,
-    authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement,
+    authorityToAct, rentalAgreement,
     reservationStatus, putOnHire, puttingOnHire, onHireError,
     pickupLoc, setPickupLoc, dropLoc, setDropLoc,
     ratePlanType, setRatePlanType, rateCode, setRateCode, rateClass, setRateClass,
     estKms, setEstKms, availUnits, setAvailUnits, unit, setUnit, unitDesc, setUnitDesc,
+    uploadDocument, removeDocument, uploadingAuthorityToAct, uploadingRentalAgreement, docError,
   } = useRezForm();
 
   const bothSigned = !!authorityToAct && !!rentalAgreement;
@@ -1287,12 +1294,29 @@ function BookingDetailTab() {
       {/* Documents */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
         <MCard title="Authority to Act" cols={1}>
-          <DocFileSlot label="Authority to Act" desc="Upload the signed Authority to Act document" icon="📝" val={authorityToAct} onChange={setAuthorityToAct} />
+          <DocFileSlot
+            label="Authority to Act"
+            desc="Upload the signed Authority to Act document"
+            icon="📝"
+            val={authorityToAct}
+            uploading={uploadingAuthorityToAct}
+            onUpload={file => uploadDocument('authorityToAct', file)}
+            onRemove={() => removeDocument('authorityToAct')}
+          />
         </MCard>
         <MCard title="Rental Agreement" cols={1}>
-          <DocFileSlot label="Rental Agreement" desc="Upload the signed Rental Agreement" icon="📃" val={rentalAgreement} onChange={setRentalAgreement} />
+          <DocFileSlot
+            label="Rental Agreement"
+            desc="Upload the signed Rental Agreement"
+            icon="📃"
+            val={rentalAgreement}
+            uploading={uploadingRentalAgreement}
+            onUpload={file => uploadDocument('rentalAgreement', file)}
+            onRemove={() => removeDocument('rentalAgreement')}
+          />
         </MCard>
       </div>
+      {docError && <div style={{ fontSize: '12px', color: '#dc2626', marginBottom: '16px' }}>{docError}</div>}
 
       {bothSigned && (
         <MCard title="On Hire" cols={1}>
@@ -1377,32 +1401,33 @@ function BookingDetailTab() {
 /* ─── Generic document (PDF/image) upload slot ──────────── */
 type DocFile = { name: string; dataUrl: string };
 
-function DocFileSlot({ label, desc, icon, val, onChange }: { label: string; desc: string; icon: string; val: DocFile | null; onChange: (v: DocFile | null) => void }) {
+function DocFileSlot({ label, desc, icon, val, onUpload, onRemove, uploading }: {
+  label: string; desc: string; icon: string; val: DocFile | null;
+  onUpload: (file: File) => void; onRemove: () => void; uploading?: boolean;
+}) {
   const fileRef = useRef<HTMLInputElement>(null);
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => onChange({ name: f.name, dataUrl: reader.result as string });
-    reader.readAsDataURL(f);
+    onUpload(f);
     e.target.value = '';
   };
   return (
-    <div style={{ border: `1px solid ${val ? '#86efac' : '#e2e8f0'}`, borderRadius: '8px', overflow: 'hidden', background: val ? '#f0fdf4' : '#fff' }}>
-      <input ref={fileRef} type="file" accept=".pdf,application/pdf,image/*" onChange={handleFile} style={{ display: 'none' }} />
+    <div style={{ border: `1px solid ${val ? '#86efac' : '#e2e8f0'}`, borderRadius: '8px', overflow: 'hidden', background: val ? '#f0fdf4' : '#fff', opacity: uploading ? 0.6 : 1 }}>
+      <input ref={fileRef} type="file" accept=".pdf,application/pdf,image/*" onChange={handleFile} style={{ display: 'none' }} disabled={uploading} />
       {val ? (
         <div style={{ padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '22px' }}>📄</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{val.name}</div>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#16a34a' }}>✅ Uploaded</div>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#16a34a' }}>{uploading ? 'Uploading…' : '✅ Uploaded'}</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '14px', marginTop: '10px' }}>
             <a href={val.dataUrl} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: '#16a34a', textDecoration: 'underline' }}>View</a>
-            <button type="button" onClick={() => fileRef.current?.click()} style={{ fontSize: '11px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Replace</button>
-            <button type="button" onClick={() => onChange(null)} style={{ fontSize: '11px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Remove</button>
+            <button type="button" disabled={uploading} onClick={() => fileRef.current?.click()} style={{ fontSize: '11px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Replace</button>
+            <button type="button" disabled={uploading} onClick={onRemove} style={{ fontSize: '11px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Remove</button>
           </div>
         </div>
       ) : (
@@ -1414,7 +1439,9 @@ function DocFileSlot({ label, desc, icon, val, onChange }: { label: string; desc
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>{desc}</div>
             </div>
           </div>
-          <button type="button" onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px dashed #cbd5e1', background: '#f8fafc', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>📁 Upload document</button>
+          <button type="button" disabled={uploading} onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px dashed #cbd5e1', background: '#f8fafc', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>
+            {uploading ? 'Uploading…' : '📁 Upload document'}
+          </button>
         </div>
       )}
     </div>
@@ -1807,6 +1834,9 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const [reservationStatus, setReservationStatus] = useState(initialData?.status ?? 'DRAFT');
   const [puttingOnHire, setPuttingOnHire] = useState(false);
   const [onHireError, setOnHireError] = useState('');
+  const [uploadingAuthorityToAct, setUploadingAuthorityToAct] = useState(false);
+  const [uploadingRentalAgreement, setUploadingRentalAgreement] = useState(false);
+  const [docError, setDocError] = useState('');
 
   const tabHasData = (tab: number): boolean => {
     switch (tab) {
@@ -1827,7 +1857,7 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     });
   }, []);
 
-  const save = async () => {
+  const save = async (): Promise<string | null> => {
     setIsSaving(true);
     setSaveError('');
     setSaveSuccess(false);
@@ -1901,27 +1931,26 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
           insAgency: nafInsAgency || undefined,
           coverType: nafCoverType || undefined,
         } : undefined,
-        authorityToActName: authorityToAct?.name || undefined,
-        authorityToActUrl: authorityToAct?.dataUrl || undefined,
-        rentalAgreementName: rentalAgreement?.name || undefined,
-        rentalAgreementUrl: rentalAgreement?.dataUrl || undefined,
       };
 
+      let effectiveId = reservationId;
       if (reservationId) {
         await api.patch(`/reservations/${reservationId}`, payload, { headers });
       } else {
         const res = await api.post('/reservations', payload, { headers });
-        const newId = res.data?.id ?? null;
-        setReservationId(newId);
-        if (newId) {
-          router.replace(`/dashboard/reservations/${newId}`);
+        effectiveId = res.data?.id ?? null;
+        setReservationId(effectiveId);
+        if (effectiveId) {
+          router.replace(`/dashboard/reservations/${effectiveId}`);
         }
       }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
+      return effectiveId;
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       setSaveError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Save failed. Please try again.'));
+      return null;
     } finally {
       setIsSaving(false);
     }
@@ -1944,6 +1973,62 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
       setOnHireError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Failed to put on hire. Please try again.'));
     } finally {
       setPuttingOnHire(false);
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const uploadDocument = async (kind: 'authorityToAct' | 'rentalAgreement', file: File) => {
+    setDocError('');
+    const setUploading = kind === 'authorityToAct' ? setUploadingAuthorityToAct : setUploadingRentalAgreement;
+    setUploading(true);
+    try {
+      let id = reservationId;
+      if (!id) {
+        id = await save();
+        if (!id) {
+          setDocError('Save the reservation before uploading documents.');
+          return;
+        }
+      }
+      const fileData = await fileToBase64(file);
+      const token = await getToken();
+      const path = kind === 'authorityToAct' ? 'authority-to-act' : 'rental-agreement';
+      const res = await api.post(
+        `/reservations/${id}/${path}`,
+        { fileData, mimeType: file.type, name: file.name },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const doc = { name: res.data?.name || file.name, dataUrl: res.data?.url || '' };
+      if (kind === 'authorityToAct') setAuthorityToAct(doc);
+      else setRentalAgreement(doc);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      setDocError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Upload failed. Please try again.'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeDocument = async (kind: 'authorityToAct' | 'rentalAgreement') => {
+    setDocError('');
+    try {
+      if (reservationId) {
+        const token = await getToken();
+        const path = kind === 'authorityToAct' ? 'authority-to-act' : 'rental-agreement';
+        await api.delete(`/reservations/${reservationId}/${path}`, { headers: { Authorization: `Bearer ${token}` } });
+      }
+      if (kind === 'authorityToAct') setAuthorityToAct(null);
+      else setRentalAgreement(null);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      setDocError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Failed to remove document.'));
     }
   };
 
@@ -1977,6 +2062,7 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     nafInsAgent, setNafInsAgent, nafInsAgency, setNafInsAgency, nafCoverType, setNafCoverType,
     rezNumber, fileNumber, tabHasData, reservationId, isSaving, saveError, saveSuccess, save,
     reservationStatus, putOnHire, puttingOnHire, onHireError,
+    uploadDocument, removeDocument, uploadingAuthorityToAct, uploadingRentalAgreement, docError,
   };
 
   return (

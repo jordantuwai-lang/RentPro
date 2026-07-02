@@ -315,22 +315,6 @@ export class CreateReservationDto {
   @Type(() => NafInputDto)
   @IsOptional()
   naf?: NafInputDto;
-
-  @IsString()
-  @IsOptional()
-  authorityToActName?: string;
-
-  @IsString()
-  @IsOptional()
-  authorityToActUrl?: string;
-
-  @IsString()
-  @IsOptional()
-  rentalAgreementName?: string;
-
-  @IsString()
-  @IsOptional()
-  rentalAgreementUrl?: string;
 }
 
 export class UpdateReservationDto {
@@ -424,22 +408,6 @@ export class UpdateReservationDto {
   @Type(() => NafInputDto)
   @IsOptional()
   naf?: NafInputDto;
-
-  @IsString()
-  @IsOptional()
-  authorityToActName?: string;
-
-  @IsString()
-  @IsOptional()
-  authorityToActUrl?: string;
-
-  @IsString()
-  @IsOptional()
-  rentalAgreementName?: string;
-
-  @IsString()
-  @IsOptional()
-  rentalAgreementUrl?: string;
 }
 
 // ─── markOnHire ───────────────────────────────────────────────────────────────
@@ -451,6 +419,21 @@ export class MarkOnHireDto {
   @IsString()
   @IsOptional()
   notes?: string;
+}
+
+// ─── Reservation documents (Authority to Act / Rental Agreement) ──────────────
+
+export class UploadDocumentDto {
+  @IsString()
+  fileData: string;
+
+  @IsString()
+  @IsOptional()
+  mimeType?: string;
+
+  @IsString()
+  @IsOptional()
+  name?: string;
 }
 
 // ─── Notes ────────────────────────────────────────────────────────────────────
