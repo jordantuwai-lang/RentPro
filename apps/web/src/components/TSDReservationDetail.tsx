@@ -1085,10 +1085,40 @@ function MainTab() {
 
 /* ─── Booking Detail Tab ─────────────────────────────────── */
 function BookingDetailTab() {
+  const { getToken } = useAuth();
+
   const [pickupLoc, setPickupLoc] = useState('');
   const [dropLoc, setDropLoc] = useState('');
+  const [assignedRego, setAssignedRego] = useState('');
+  const [showFleetSearch, setShowFleetSearch] = useState(false);
+  const [fleetSearchQuery, setFleetSearchQuery] = useState('');
 
   const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
+
+  const { data: fleet = [] } = useQuery({
+    queryKey: ['fleet'],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/fleet', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
+
+  const assignedVehicle = fleet.find(
+    (v: any) => v.registration?.toUpperCase() === assignedRego.trim().toUpperCase()
+  );
+
+  const filteredFleet = fleet.filter((v: any) =>
+    v.registration?.toLowerCase().includes(fleetSearchQuery.toLowerCase()) ||
+    v.make?.toLowerCase().includes(fleetSearchQuery.toLowerCase()) ||
+    v.model?.toLowerCase().includes(fleetSearchQuery.toLowerCase())
+  );
+
+  function selectVehicle(registration: string) {
+    setAssignedRego(registration);
+    setShowFleetSearch(false);
+    setFleetSearchQuery('');
+  }
 
   return (
     <div style={{ padding: '16px' }}>
@@ -1104,6 +1134,88 @@ function BookingDetailTab() {
           </select>
         </MField>
       </MCard>
+
+      {/* Assigned Fleet */}
+      <MCard title="Assigned Fleet" cols={4}>
+        <MField label="Rego">
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <input
+              style={{ ...mField, flex: '1 1 auto' }}
+              value={assignedRego}
+              onChange={e => setAssignedRego(e.target.value.toUpperCase())}
+              placeholder="Enter rego"
+            />
+            <button
+              type="button"
+              title="Search fleet"
+              onClick={() => setShowFleetSearch(true)}
+              style={{ width: '36px', height: '36px', flexShrink: 0, borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              🔎
+            </button>
+          </div>
+        </MField>
+        <MField label="Year">
+          <input style={mFieldRo} readOnly value={assignedVehicle?.year ?? ''} />
+        </MField>
+        <MField label="Make">
+          <input style={mFieldRo} readOnly value={assignedVehicle?.make ?? ''} />
+        </MField>
+        <MField label="Model">
+          <input style={mFieldRo} readOnly value={assignedVehicle?.model ?? ''} />
+        </MField>
+        <MField label="Current Odometer">
+          <input style={mFieldRo} readOnly value={assignedVehicle?.odometer != null ? `${assignedVehicle.odometer.toLocaleString()} km` : ''} />
+        </MField>
+      </MCard>
+
+      {/* Fleet search modal */}
+      {showFleetSearch && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowFleetSearch(false)}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: '12px', padding: '20px', width: '420px', maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '12px' }}>Search Fleet</div>
+            <input
+              autoFocus
+              style={{ ...mField, marginBottom: '12px' }}
+              placeholder="Type to filter by rego, make or model…"
+              value={fleetSearchQuery}
+              onChange={e => setFleetSearchQuery(e.target.value)}
+            />
+            <div style={{ overflowY: 'auto', flex: 1, border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+              {filteredFleet.length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>No vehicles found.</div>
+              ) : (
+                filteredFleet.map((v: any) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => selectVehicle(v.registration)}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', borderBottom: '1px solid #f1f5f9', background: '#fff', cursor: 'pointer' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+                  >
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{v.registration}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>{[v.year, v.make, v.model].filter(Boolean).join(' ')}</div>
+                  </button>
+                ))
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowFleetSearch(false)}
+              style={{ marginTop: '12px', width: '100%', padding: '8px', fontSize: '13px', color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
