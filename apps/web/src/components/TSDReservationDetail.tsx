@@ -1,6 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { useQuery } from '@tanstack/react-query';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import api from '@/lib/api';
 
@@ -594,11 +595,16 @@ function MainTab() {
     rezNumber,
   } = useRezForm();
 
+  const { getToken } = useAuth();
+
   const [preferredNum, setPreferredNum] = useState('');
   const [passport, setPassport] = useState('');
   const [altKNum, setAltKNum] = useState('');
   const [pickupLoc, setPickupLoc] = useState('');
   const [dropLoc, setDropLoc] = useState('');
+  const [repairerName, setRepairerName] = useState('');
+  const [showRepairerSearch, setShowRepairerSearch] = useState(false);
+  const [repairerSearchQuery, setRepairerSearchQuery] = useState('');
   const [pickupTime, setPickupTime] = useState('08:00');
   const [dropTime, setDropTime] = useState('08:00');
   const [ratePlanType, setRatePlanType] = useState('');
@@ -634,6 +640,26 @@ function MainTab() {
   const [nafCoverType, setNafCoverType] = useState('CTP');
 
   const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
+
+  const { data: repairers = [] } = useQuery({
+    queryKey: ['repairers'],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/claims/repairers', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+    enabled: showRepairerSearch,
+  });
+
+  const filteredRepairers = repairers.filter((rp: any) =>
+    rp.name?.toLowerCase().includes(repairerSearchQuery.toLowerCase())
+  );
+
+  function selectRepairer(name: string) {
+    setRepairerName(name);
+    setShowRepairerSearch(false);
+    setRepairerSearchQuery('');
+  }
 
   return (
     <div style={{ padding: '16px' }}>
@@ -691,7 +717,75 @@ function MainTab() {
             <option value="">Return to pickup</option>
           </select>
         </MField>
+        {source === 'Repairer' && (
+          <MField label="Repairer Name" span={4}>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <input
+                style={{ ...mField, flex: '1 1 auto' }}
+                value={repairerName}
+                onChange={e => setRepairerName(e.target.value)}
+                placeholder="Enter repairer name"
+              />
+              <button
+                type="button"
+                title="Search partners"
+                onClick={() => setShowRepairerSearch(true)}
+                style={{ width: '36px', height: '36px', flexShrink: 0, borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                🔎
+              </button>
+            </div>
+          </MField>
+        )}
       </MCard>
+
+      {/* Repairer search modal */}
+      {showRepairerSearch && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowRepairerSearch(false)}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: '12px', padding: '20px', width: '420px', maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '12px' }}>Search Repairers</div>
+            <input
+              autoFocus
+              style={{ ...mField, marginBottom: '12px' }}
+              placeholder="Type to filter by name…"
+              value={repairerSearchQuery}
+              onChange={e => setRepairerSearchQuery(e.target.value)}
+            />
+            <div style={{ overflowY: 'auto', flex: 1, border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+              {filteredRepairers.length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>No repairers found.</div>
+              ) : (
+                filteredRepairers.map((rp: any) => (
+                  <button
+                    key={rp.id}
+                    type="button"
+                    onClick={() => selectRepairer(rp.name)}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', borderBottom: '1px solid #f1f5f9', background: '#fff', cursor: 'pointer' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+                  >
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{rp.name}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>{[rp.suburb, rp.state].filter(Boolean).join(', ') || rp.phone || ''}</div>
+                  </button>
+                ))
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowRepairerSearch(false)}
+              style={{ marginTop: '12px', width: '100%', padding: '8px', fontSize: '13px', color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Driver Details + Address + Licence */}
       <MCard title="Driver Details" cols={6}>
