@@ -783,9 +783,6 @@ function MainTab() {
         <MField label="Last Name">
           <input style={mField} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" />
         </MField>
-        <MField label="MI">
-          <input style={mField} value={mi} onChange={e => setMi(e.target.value)} maxLength={1} placeholder="MI" />
-        </MField>
         <MField label="Date of Birth">
           <input type="date" style={mField} value={dob} onChange={e => setDob(e.target.value)} />
         </MField>
@@ -807,9 +804,6 @@ function MainTab() {
             onSelect={r => { setStreet1(r.address); setCity(r.suburb); setStateVal(r.state); setPostal(r.postcode); }}
             style={{ ...mField }}
           />
-        </MField>
-        <MField label="Street 2">
-          <input style={mField} value={street2} onChange={e => setStreet2(e.target.value)} />
         </MField>
         <MField label="Suburb">
           <input style={mField} value={city} onChange={e => setCity(e.target.value)} />
@@ -854,9 +848,6 @@ function MainTab() {
         <MField label="Last Name">
           <input style={mField} value={roLastName} onChange={e => setRoLastName(e.target.value)} placeholder="Last name" />
         </MField>
-        <MField label="MI">
-          <input style={mField} value={roMi} onChange={e => setRoMi(e.target.value)} maxLength={1} placeholder="MI" />
-        </MField>
         <MField label="Date of Birth">
           <input type="date" style={mField} value={roDob} onChange={e => setRoDob(e.target.value)} />
         </MField>
@@ -878,9 +869,6 @@ function MainTab() {
             onSelect={r => { setRoStreet1(r.address); setRoCity(r.suburb); setRoState(r.state); setRoPostal(r.postcode); }}
             style={{ ...mField }}
           />
-        </MField>
-        <MField label="Street 2">
-          <input style={mField} value={roStreet2} onChange={e => setRoStreet2(e.target.value)} />
         </MField>
         <MField label="Suburb">
           <input style={mField} value={roCity} onChange={e => setRoCity(e.target.value)} />
