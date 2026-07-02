@@ -905,8 +905,8 @@ function MainTab() {
       </MCard>
 
       {/* NAF Vehicle Details */}
-      <MCard title="NAF Vehicle Details" cols={6}>
-        <MField label="Rego" span={2}>
+      <MCard title="NAF Vehicle Details" cols={4}>
+        <MField label="Rego">
           <div style={{ display: 'flex', gap: '6px' }}>
             <input
               style={{ ...mField, flex: 1 }}
@@ -948,20 +948,20 @@ function MainTab() {
             </button>
           </div>
         </MField>
-        <MField label="Year" span={1}>
+        <MField label="Year">
           <input style={mField} value={nafYear} onChange={e => setNafYear(e.target.value)} maxLength={4} />
         </MField>
-        <MField label="Make" span={2}>
+        <MField label="Make">
           <input style={mField} value={nafMake} onChange={e => setNafMake(e.target.value)} />
         </MField>
-        <MField label="Model" span={2}>
+        <MField label="Model">
           <input style={mField} value={nafModel} onChange={e => setNafModel(e.target.value)} />
         </MField>
-        <MField label="Body Type" span={2}>
+        <MField label="Body Type">
           <input style={mField} value={nafBodyType} onChange={e => setNafBodyType(e.target.value)} />
         </MField>
         {regoResult && (
-          <div style={{ gridColumn: 'span 6' }}>
+          <div style={{ gridColumn: 'span 4' }}>
             <div style={{
               fontSize: '13px', padding: '8px 12px', borderRadius: '6px',
               background: regoResult.valid ? '#dcfce7' : '#fee2e2',
