@@ -131,6 +131,30 @@ interface RezForm {
   // Assigned Fleet
   assignedRego: string; setAssignedRego: (v: string) => void;
   assignedVehicleId: string; setAssignedVehicleId: (v: string) => void;
+  // Pickup & Return
+  pickupLoc: string; setPickupLoc: (v: string) => void;
+  dropLoc: string; setDropLoc: (v: string) => void;
+  // Rate & Vehicle
+  ratePlanType: string; setRatePlanType: (v: string) => void;
+  rateCode: string; setRateCode: (v: string) => void;
+  rateClass: string; setRateClass: (v: string) => void;
+  estKms: string; setEstKms: (v: string) => void;
+  availUnits: string; setAvailUnits: (v: string) => void;
+  unit: string; setUnit: (v: string) => void;
+  unitDesc: string; setUnitDesc: (v: string) => void;
+  // NAF Vehicle
+  nafRego: string; setNafRego: (v: string) => void;
+  nafYear: string; setNafYear: (v: string) => void;
+  nafMake: string; setNafMake: (v: string) => void;
+  nafModel: string; setNafModel: (v: string) => void;
+  nafBodyType: string; setNafBodyType: (v: string) => void;
+  // NAF Insurance & Cover
+  nafInsCarrier: string; setNafInsCarrier: (v: string) => void;
+  nafInsPolicy: string; setNafInsPolicy: (v: string) => void;
+  nafInsPhone: string; setNafInsPhone: (v: string) => void;
+  nafInsAgent: string; setNafInsAgent: (v: string) => void;
+  nafInsAgency: string; setNafInsAgency: (v: string) => void;
+  nafCoverType: string; setNafCoverType: (v: string) => void;
   // Meta
   rezNumber: string;
   fileNumber: string;
@@ -664,6 +688,9 @@ function MainTab() {
     roStreet1, setRoStreet1, roStreet2, setRoStreet2, roCity, setRoCity,
     roState, setRoState, roPostal, setRoPostal, roCountry, setRoCountry,
     roLicNum, setRoLicNum, roLicState, setRoLicState, roLicExpires, setRoLicExpires,
+    nafRego, setNafRego, nafYear, setNafYear, nafMake, setNafMake, nafModel, setNafModel, nafBodyType, setNafBodyType,
+    nafInsCarrier, setNafInsCarrier, nafInsPolicy, setNafInsPolicy, nafInsPhone, setNafInsPhone,
+    nafInsAgent, setNafInsAgent, nafInsAgency, setNafInsAgency, nafCoverType, setNafCoverType,
     rezNumber, fileNumber, reservationStatus,
   } = useRezForm();
 
@@ -685,21 +712,8 @@ function MainTab() {
   const [useTax, setUseTax] = useState(false);
   const [broadcastNote, setBroadcastNote] = useState('');
   const [booked] = useState(new Date().toLocaleDateString('en-AU'));
-  // NAF Vehicle
-  const [nafRego, setNafRego] = useState('');
-  const [nafYear, setNafYear] = useState('');
-  const [nafMake, setNafMake] = useState('');
-  const [nafModel, setNafModel] = useState('');
-  const [nafBodyType, setNafBodyType] = useState('');
   const [regoChecking, setRegoChecking] = useState(false);
   const [regoResult, setRegoResult] = useState<{ valid: boolean; message: string; details?: Record<string, string> } | null>(null);
-  // NAF Insurance & Cover
-  const [nafInsCarrier, setNafInsCarrier] = useState('');
-  const [nafInsPolicy, setNafInsPolicy] = useState('');
-  const [nafInsPhone, setNafInsPhone] = useState('');
-  const [nafInsAgent, setNafInsAgent] = useState('');
-  const [nafInsAgency, setNafInsAgency] = useState('');
-  const [nafCoverType, setNafCoverType] = useState('CTP');
 
   const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
 
@@ -1129,24 +1143,27 @@ function BookingDetailTab() {
     assignedRego, setAssignedRego, setAssignedVehicleId,
     authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement,
     reservationStatus, putOnHire, puttingOnHire, onHireError,
+    pickupLoc, setPickupLoc, dropLoc, setDropLoc,
+    ratePlanType, setRatePlanType, rateCode, setRateCode, rateClass, setRateClass,
+    estKms, setEstKms, availUnits, setAvailUnits, unit, setUnit, unitDesc, setUnitDesc,
   } = useRezForm();
 
   const bothSigned = !!authorityToAct && !!rentalAgreement;
   const onHire = reservationStatus === 'ACTIVE';
 
-  const [pickupLoc, setPickupLoc] = useState('');
-  const [dropLoc, setDropLoc] = useState('');
   const [showFleetSearch, setShowFleetSearch] = useState(false);
   const [fleetSearchQuery, setFleetSearchQuery] = useState('');
-  const [ratePlanType, setRatePlanType] = useState('');
-  const [rateCode, setRateCode] = useState('');
-  const [rateClass, setRateClass] = useState('');
-  const [estKms, setEstKms] = useState('');
-  const [availUnits, setAvailUnits] = useState('');
-  const [unit, setUnit] = useState('');
-  const [unitDesc, setUnitDesc] = useState('');
 
   const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await api.get('/branches', { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
+    },
+  });
 
   const { data: fleet = [] } = useQuery({
     queryKey: ['fleet'],
@@ -1183,11 +1200,17 @@ function BookingDetailTab() {
         <MField label="Pickup Location" span={2}>
           <select style={mSel} value={pickupLoc} onChange={e => setPickupLoc(e.target.value)}>
             <option value="">— Select location —</option>
+            {branches.map((b: any) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
           </select>
         </MField>
         <MField label="Return Location" span={2}>
           <select style={mSel} value={dropLoc} onChange={e => setDropLoc(e.target.value)}>
             <option value="">Return to pickup</option>
+            {branches.map((b: any) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
           </select>
         </MField>
       </MCard>
@@ -1735,12 +1758,44 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const [roLicExpires, setRoLicExpires] = useState('');
 
   // ── Documents ─────────────────────────────────────────
-  const [authorityToAct, setAuthorityToAct] = useState<DocFile | null>(null);
-  const [rentalAgreement, setRentalAgreement] = useState<DocFile | null>(null);
+  const [authorityToAct, setAuthorityToAct] = useState<DocFile | null>(
+    initialData?.authorityToActUrl ? { name: initialData.authorityToActName || 'Authority to Act', dataUrl: initialData.authorityToActUrl } : null
+  );
+  const [rentalAgreement, setRentalAgreement] = useState<DocFile | null>(
+    initialData?.rentalAgreementUrl ? { name: initialData.rentalAgreementName || 'Rental Agreement', dataUrl: initialData.rentalAgreementUrl } : null
+  );
 
   // ── Assigned Fleet ────────────────────────────────────
   const [assignedRego, setAssignedRego] = useState(initialData?.vehicle?.registration ?? '');
   const [assignedVehicleId, setAssignedVehicleId] = useState(initialData?.vehicleId ?? initialData?.vehicle?.id ?? '');
+
+  // ── Pickup & Return ───────────────────────────────────
+  const [pickupLoc, setPickupLoc] = useState(initialData?.pickupBranchId ?? '');
+  const [dropLoc, setDropLoc] = useState(initialData?.returnBranchId ?? '');
+
+  // ── Rate & Vehicle ────────────────────────────────────
+  const [ratePlanType, setRatePlanType] = useState(initialData?.ratePlanType ?? '');
+  const [rateCode, setRateCode] = useState(initialData?.rateCode ?? '');
+  const [rateClass, setRateClass] = useState(initialData?.rateClass ?? '');
+  const [estKms, setEstKms] = useState(initialData?.estimatedKms ?? '');
+  const [availUnits, setAvailUnits] = useState(initialData?.unitNumber ?? '');
+  const [unit, setUnit] = useState(initialData?.unitTag ?? '');
+  const [unitDesc, setUnitDesc] = useState(initialData?.unitDescription ?? '');
+
+  // ── NAF Vehicle ───────────────────────────────────────
+  const [nafRego, setNafRego] = useState(initialData?.nafRego ?? '');
+  const [nafYear, setNafYear] = useState(initialData?.nafYear ?? '');
+  const [nafMake, setNafMake] = useState(initialData?.nafMake ?? '');
+  const [nafModel, setNafModel] = useState(initialData?.nafModel ?? '');
+  const [nafBodyType, setNafBodyType] = useState(initialData?.nafBodyType ?? '');
+
+  // ── NAF Insurance & Cover ─────────────────────────────
+  const [nafInsCarrier, setNafInsCarrier] = useState(initialData?.nafInsCarrier ?? '');
+  const [nafInsPolicy, setNafInsPolicy] = useState(initialData?.nafInsPolicy ?? '');
+  const [nafInsPhone, setNafInsPhone] = useState(initialData?.nafInsPhone ?? '');
+  const [nafInsAgent, setNafInsAgent] = useState(initialData?.nafInsAgent ?? '');
+  const [nafInsAgency, setNafInsAgency] = useState(initialData?.nafInsAgency ?? '');
+  const [nafCoverType, setNafCoverType] = useState(initialData?.nafCoverType ?? 'CTP');
 
   // ── Save state ──────────────────────────────────────────
   const [reservationId, setReservationId] = useState<string | null>(initialResId ?? null);
@@ -1824,6 +1879,32 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
           insuranceProvider: tpInsCarrier || undefined,
           claimNumber: tpClaimNo || undefined,
         } : undefined,
+        pickupBranchId: pickupLoc || undefined,
+        returnBranchId: dropLoc || undefined,
+        ratePlanType: ratePlanType || undefined,
+        rateCode: rateCode || undefined,
+        rateClass: rateClass || undefined,
+        estimatedKms: estKms || undefined,
+        unitNumber: availUnits || undefined,
+        unitTag: unit || undefined,
+        unitDescription: unitDesc || undefined,
+        naf: (nafRego || nafMake || nafModel) ? {
+          rego: nafRego || undefined,
+          year: nafYear || undefined,
+          make: nafMake || undefined,
+          model: nafModel || undefined,
+          bodyType: nafBodyType || undefined,
+          insCarrier: nafInsCarrier || undefined,
+          insPolicy: nafInsPolicy || undefined,
+          insPhone: nafInsPhone || undefined,
+          insAgent: nafInsAgent || undefined,
+          insAgency: nafInsAgency || undefined,
+          coverType: nafCoverType || undefined,
+        } : undefined,
+        authorityToActName: authorityToAct?.name || undefined,
+        authorityToActUrl: authorityToAct?.dataUrl || undefined,
+        rentalAgreementName: rentalAgreement?.name || undefined,
+        rentalAgreementUrl: rentalAgreement?.dataUrl || undefined,
       };
 
       if (reservationId) {
@@ -1888,6 +1969,12 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     roLicNum, setRoLicNum, roLicState, setRoLicState, roLicExpires, setRoLicExpires,
     authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement,
     assignedRego, setAssignedRego, assignedVehicleId, setAssignedVehicleId,
+    pickupLoc, setPickupLoc, dropLoc, setDropLoc,
+    ratePlanType, setRatePlanType, rateCode, setRateCode, rateClass, setRateClass,
+    estKms, setEstKms, availUnits, setAvailUnits, unit, setUnit, unitDesc, setUnitDesc,
+    nafRego, setNafRego, nafYear, setNafYear, nafMake, setNafMake, nafModel, setNafModel, nafBodyType, setNafBodyType,
+    nafInsCarrier, setNafInsCarrier, nafInsPolicy, setNafInsPolicy, nafInsPhone, setNafInsPhone,
+    nafInsAgent, setNafInsAgent, nafInsAgency, setNafInsAgency, nafCoverType, setNafCoverType,
     rezNumber, fileNumber, tabHasData, reservationId, isSaving, saveError, saveSuccess, save,
     reservationStatus, putOnHire, puttingOnHire, onHireError,
   };

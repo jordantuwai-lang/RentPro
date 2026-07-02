@@ -254,6 +254,40 @@ model Reservation {
   licencePhotoUrl     String?
   partnerName         String?
 
+  // Booking Detail — Pickup & Return
+  pickupBranchId String?
+  returnBranchId String?
+
+  // Booking Detail — Rate & Vehicle
+  ratePlanType     String?
+  rateCode         String?
+  rateClass        String?
+  estimatedKms     String?
+  unitNumber       String?
+  unitTag          String?
+  unitDescription  String?
+
+  // Main — NAF Vehicle
+  nafRego     String?
+  nafYear     String?
+  nafMake     String?
+  nafModel    String?
+  nafBodyType String?
+
+  // Main — NAF Insurance & Cover
+  nafInsCarrier String?
+  nafInsPolicy  String?
+  nafInsPhone   String?
+  nafInsAgent   String?
+  nafInsAgency  String?
+  nafCoverType  String?
+
+  // Booking & Docs — signed documents
+  authorityToActName String?
+  authorityToActUrl  String?
+  rentalAgreementName String?
+  rentalAgreementUrl  String?
+
   // Relations
   claim             Claim?
   delivery          Delivery?
