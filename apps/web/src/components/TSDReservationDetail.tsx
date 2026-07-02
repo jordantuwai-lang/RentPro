@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import api from '@/lib/api';
 
@@ -1665,6 +1666,7 @@ interface TSDReservationDetailProps {
 
 export default function TSDReservationDetail({ initialData, reservationId: initialResId }: TSDReservationDetailProps = {}) {
   const { getToken } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
 
   const c = initialData?.customer ?? initialData?.driver ?? {};
@@ -1828,7 +1830,11 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
         await api.patch(`/reservations/${reservationId}`, payload, { headers });
       } else {
         const res = await api.post('/reservations', payload, { headers });
-        setReservationId(res.data?.id ?? null);
+        const newId = res.data?.id ?? null;
+        setReservationId(newId);
+        if (newId) {
+          router.replace(`/dashboard/reservations/${newId}`);
+        }
       }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
