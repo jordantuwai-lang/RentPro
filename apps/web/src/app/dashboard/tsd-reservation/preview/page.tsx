@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 
-const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Card Details'];
+const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Requirements'];
 
 const g = {
   // colours

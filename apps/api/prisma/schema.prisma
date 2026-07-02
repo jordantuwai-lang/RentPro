@@ -153,6 +153,7 @@ model Vehicle {
   state        String        @default("")
   category     String
   status       VehicleStatus @default(AVAILABLE)
+  odometer     Int?
   branch       Branch?       @relation(fields: [branchId], references: [id])
   branchId     String?
   reservations Reservation[]
@@ -252,6 +253,40 @@ model Reservation {
   sourceOfBusiness    String?
   licencePhotoUrl     String?
   partnerName         String?
+
+  // Booking Detail — Pickup & Return
+  pickupBranchId String?
+  returnBranchId String?
+
+  // Booking Detail — Rate & Vehicle
+  ratePlanType     String?
+  rateCode         String?
+  rateClass        String?
+  estimatedKms     String?
+  unitNumber       String?
+  unitTag          String?
+  unitDescription  String?
+
+  // Main — NAF Vehicle
+  nafRego     String?
+  nafYear     String?
+  nafMake     String?
+  nafModel    String?
+  nafBodyType String?
+
+  // Main — NAF Insurance & Cover
+  nafInsCarrier String?
+  nafInsPolicy  String?
+  nafInsPhone   String?
+  nafInsAgent   String?
+  nafInsAgency  String?
+  nafCoverType  String?
+
+  // Booking & Docs — signed documents (stored in object storage; these hold the storage key)
+  authorityToActName String?
+  authorityToActKey  String?
+  rentalAgreementName String?
+  rentalAgreementKey  String?
 
   // Relations
   claim             Claim?

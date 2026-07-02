@@ -172,6 +172,52 @@ export class AtFaultInputDto {
   claimNumber?: string;
 }
 
+export class NafInputDto {
+  @IsString()
+  @IsOptional()
+  rego?: string;
+
+  @IsString()
+  @IsOptional()
+  year?: string;
+
+  @IsString()
+  @IsOptional()
+  make?: string;
+
+  @IsString()
+  @IsOptional()
+  model?: string;
+
+  @IsString()
+  @IsOptional()
+  bodyType?: string;
+
+  @IsString()
+  @IsOptional()
+  insCarrier?: string;
+
+  @IsString()
+  @IsOptional()
+  insPolicy?: string;
+
+  @IsString()
+  @IsOptional()
+  insPhone?: string;
+
+  @IsString()
+  @IsOptional()
+  insAgent?: string;
+
+  @IsString()
+  @IsOptional()
+  insAgency?: string;
+
+  @IsString()
+  @IsOptional()
+  coverType?: string;
+}
+
 // ─── Reservation CRUD ─────────────────────────────────────────────────────────
 
 export class CreateReservationDto {
@@ -228,6 +274,47 @@ export class CreateReservationDto {
   @Type(() => AdditionalInputDto)
   @IsOptional()
   additional?: AdditionalInputDto;
+
+  @IsString()
+  @IsOptional()
+  pickupBranchId?: string;
+
+  @IsString()
+  @IsOptional()
+  returnBranchId?: string;
+
+  @IsString()
+  @IsOptional()
+  ratePlanType?: string;
+
+  @IsString()
+  @IsOptional()
+  rateCode?: string;
+
+  @IsString()
+  @IsOptional()
+  rateClass?: string;
+
+  @IsString()
+  @IsOptional()
+  estimatedKms?: string;
+
+  @IsString()
+  @IsOptional()
+  unitNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  unitTag?: string;
+
+  @IsString()
+  @IsOptional()
+  unitDescription?: string;
+
+  @ValidateNested()
+  @Type(() => NafInputDto)
+  @IsOptional()
+  naf?: NafInputDto;
 }
 
 export class UpdateReservationDto {
@@ -280,6 +367,47 @@ export class UpdateReservationDto {
   @Type(() => AdditionalInputDto)
   @IsOptional()
   additional?: AdditionalInputDto;
+
+  @IsString()
+  @IsOptional()
+  pickupBranchId?: string;
+
+  @IsString()
+  @IsOptional()
+  returnBranchId?: string;
+
+  @IsString()
+  @IsOptional()
+  ratePlanType?: string;
+
+  @IsString()
+  @IsOptional()
+  rateCode?: string;
+
+  @IsString()
+  @IsOptional()
+  rateClass?: string;
+
+  @IsString()
+  @IsOptional()
+  estimatedKms?: string;
+
+  @IsString()
+  @IsOptional()
+  unitNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  unitTag?: string;
+
+  @IsString()
+  @IsOptional()
+  unitDescription?: string;
+
+  @ValidateNested()
+  @Type(() => NafInputDto)
+  @IsOptional()
+  naf?: NafInputDto;
 }
 
 // ─── markOnHire ───────────────────────────────────────────────────────────────
@@ -291,6 +419,21 @@ export class MarkOnHireDto {
   @IsString()
   @IsOptional()
   notes?: string;
+}
+
+// ─── Reservation documents (Authority to Act / Rental Agreement) ──────────────
+
+export class UploadDocumentDto {
+  @IsString()
+  fileData: string;
+
+  @IsString()
+  @IsOptional()
+  mimeType?: string;
+
+  @IsString()
+  @IsOptional()
+  name?: string;
 }
 
 // ─── Notes ────────────────────────────────────────────────────────────────────

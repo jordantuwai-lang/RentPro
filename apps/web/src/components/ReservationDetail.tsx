@@ -551,7 +551,7 @@ export interface ReservationDetailProps {
   onSaveSuccess?: () => void;
 }
 
-const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Notes', 'Card Details', 'Documents'];
+const DEFAULT_TABS = ['Main', 'Customer', 'At Fault', 'Other Party', 'Accident', 'Damages', 'Photos', 'Additional', 'Notes', 'Requirements', 'Documents'];
 
 export default function ReservationDetail({
   reservationId,
@@ -1264,8 +1264,8 @@ export default function ReservationDetail({
 
       {/* ── Tab 9: Card Details ── */}
       {activeTab === 9 && (
-        <SectionBlock title="Card Details">
-          <div style={{ maxWidth: '420px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
+          <SectionBlock title="Card Details">
             <div style={{ padding: '10px 12px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', marginBottom: '14px', fontSize: '11px', color: '#92400e' }}>
               Card details are stored locally and not transmitted without explicit action.
             </div>
@@ -1319,8 +1319,16 @@ export default function ReservationDetail({
                 type="password"
               />
             </R>
+          </SectionBlock>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <SectionBlock title="Driver's Licence">
+              <DocSlot label="Driver's Licence" desc="Front of the customer's licence" icon="🪪" val={licencePhoto} set={setLicencePhoto} />
+            </SectionBlock>
+            <SectionBlock title="Vehicle Registration Papers">
+              <DocSlot label="Vehicle Registration Papers" desc="Current registration certificate" icon="📄" val={regoPhoto} set={setRegoPhoto} />
+            </SectionBlock>
           </div>
-        </SectionBlock>
+        </div>
       )}
 
       {/* ── Tab 10+: Extra or Documents ── */}

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { $Enums } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { isBranchFiltered } from '../common/branch-filter';
 import {
   AddPaymentCardDto,
@@ -13,11 +14,17 @@ import {
   AccidentInputDto,
   AdditionalInputDto,
   AtFaultInputDto,
+  UploadDocumentDto,
 } from './reservations.dto';
+
+type ReservationDocumentKind = 'authorityToAct' | 'rentalAgreement';
 
 @Injectable()
 export class ReservationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storage: StorageService,
+  ) {}
 
   async generateReservationNumber(): Promise<string> {
     const result = await this.prisma.$transaction(async (tx) => {
@@ -45,8 +52,8 @@ export class ReservationsService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.reservation.findUnique({
+  async findOne(id: string) {
+    const reservation = await this.prisma.reservation.findUnique({
       where: { id },
       include: {
         customer: true,
@@ -69,6 +76,12 @@ export class ReservationsService {
         reservationNotes: { orderBy: { createdAt: 'desc' } },
       },
     });
+    if (!reservation) return null;
+    const [authorityToActUrl, rentalAgreementUrl] = await Promise.all([
+      reservation.authorityToActKey ? this.storage.getPresignedUrl(reservation.authorityToActKey) : null,
+      reservation.rentalAgreementKey ? this.storage.getPresignedUrl(reservation.rentalAgreementKey) : null,
+    ]);
+    return { ...reservation, authorityToActUrl, rentalAgreementUrl };
   }
 
   async create(data: CreateReservationDto) {
@@ -88,6 +101,26 @@ export class ReservationsService {
         status: data.status === 'DRAFT' ? 'DRAFT' : 'PENDING',
         sourceOfBusiness: data.sourceOfBusiness || undefined,
         partnerName: data.partnerName || undefined,
+        pickupBranchId: data.pickupBranchId || undefined,
+        returnBranchId: data.returnBranchId || undefined,
+        ratePlanType: data.ratePlanType || undefined,
+        rateCode: data.rateCode || undefined,
+        rateClass: data.rateClass || undefined,
+        estimatedKms: data.estimatedKms || undefined,
+        unitNumber: data.unitNumber || undefined,
+        unitTag: data.unitTag || undefined,
+        unitDescription: data.unitDescription || undefined,
+        nafRego: data.naf?.rego || undefined,
+        nafYear: data.naf?.year || undefined,
+        nafMake: data.naf?.make || undefined,
+        nafModel: data.naf?.model || undefined,
+        nafBodyType: data.naf?.bodyType || undefined,
+        nafInsCarrier: data.naf?.insCarrier || undefined,
+        nafInsPolicy: data.naf?.insPolicy || undefined,
+        nafInsPhone: data.naf?.insPhone || undefined,
+        nafInsAgent: data.naf?.insAgent || undefined,
+        nafInsAgency: data.naf?.insAgency || undefined,
+        nafCoverType: data.naf?.coverType || undefined,
       },
       include: { customer: true, vehicle: true },
     });
@@ -295,6 +328,26 @@ if (data.status === 'COMPLETED') {
         startDate: data.startDate ? new Date(data.startDate) : undefined,
         sourceOfBusiness: data.sourceOfBusiness || undefined,
         vehicle: data.vehicleId ? { connect: { id: data.vehicleId } } : undefined,
+        pickupBranchId: data.pickupBranchId || undefined,
+        returnBranchId: data.returnBranchId || undefined,
+        ratePlanType: data.ratePlanType || undefined,
+        rateCode: data.rateCode || undefined,
+        rateClass: data.rateClass || undefined,
+        estimatedKms: data.estimatedKms || undefined,
+        unitNumber: data.unitNumber || undefined,
+        unitTag: data.unitTag || undefined,
+        unitDescription: data.unitDescription || undefined,
+        nafRego: data.naf?.rego || undefined,
+        nafYear: data.naf?.year || undefined,
+        nafMake: data.naf?.make || undefined,
+        nafModel: data.naf?.model || undefined,
+        nafBodyType: data.naf?.bodyType || undefined,
+        nafInsCarrier: data.naf?.insCarrier || undefined,
+        nafInsPolicy: data.naf?.insPolicy || undefined,
+        nafInsPhone: data.naf?.insPhone || undefined,
+        nafInsAgent: data.naf?.insAgent || undefined,
+        nafInsAgency: data.naf?.insAgency || undefined,
+        nafCoverType: data.naf?.coverType || undefined,
       },
       include: {
         customer: true,
@@ -501,6 +554,47 @@ if (data.status === 'COMPLETED') {
     });
     return { licencePhotoUrl: reservation?.licencePhotoUrl || null };
   }
+
+  async uploadDocument(id: string, kind: ReservationDocumentKind, data: UploadDocumentDto) {
+    const reservation = await this.prisma.reservation.findUnique({ where: { id } });
+    if (!reservation) throw new NotFoundException('Reservation not found');
+
+    const mimeType = data.mimeType ?? 'application/pdf';
+    const buffer = Buffer.from(data.fileData, 'base64');
+    const ext = mimeType.split('/')[1]?.split(';')[0] || 'pdf';
+    const slug = kind === 'authorityToAct' ? 'authority-to-act' : 'rental-agreement';
+    const key = `reservation-documents/${id}/${slug}-${Date.now()}.${ext}`;
+    await this.storage.upload(key, buffer, mimeType);
+
+    await this.prisma.reservation.update({
+      where: { id },
+      data: kind === 'authorityToAct'
+        ? { authorityToActKey: key, authorityToActName: data.name ?? null }
+        : { rentalAgreementKey: key, rentalAgreementName: data.name ?? null },
+    });
+
+    const url = await this.storage.getPresignedUrl(key);
+    return { name: data.name ?? null, url };
+  }
+
+  async removeDocument(id: string, kind: ReservationDocumentKind) {
+    const reservation = await this.prisma.reservation.findUnique({ where: { id } });
+    if (!reservation) throw new NotFoundException('Reservation not found');
+
+    const key = kind === 'authorityToAct' ? reservation.authorityToActKey : reservation.rentalAgreementKey;
+    if (key) {
+      await this.storage.delete(key);
+    }
+
+    await this.prisma.reservation.update({
+      where: { id },
+      data: kind === 'authorityToAct'
+        ? { authorityToActKey: null, authorityToActName: null }
+        : { rentalAgreementKey: null, rentalAgreementName: null },
+    });
+    return { success: true };
+  }
+
   async addToSchedule(reservationId: string, body: AddToScheduleDto) {
     const { scheduledAt, jobType, address, suburb, driverId } = body;
   

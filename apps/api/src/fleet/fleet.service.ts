@@ -69,6 +69,7 @@ export class FleetService {
         state: rest.state ?? '',
         category: rest.category ?? '',
         status: rest.status,
+        odometer: rest.odometer,
         ...(branchId ? { branch: { connect: { id: branchId } } } : {}),
       },
       include: { branch: true },
