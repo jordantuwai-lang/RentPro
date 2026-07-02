@@ -58,7 +58,7 @@ function MCard({ title, children, cols = 6 }: { title: string; children: React.R
   );
 }
 
-const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Requirements', 'Booking Detail'];
+const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Requirements', 'Booking Detail', 'Documents'];
 
 /* ─── Reservation form context ───────────────────────────── */
 interface RezForm {
@@ -604,13 +604,6 @@ function MainTab() {
   const [repairerSearchQuery, setRepairerSearchQuery] = useState('');
   const [pickupTime, setPickupTime] = useState('08:00');
   const [dropTime, setDropTime] = useState('08:00');
-  const [ratePlanType, setRatePlanType] = useState('');
-  const [rateCode, setRateCode] = useState('');
-  const [rateClass, setRateClass] = useState('');
-  const [estKms, setEstKms] = useState('');
-  const [availUnits, setAvailUnits] = useState('');
-  const [unit, setUnit] = useState('');
-  const [unitDesc, setUnitDesc] = useState('');
   const [prepaidFuel, setPrepaidFuel] = useState(false);
   const [prepaidFuelAmt, setPrepaidFuelAmt] = useState('');
   const [origCurrency, setOrigCurrency] = useState('AUD');
@@ -1004,41 +997,6 @@ function MainTab() {
         </div>
       </MCard>
 
-      {/* Rate & Vehicle */}
-      <MCard title="Rate & Vehicle" cols={6}>
-        <MField label="Rate Plan" span={2}>
-          <select style={mSel} value={ratePlanType} onChange={e => setRatePlanType(e.target.value)}>
-            <option value="">— Type —</option>
-            <option>Daily</option>
-            <option>Weekly</option>
-            <option>Monthly</option>
-          </select>
-        </MField>
-        <MField label="Rate Code" span={1}>
-          <input style={mField} value={rateCode} onChange={e => setRateCode(e.target.value)} />
-        </MField>
-        <MField label="Rate Class" span={2}>
-          <select style={mSel} value={rateClass} onChange={e => setRateClass(e.target.value)}>
-            <option value="">— Class —</option>
-            {['Economy','Compact','Midsize','Standard','Fullsize','SUV','Van'].map(c => <option key={c}>{c}</option>)}
-          </select>
-        </MField>
-        <MField label="Est. Kms" span={1}>
-          <input style={mField} value={estKms} onChange={e => setEstKms(e.target.value)} />
-        </MField>
-        <MField label="Unit #" span={1}>
-          <select style={mSel} value={availUnits} onChange={e => setAvailUnits(e.target.value)}>
-            <option value="">—</option>
-          </select>
-        </MField>
-        <MField label="Unit Description" span={3}>
-          <input style={mField} value={unitDesc} onChange={e => setUnitDesc(e.target.value)} placeholder="Vehicle description" />
-        </MField>
-        <MField label="Unit Tag" span={2}>
-          <input style={mField} value={unit} onChange={e => setUnit(e.target.value)} />
-        </MField>
-      </MCard>
-
       {/* Billing & Other */}
       <MCard title="Billing & Other" cols={6}>
         <MField label="Currency" span={1}>
@@ -1092,6 +1050,13 @@ function BookingDetailTab() {
   const [assignedRego, setAssignedRego] = useState('');
   const [showFleetSearch, setShowFleetSearch] = useState(false);
   const [fleetSearchQuery, setFleetSearchQuery] = useState('');
+  const [ratePlanType, setRatePlanType] = useState('');
+  const [rateCode, setRateCode] = useState('');
+  const [rateClass, setRateClass] = useState('');
+  const [estKms, setEstKms] = useState('');
+  const [availUnits, setAvailUnits] = useState('');
+  const [unit, setUnit] = useState('');
+  const [unitDesc, setUnitDesc] = useState('');
 
   const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
 
@@ -1169,6 +1134,41 @@ function BookingDetailTab() {
         </MField>
       </MCard>
 
+      {/* Rate & Vehicle */}
+      <MCard title="Rate & Vehicle" cols={6}>
+        <MField label="Rate Plan" span={2}>
+          <select style={mSel} value={ratePlanType} onChange={e => setRatePlanType(e.target.value)}>
+            <option value="">— Type —</option>
+            <option>Daily</option>
+            <option>Weekly</option>
+            <option>Monthly</option>
+          </select>
+        </MField>
+        <MField label="Rate Code" span={1}>
+          <input style={mField} value={rateCode} onChange={e => setRateCode(e.target.value)} />
+        </MField>
+        <MField label="Rate Class" span={2}>
+          <select style={mSel} value={rateClass} onChange={e => setRateClass(e.target.value)}>
+            <option value="">— Class —</option>
+            {['Economy','Compact','Midsize','Standard','Fullsize','SUV','Van'].map(c => <option key={c}>{c}</option>)}
+          </select>
+        </MField>
+        <MField label="Est. Kms" span={1}>
+          <input style={mField} value={estKms} onChange={e => setEstKms(e.target.value)} />
+        </MField>
+        <MField label="Unit #" span={1}>
+          <select style={mSel} value={availUnits} onChange={e => setAvailUnits(e.target.value)}>
+            <option value="">—</option>
+          </select>
+        </MField>
+        <MField label="Unit Description" span={3}>
+          <input style={mField} value={unitDesc} onChange={e => setUnitDesc(e.target.value)} placeholder="Vehicle description" />
+        </MField>
+        <MField label="Unit Tag" span={2}>
+          <input style={mField} value={unit} onChange={e => setUnit(e.target.value)} />
+        </MField>
+      </MCard>
+
       {/* Fleet search modal */}
       {showFleetSearch && (
         <div
@@ -1216,6 +1216,19 @@ function BookingDetailTab() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─── Documents Tab ──────────────────────────────────────── */
+function DocumentsTab() {
+  return (
+    <div style={{ padding: '16px' }}>
+      <MCard title="Documents" cols={1}>
+        <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+          No documents yet.
+        </div>
+      </MCard>
     </div>
   );
 }
@@ -1876,6 +1889,7 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
         {activeTab === 3 && <AtFaultThirdPartyTab />}
         {activeTab === 4 && <CardDetailsTab />}
         {activeTab === 5 && <BookingDetailTab />}
+        {activeTab === 6 && <DocumentsTab />}
 
         <BtnBar />
       </div>
