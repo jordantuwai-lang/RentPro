@@ -58,7 +58,7 @@ function MCard({ title, children, cols = 6 }: { title: string; children: React.R
   );
 }
 
-const TABS = ['Main', 'Accident Details', 'At Fault Third Party', 'Requirements', 'Booking Detail', 'Documents'];
+const TABS = ['Main', 'Accident Details', 'At Fault Third Party', 'Requirements', 'Booking & Docs'];
 
 /* ─── Reservation form context ───────────────────────────── */
 interface RezForm {
@@ -1121,10 +1121,17 @@ function MainTab() {
   );
 }
 
-/* ─── Booking Detail Tab ─────────────────────────────────── */
+/* ─── Booking & Docs Tab ─────────────────────────────────── */
 function BookingDetailTab() {
   const { getToken } = useAuth();
-  const { assignedRego, setAssignedRego, setAssignedVehicleId } = useRezForm();
+  const {
+    assignedRego, setAssignedRego, setAssignedVehicleId,
+    authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement,
+    reservationStatus, putOnHire, puttingOnHire, onHireError,
+  } = useRezForm();
+
+  const bothSigned = !!authorityToAct && !!rentalAgreement;
+  const onHire = reservationStatus === 'ACTIVE';
 
   const [pickupLoc, setPickupLoc] = useState('');
   const [dropLoc, setDropLoc] = useState('');
@@ -1253,6 +1260,45 @@ function BookingDetailTab() {
         </MField>
       </MCard>
 
+      {/* Documents */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
+        <MCard title="Authority to Act" cols={1}>
+          <DocFileSlot label="Authority to Act" desc="Upload the signed Authority to Act document" icon="📝" val={authorityToAct} onChange={setAuthorityToAct} />
+        </MCard>
+        <MCard title="Rental Agreement" cols={1}>
+          <DocFileSlot label="Rental Agreement" desc="Upload the signed Rental Agreement" icon="📃" val={rentalAgreement} onChange={setRentalAgreement} />
+        </MCard>
+      </div>
+
+      {bothSigned && (
+        <MCard title="On Hire" cols={1}>
+          {onHire ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 4px' }}>
+              <span style={{ fontSize: '22px' }}>✅</span>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#16a34a' }}>On Hire</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>Both documents are signed and the reservation is active.</div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px' }}>
+                Both documents are signed. Put this reservation on hire to activate it.
+              </div>
+              <button
+                type="button"
+                onClick={putOnHire}
+                disabled={puttingOnHire}
+                style={{ padding: '8px 24px', fontSize: '13px', fontWeight: 700, background: puttingOnHire ? '#94a3b8' : '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', cursor: puttingOnHire ? 'not-allowed' : 'pointer' }}
+              >
+                {puttingOnHire ? 'Putting On Hire…' : 'Put On Hire'}
+              </button>
+              {onHireError && <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '8px' }}>{onHireError}</div>}
+            </div>
+          )}
+        </MCard>
+      )}
+
       {/* Fleet search modal */}
       {showFleetSearch && (
         <div
@@ -1346,59 +1392,6 @@ function DocFileSlot({ label, desc, icon, val, onChange }: { label: string; desc
           </div>
           <button type="button" onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px dashed #cbd5e1', background: '#f8fafc', color: '#64748b', fontSize: '12px', cursor: 'pointer' }}>📁 Upload document</button>
         </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Documents Tab ──────────────────────────────────────── */
-function DocumentsTab() {
-  const {
-    authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement,
-    reservationStatus, putOnHire, puttingOnHire, onHireError,
-  } = useRezForm();
-
-  const bothSigned = !!authorityToAct && !!rentalAgreement;
-  const onHire = reservationStatus === 'ACTIVE';
-
-  return (
-    <div style={{ padding: '16px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
-        <MCard title="Authority to Act" cols={1}>
-          <DocFileSlot label="Authority to Act" desc="Upload the signed Authority to Act document" icon="📝" val={authorityToAct} onChange={setAuthorityToAct} />
-        </MCard>
-        <MCard title="Rental Agreement" cols={1}>
-          <DocFileSlot label="Rental Agreement" desc="Upload the signed Rental Agreement" icon="📃" val={rentalAgreement} onChange={setRentalAgreement} />
-        </MCard>
-      </div>
-
-      {bothSigned && (
-        <MCard title="On Hire" cols={1}>
-          {onHire ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 4px' }}>
-              <span style={{ fontSize: '22px' }}>✅</span>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#16a34a' }}>On Hire</div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>Both documents are signed and the reservation is active.</div>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px' }}>
-                Both documents are signed. Put this reservation on hire to activate it.
-              </div>
-              <button
-                type="button"
-                onClick={putOnHire}
-                disabled={puttingOnHire}
-                style={{ padding: '8px 24px', fontSize: '13px', fontWeight: 700, background: puttingOnHire ? '#94a3b8' : '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', cursor: puttingOnHire ? 'not-allowed' : 'pointer' }}
-              >
-                {puttingOnHire ? 'Putting On Hire…' : 'Put On Hire'}
-              </button>
-              {onHireError && <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '8px' }}>{onHireError}</div>}
-            </div>
-          )}
-        </MCard>
       )}
     </div>
   );
@@ -1958,7 +1951,6 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
         {activeTab === 2 && <AtFaultThirdPartyTab />}
         {activeTab === 3 && <CardDetailsTab />}
         {activeTab === 4 && <BookingDetailTab />}
-        {activeTab === 5 && <DocumentsTab />}
 
         <BtnBar />
       </div>
