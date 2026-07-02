@@ -127,6 +127,9 @@ interface RezForm {
   // Documents
   authorityToAct: DocFile | null; setAuthorityToAct: (v: DocFile | null) => void;
   rentalAgreement: DocFile | null; setRentalAgreement: (v: DocFile | null) => void;
+  // Assigned Fleet
+  assignedRego: string; setAssignedRego: (v: string) => void;
+  assignedVehicleId: string; setAssignedVehicleId: (v: string) => void;
   // Meta
   rezNumber: string;
   fileNumber: string;
@@ -1121,10 +1124,10 @@ function MainTab() {
 /* ─── Booking Detail Tab ─────────────────────────────────── */
 function BookingDetailTab() {
   const { getToken } = useAuth();
+  const { assignedRego, setAssignedRego, setAssignedVehicleId } = useRezForm();
 
   const [pickupLoc, setPickupLoc] = useState('');
   const [dropLoc, setDropLoc] = useState('');
-  const [assignedRego, setAssignedRego] = useState('');
   const [showFleetSearch, setShowFleetSearch] = useState(false);
   const [fleetSearchQuery, setFleetSearchQuery] = useState('');
   const [ratePlanType, setRatePlanType] = useState('');
@@ -1149,6 +1152,10 @@ function BookingDetailTab() {
   const assignedVehicle = fleet.find(
     (v: any) => v.registration?.toUpperCase() === assignedRego.trim().toUpperCase()
   );
+
+  useEffect(() => {
+    setAssignedVehicleId(assignedVehicle?.id ?? '');
+  }, [assignedVehicle?.id]);
 
   const filteredFleet = fleet.filter((v: any) =>
     v.registration?.toLowerCase().includes(fleetSearchQuery.toLowerCase()) ||
@@ -1736,6 +1743,10 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const [authorityToAct, setAuthorityToAct] = useState<DocFile | null>(null);
   const [rentalAgreement, setRentalAgreement] = useState<DocFile | null>(null);
 
+  // ── Assigned Fleet ────────────────────────────────────
+  const [assignedRego, setAssignedRego] = useState(initialData?.vehicle?.registration ?? '');
+  const [assignedVehicleId, setAssignedVehicleId] = useState(initialData?.vehicleId ?? initialData?.vehicle?.id ?? '');
+
   // ── Save state ──────────────────────────────────────────
   const [reservationId, setReservationId] = useState<string | null>(initialResId ?? null);
   const [isSaving, setIsSaving] = useState(false);
@@ -1791,6 +1802,12 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
         endDate: dropDate || undefined,
         sourceOfBusiness: source || undefined,
         hireType: hireType || undefined,
+        vehicleId: assignedVehicleId || undefined,
+        // Assigning a vehicle server-side immediately flips it to ON_HIRE unless the
+        // reservation is explicitly a DRAFT — keep it a draft until Put On Hire (which
+        // uses the dedicated /on-hire endpoint) so picking a rego here doesn't lock the
+        // vehicle before the Authority to Act / Rental Agreement are signed.
+        status: reservationStatus === 'ACTIVE' ? undefined : 'DRAFT',
         accident: (accDate || accDescription) ? {
           date: accDate || undefined,
           location: accStreet ? `${accStreet}${accSuburb ? ', ' + accSuburb : ''}` : undefined,
@@ -1871,6 +1888,7 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     roState, setRoState, roPostal, setRoPostal, roCountry, setRoCountry,
     roLicNum, setRoLicNum, roLicState, setRoLicState, roLicExpires, setRoLicExpires,
     authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement,
+    assignedRego, setAssignedRego, assignedVehicleId, setAssignedVehicleId,
     rezNumber, fileNumber, tabHasData, reservationId, isSaving, saveError, saveSuccess, save,
     reservationStatus, putOnHire, puttingOnHire, onHireError,
   };
