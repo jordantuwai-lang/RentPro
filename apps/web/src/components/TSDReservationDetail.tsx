@@ -58,7 +58,7 @@ function MCard({ title, children, cols = 6 }: { title: string; children: React.R
   );
 }
 
-const TABS = ['Main', 'Misc', 'Accident Details', 'At Fault Third Party', 'Requirements', 'Booking Detail', 'Documents'];
+const TABS = ['Main', 'Accident Details', 'At Fault Third Party', 'Requirements', 'Booking Detail', 'Documents'];
 
 /* ─── Reservation form context ───────────────────────────── */
 interface RezForm {
@@ -1284,148 +1284,6 @@ function DocumentsTab() {
   );
 }
 
-/* ─── Misc Tab ───────────────────────────────────────────── */
-function MiscTab() {
-  const [insCarrier, setInsCarrier] = useState('');
-  const [insAgency, setInsAgency] = useState('');
-  const [insAgent, setInsAgent] = useState('');
-  const [insPhone, setInsPhone] = useState('');
-  const [insPolicy, setInsPolicy] = useState('');
-  const [insPolicyExp, setInsPolicyExp] = useState('');
-  const [arrivalDate, setArrivalDate] = useState('');
-  const [arrivalTime, setArrivalTime] = useState('');
-  const [vehYear, setVehYear] = useState('');
-  const [vehMake, setVehMake] = useState('');
-  const [vehModel, setVehModel] = useState('');
-  const [vehColor, setVehColor] = useState('');
-  const [vehVin, setVehVin] = useState('');
-  const [totalLoss, setTotalLoss] = useState(false);
-  const [localResAddr, setLocalResAddr] = useState('');
-  const [localResPhone, setLocalResPhone] = useState('');
-  const [employerName, setEmployerName] = useState('');
-  const [employerAddr, setEmployerAddr] = useState('');
-  const [employerPhone, setEmployerPhone] = useState('');
-  const [repairFacility, setRepairFacility] = useState('');
-  const [repairPhone, setRepairPhone] = useState('');
-  const [repairContact, setRepairContact] = useState('');
-  const [delivery, setDelivery] = useState(false);
-  const [collection, setCollection] = useState(false);
-  const [language, setLanguage] = useState('');
-  const [passportNum, setPassportNum] = useState('');
-
-  const mSel: React.CSSProperties = { ...mField, cursor: 'pointer' };
-
-  return (
-    <div style={{ padding: '16px' }}>
-      <MCard title="Insurance Details" cols={6}>
-        <MField label="Carrier" span={2}>
-          <input style={mField} value={insCarrier} onChange={e => setInsCarrier(e.target.value)} />
-        </MField>
-        <MField label="Agency" span={2}>
-          <input style={mField} value={insAgency} onChange={e => setInsAgency(e.target.value)} />
-        </MField>
-        <MField label="Agent" span={2}>
-          <input style={mField} value={insAgent} onChange={e => setInsAgent(e.target.value)} />
-        </MField>
-        <MField label="Phone" span={2}>
-          <input type="tel" style={mField} value={insPhone} onChange={e => setInsPhone(e.target.value)} />
-        </MField>
-        <MField label="Policy #" span={2}>
-          <input style={mField} value={insPolicy} onChange={e => setInsPolicy(e.target.value)} />
-        </MField>
-        <MField label="Policy Expiry" span={2}>
-          <input type="date" style={mField} value={insPolicyExp} onChange={e => setInsPolicyExp(e.target.value)} />
-        </MField>
-      </MCard>
-
-      <MCard title="Arrival" cols={6}>
-        <MField label="Arrival Date" span={2}>
-          <input type="date" style={mField} value={arrivalDate} onChange={e => setArrivalDate(e.target.value)} />
-        </MField>
-        <MField label="Arrival Time" span={2}>
-          <input type="time" style={mField} value={arrivalTime} onChange={e => setArrivalTime(e.target.value)} />
-        </MField>
-      </MCard>
-
-      <MCard title="Vehicle Details (NAF)" cols={6}>
-        <MField label="Year" span={1}>
-          <input style={mField} value={vehYear} onChange={e => setVehYear(e.target.value)} maxLength={4} />
-        </MField>
-        <MField label="Make" span={2}>
-          <input style={mField} value={vehMake} onChange={e => setVehMake(e.target.value)} />
-        </MField>
-        <MField label="Model" span={2}>
-          <input style={mField} value={vehModel} onChange={e => setVehModel(e.target.value)} />
-        </MField>
-        <MField label="Colour" span={1}>
-          <input style={mField} value={vehColor} onChange={e => setVehColor(e.target.value)} />
-        </MField>
-        <MField label="VIN" span={4}>
-          <input style={mField} value={vehVin} onChange={e => setVehVin(e.target.value)} />
-        </MField>
-        <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '22px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
-            <input type="checkbox" checked={totalLoss} onChange={e => setTotalLoss(e.target.checked)} />
-            Total Loss
-          </label>
-        </div>
-      </MCard>
-
-      <MCard title="Local Residence" cols={6}>
-        <MField label="Address" span={4}>
-          <input style={mField} value={localResAddr} onChange={e => setLocalResAddr(e.target.value)} />
-        </MField>
-        <MField label="Phone" span={2}>
-          <input type="tel" style={mField} value={localResPhone} onChange={e => setLocalResPhone(e.target.value)} />
-        </MField>
-      </MCard>
-
-      <MCard title="Employer" cols={6}>
-        <MField label="Name" span={2}>
-          <input style={mField} value={employerName} onChange={e => setEmployerName(e.target.value)} />
-        </MField>
-        <MField label="Address" span={2}>
-          <input style={mField} value={employerAddr} onChange={e => setEmployerAddr(e.target.value)} />
-        </MField>
-        <MField label="Phone" span={2}>
-          <input type="tel" style={mField} value={employerPhone} onChange={e => setEmployerPhone(e.target.value)} />
-        </MField>
-      </MCard>
-
-      <MCard title="Repair Facility" cols={6}>
-        <MField label="Facility" span={3}>
-          <input style={mField} value={repairFacility} onChange={e => setRepairFacility(e.target.value)} />
-        </MField>
-        <MField label="Contact" span={2}>
-          <input style={mField} value={repairContact} onChange={e => setRepairContact(e.target.value)} />
-        </MField>
-        <MField label="Phone" span={1}>
-          <input type="tel" style={mField} value={repairPhone} onChange={e => setRepairPhone(e.target.value)} />
-        </MField>
-      </MCard>
-
-      <MCard title="Other" cols={6}>
-        <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '20px', paddingTop: '22px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
-            <input type="checkbox" checked={delivery} onChange={e => setDelivery(e.target.checked)} />
-            Delivery
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#334155', cursor: 'pointer' }}>
-            <input type="checkbox" checked={collection} onChange={e => setCollection(e.target.checked)} />
-            Collection
-          </label>
-        </div>
-        <MField label="Language" span={2}>
-          <input style={mField} value={language} onChange={e => setLanguage(e.target.value)} />
-        </MField>
-        <MField label="Passport #" span={2}>
-          <input style={mField} value={passportNum} onChange={e => setPassportNum(e.target.value)} />
-        </MField>
-      </MCard>
-    </div>
-  );
-}
-
 /* ─── Accident Details Tab ───────────────────────────────── */
 function AccidentTab() {
   const {
@@ -1771,9 +1629,9 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const tabHasData = (tab: number): boolean => {
     switch (tab) {
       case 0: return !!(firstName || lastName || homePhone || email || street1 || pickupDate || dropDate);
-      case 2: return !!(accDate || accStreet || accDescription || hireType);
-      case 3: return !!(tpFirstName || tpLastName || tpVehRego || tpInsCarrier);
-      case 4: return false; // Card Details: local state only, can't inspect from here
+      case 1: return !!(accDate || accStreet || accDescription || hireType);
+      case 2: return !!(tpFirstName || tpLastName || tpVehRego || tpInsCarrier);
+      case 3: return false; // Card Details: local state only, can't inspect from here
       default: return false;
     }
   };
@@ -1935,12 +1793,11 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
 
         {/* Tab content */}
         {activeTab === 0 && <MainTab />}
-        {activeTab === 1 && <MiscTab />}
-        {activeTab === 2 && <AccidentTab />}
-        {activeTab === 3 && <AtFaultThirdPartyTab />}
-        {activeTab === 4 && <CardDetailsTab />}
-        {activeTab === 5 && <BookingDetailTab />}
-        {activeTab === 6 && <DocumentsTab />}
+        {activeTab === 1 && <AccidentTab />}
+        {activeTab === 2 && <AtFaultThirdPartyTab />}
+        {activeTab === 3 && <CardDetailsTab />}
+        {activeTab === 4 && <BookingDetailTab />}
+        {activeTab === 5 && <DocumentsTab />}
 
         <BtnBar />
       </div>
