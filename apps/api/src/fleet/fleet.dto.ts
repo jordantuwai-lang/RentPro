@@ -57,6 +57,12 @@ export class CreateVehicleDto {
   @IsOptional()
   branchId?: string;
 
+  @IsInt()
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  odometer?: number;
+
 }
 
 export class UpdateVehicleDto {
@@ -98,6 +104,12 @@ export class UpdateVehicleDto {
   @IsString()
   @IsOptional()
   branchId?: string;
+
+  @IsInt()
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  odometer?: number;
 
 }
 

@@ -153,6 +153,7 @@ model Vehicle {
   state        String        @default("")
   category     String
   status       VehicleStatus @default(AVAILABLE)
+  odometer     Int?
   branch       Branch?       @relation(fields: [branchId], references: [id])
   branchId     String?
   reservations Reservation[]
