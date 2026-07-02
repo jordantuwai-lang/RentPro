@@ -135,6 +135,10 @@ interface RezForm {
   saveError: string;
   saveSuccess: boolean;
   save: () => Promise<void>;
+  reservationStatus: string;
+  putOnHire: () => Promise<void>;
+  puttingOnHire: boolean;
+  onHireError: string;
 }
 
 const RezFormContext = createContext<RezForm | null>(null);
@@ -1332,16 +1336,53 @@ function DocFileSlot({ label, desc, icon, val, onChange }: { label: string; desc
 
 /* ─── Documents Tab ──────────────────────────────────────── */
 function DocumentsTab() {
-  const { authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement } = useRezForm();
+  const {
+    authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement,
+    reservationStatus, putOnHire, puttingOnHire, onHireError,
+  } = useRezForm();
+
+  const bothSigned = !!authorityToAct && !!rentalAgreement;
+  const onHire = reservationStatus === 'ACTIVE';
 
   return (
-    <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
-      <MCard title="Authority to Act" cols={1}>
-        <DocFileSlot label="Authority to Act" desc="Upload the signed Authority to Act document" icon="📝" val={authorityToAct} onChange={setAuthorityToAct} />
-      </MCard>
-      <MCard title="Rental Agreement" cols={1}>
-        <DocFileSlot label="Rental Agreement" desc="Upload the signed Rental Agreement" icon="📃" val={rentalAgreement} onChange={setRentalAgreement} />
-      </MCard>
+    <div style={{ padding: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
+        <MCard title="Authority to Act" cols={1}>
+          <DocFileSlot label="Authority to Act" desc="Upload the signed Authority to Act document" icon="📝" val={authorityToAct} onChange={setAuthorityToAct} />
+        </MCard>
+        <MCard title="Rental Agreement" cols={1}>
+          <DocFileSlot label="Rental Agreement" desc="Upload the signed Rental Agreement" icon="📃" val={rentalAgreement} onChange={setRentalAgreement} />
+        </MCard>
+      </div>
+
+      {bothSigned && (
+        <MCard title="On Hire" cols={1}>
+          {onHire ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 4px' }}>
+              <span style={{ fontSize: '22px' }}>✅</span>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#16a34a' }}>On Hire</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>Both documents are signed and the reservation is active.</div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px' }}>
+                Both documents are signed. Put this reservation on hire to activate it.
+              </div>
+              <button
+                type="button"
+                onClick={putOnHire}
+                disabled={puttingOnHire}
+                style={{ padding: '8px 24px', fontSize: '13px', fontWeight: 700, background: puttingOnHire ? '#94a3b8' : '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', cursor: puttingOnHire ? 'not-allowed' : 'pointer' }}
+              >
+                {puttingOnHire ? 'Putting On Hire…' : 'Put On Hire'}
+              </button>
+              {onHireError && <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '8px' }}>{onHireError}</div>}
+            </div>
+          )}
+        </MCard>
+      )}
     </div>
   );
 }
@@ -1691,6 +1732,9 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [rezNumber, setRezNumber] = useState(initialData?.reservationNumber ?? '');
+  const [reservationStatus, setReservationStatus] = useState(initialData?.status ?? 'DRAFT');
+  const [puttingOnHire, setPuttingOnHire] = useState(false);
+  const [onHireError, setOnHireError] = useState('');
 
   const tabHasData = (tab: number): boolean => {
     switch (tab) {
@@ -1775,6 +1819,25 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     }
   };
 
+  const putOnHire = async () => {
+    if (!reservationId) {
+      setOnHireError('Save the reservation before putting it on hire.');
+      return;
+    }
+    setPuttingOnHire(true);
+    setOnHireError('');
+    try {
+      const token = await getToken();
+      await api.patch(`/reservations/${reservationId}`, { status: 'ACTIVE' }, { headers: { Authorization: `Bearer ${token}` } });
+      setReservationStatus('ACTIVE');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      setOnHireError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Failed to put on hire. Please try again.'));
+    } finally {
+      setPuttingOnHire(false);
+    }
+  };
+
   const formCtx: RezForm = {
     firstName, setFirstName, lastName, setLastName, mi, setMi,
     homePhone, setHomePhone, mobile, setMobile, workPhone, setWorkPhone,
@@ -1797,6 +1860,7 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     roLicNum, setRoLicNum, roLicState, setRoLicState, roLicExpires, setRoLicExpires,
     authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement,
     rezNumber, tabHasData, reservationId, isSaving, saveError, saveSuccess, save,
+    reservationStatus, putOnHire, puttingOnHire, onHireError,
   };
 
   return (
