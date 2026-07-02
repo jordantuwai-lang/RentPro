@@ -129,6 +129,7 @@ interface RezForm {
   rentalAgreement: DocFile | null; setRentalAgreement: (v: DocFile | null) => void;
   // Meta
   rezNumber: string;
+  fileNumber: string;
   tabHasData: (tab: number) => boolean;
   reservationId: string | null;
   isSaving: boolean;
@@ -659,7 +660,7 @@ function MainTab() {
     roStreet1, setRoStreet1, roStreet2, setRoStreet2, roCity, setRoCity,
     roState, setRoState, roPostal, setRoPostal, roCountry, setRoCountry,
     roLicNum, setRoLicNum, roLicState, setRoLicState, roLicExpires, setRoLicExpires,
-    rezNumber,
+    rezNumber, fileNumber, reservationStatus,
   } = useRezForm();
 
   const { getToken } = useAuth();
@@ -722,10 +723,19 @@ function MainTab() {
     <div style={{ padding: '16px' }}>
       {/* Reservation summary strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-        {/* Reservation # */}
+        {/* Reservation # / File # */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Reservation #</div>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>{rezNumber || 'Generating…'}</div>
+          {reservationStatus === 'ACTIVE' && fileNumber ? (
+            <>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>File #</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>{fileNumber}</div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Reservation #</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>{rezNumber || 'Generating…'}</div>
+            </>
+          )}
         </div>
         {/* Booked */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
@@ -1732,6 +1742,7 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [rezNumber, setRezNumber] = useState(initialData?.reservationNumber ?? '');
+  const [fileNumber, setFileNumber] = useState(initialData?.fileNumber ?? '');
   const [reservationStatus, setReservationStatus] = useState(initialData?.status ?? 'DRAFT');
   const [puttingOnHire, setPuttingOnHire] = useState(false);
   const [onHireError, setOnHireError] = useState('');
@@ -1828,8 +1839,9 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     setOnHireError('');
     try {
       const token = await getToken();
-      await api.patch(`/reservations/${reservationId}`, { status: 'ACTIVE' }, { headers: { Authorization: `Bearer ${token}` } });
-      setReservationStatus('ACTIVE');
+      const res = await api.post(`/reservations/${reservationId}/on-hire`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setReservationStatus(res.data?.status ?? 'ACTIVE');
+      setFileNumber(res.data?.fileNumber ?? '');
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       setOnHireError(Array.isArray(msg) ? msg.join(', ') : (msg || 'Failed to put on hire. Please try again.'));
@@ -1859,7 +1871,7 @@ export default function TSDReservationDetail({ initialData, reservationId: initi
     roState, setRoState, roPostal, setRoPostal, roCountry, setRoCountry,
     roLicNum, setRoLicNum, roLicState, setRoLicState, roLicExpires, setRoLicExpires,
     authorityToAct, setAuthorityToAct, rentalAgreement, setRentalAgreement,
-    rezNumber, tabHasData, reservationId, isSaving, saveError, saveSuccess, save,
+    rezNumber, fileNumber, tabHasData, reservationId, isSaving, saveError, saveSuccess, save,
     reservationStatus, putOnHire, puttingOnHire, onHireError,
   };
 
