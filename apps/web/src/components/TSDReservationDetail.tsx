@@ -671,7 +671,7 @@ function MainTab() {
       </div>
 
       {/* Pickup / Return locations */}
-      <MCard title="Pickup & Return" cols={4}>
+      <MCard title="Reservation Detail" cols={4}>
         <MField label="Pickup Location" span={2}>
           <select style={mSel} value={pickupLoc} onChange={e => setPickupLoc(e.target.value)}>
             <option value="">— Select location —</option>
