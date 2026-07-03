@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import ReservationDetail from '@/components/ReservationDetail';
+import ReservationDetail from '@/components/reservation-detail/ReservationDetail';
 
 const inp: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', color: '#0f172a', background: '#fff', boxSizing: 'border-box' };
 const lbl: React.CSSProperties = { fontSize: '12px', fontWeight: 500, color: '#374151', marginBottom: '4px', display: 'block' };
@@ -120,7 +120,7 @@ export default function OnHireDetailPage({ params }: { params: Promise<{ id: str
 
       <ReservationDetail
         reservationId={id}
-        reservation={reservation}
+        initialData={reservation}
         onSaveSuccess={() => queryClient.invalidateQueries({ queryKey: ['on-hire'] })}
       />
 
@@ -132,7 +132,7 @@ export default function OnHireDetailPage({ params }: { params: Promise<{ id: str
         </button>
         <div style={{ flex: 1 }} />
         {r.claim && (
-          <button onClick={() => router.push(`/dashboard/claims/${r.claim.id}`)}
+          <button onClick={() => router.push(`/dashboard/claims/${r.id}`)}
             style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #01ae42', background: '#fff', color: '#01ae42', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
             View Claim
           </button>

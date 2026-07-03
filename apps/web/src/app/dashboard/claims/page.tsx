@@ -142,7 +142,7 @@ export default function ClaimsPage() {
               return (
                 <tr
                   key={c.id}
-                  onClick={() => router.push(`/dashboard/claims/${c.id}`)}
+                  onClick={() => router.push(`/dashboard/claims/${c.reservationId}`)}
                   style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', transition: 'background 0.15s' }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
